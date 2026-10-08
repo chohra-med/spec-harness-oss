@@ -75,6 +75,10 @@ default source sample in step 6. Do not edit their instruction files (step 5) an
    from the harness version: those are the user's own. **Never overwrite a preserved or conflicting
    file.** If the target had no `AGENTS.md` or `CLAUDE.md`, the installer adds a scaffold one that
    stays a placeholder until step 7.
+   **Then open `learning_human.html` for the user** (it was just staged at the target root): `open
+   learning_human.html` on macOS, `xdg-open` on Linux, `start` on Windows, or give them the full path.
+   It explains to a person what was installed and what happens next. Do this even when they are
+   away; it changes nothing.
 5. **If `CONFLICTS` lists `CLAUDE.md` or `AGENTS.md`**, the user's own instruction file was kept and
    does not mention the harness, so their client will not load the harness rules. The block to add
    is the fenced `## Spec Harness` block under the heading "3. Existing instruction files" in the
@@ -139,6 +143,8 @@ from. Read them here to understand the method; act on the installed copies in th
 | `templates/` | Files copied into a target: `AGENTS.md`, `CLAUDE.md`, `RULES.md`, `constitution.md`, `goal.template.md`, `workflows/`, `project-skills/` (methods), and `install/` (memory bank, `ai_rules/`, status file) | you change what a project receives |
 | [`install-manifest.json`](./install-manifest.json) | Record of every staged file, with a hash per source | you add, remove or edit a staged file; then run `bash tests/tools/update-install-manifest.sh` |
 | `tests/*.sh` | Contract and fixture tests | before and after every change |
+| [`learning_human.html`](./learning_human.html) | The interactive explainer for humans. Staged into every target; init opens it | a person asks what this is, or you change what the harness does |
+| [`docs/COMPANION-SKILLS.md`](./docs/COMPANION-SKILLS.md) | graphify, diagram-design and the built-in methods | someone asks about diagrams or a visual map of the code |
 | [`docs/GUARDRAILS.md`](./docs/GUARDRAILS.md) | Who may verify, learn and deliver | you touch authority rules |
 
 ### Where each fact lives (one owner each)

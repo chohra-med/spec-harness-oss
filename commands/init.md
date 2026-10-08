@@ -19,6 +19,25 @@ The installer stages files and reports `PENDING`. The synthesis receipt and `spe
 - **Inventory:** run `spec-harness index <target>` first (the installed entrypoint is `node_modules/.bin/spec-harness index <target>` when using the npm package; with no install, `npx -y github:chohra-med/spec-harness-oss index <target>`). Repeat `--source <repo-relative-path>` up to five times to choose up to five total sources; each must be a readable, regular, in-root, first-party source file with a supported source suffix and fit the existing read limits. Invalid or unsafe selections fail without replacing the current inventory. For a package with explicit selections, those paths are its representative sample; packages without selections retain the default sample. Re-pass the flags on every index run. Omitting `--source` preserves the existing default selection. Prefer `ai_rules/project_inventory.json` when it exists; otherwise consume a generated `ai_rules/context_map.md`. JSON parsing supports `package.json` and `pyproject.toml` only. Keep other manifest formats visibly unsupported. Read-only inventory paths/hashes are leads; open the actual source before making a claim.
 - **Allowed writes:** fill only explicit Spec Harness scaffolds or owned generated regions; add missing per-package `RULES.md` and the named project skills (three core, plus technology skills) only when absent. Record conflicts and stop that artifact as PENDING. Do not replace existing user-authored policy, skill or role content. Do not change application source, dependency versions, external settings or release state.
 
+## Show the human first
+
+Before synthesis, open `learning_human.html` from the target root in the user's browser: `open
+learning_human.html` on macOS, `xdg-open learning_human.html` on Linux, `start learning_human.html`
+on Windows. When you cannot open a browser, give them its full path instead. Tell them in one
+sentence that it explains what initialisation is about to do and takes about ten minutes to read.
+Then continue; do not wait for them unless they ask you to. If the file is absent, say so and
+continue.
+
+## Companion tools (optional)
+
+Check these once and report what you find. Never install anything without the user's yes.
+
+- **graphify** (`command -v graphify`). When present, run `graphify update .` after `index`: it
+  needs no model and writes `graphify-out/graph.html`, a map of the code the user can open, plus
+  `graphify-out/GRAPH_REPORT.md`. Suggest adding `graphify-out/` to `.gitignore`. When absent, tell
+  the user once how to add it (`docs/COMPANION-SKILLS.md` in the Spec Harness repository).
+- **diagram-design** (a skill). When present, use it for every diagram you draw for the user.
+
 ## Synthesis procedure
 
 1. **Map package boundaries.** Enumerate every inventory package path, manifest name/status, declared dependency names, scripts, representative sources, applicable instructions, exclusions and unsupported formats. An incomplete inventory or unsupported manifest stays `PARTIAL`; identify its effect instead of guessing.

@@ -556,6 +556,27 @@ def agent_file_ok(text):
 agent_file = (root / "AGENTS.md").read_text()
 require(agent_file_ok(agent_file), "root AGENTS.md routes the three jobs and its links resolve")
 require((root / "CLAUDE.md").read_text().strip() == "@AGENTS.md", "root CLAUDE.md imports AGENTS.md")
+
+def human_page_ok(page, files):
+    """The explainer for humans is one offline file, is staged, and init opens it."""
+    loads = re.search(r"<link\b|<script[^>]+\bsrc=|@import|\bsrc=[\"']https?:|url\(\s*[\"']?https?:", page, re.I)
+    return (
+        "<title>" in page and page.count("<svg") >= 3 and 'role="img"' in page and not loads
+        and "prefers-color-scheme: dark" in page
+        and 'plan_copy learning_human.html "$SYS_DIR/learning_human.html"' in files["bin/sh-install.sh"]
+        and "Read first: open learning_human.html" in files["bin/sh-install.sh"]
+        and "## Show the human first" in files["commands/init.md"] and "open\nlearning_human.html" in files["commands/init.md"]
+        and "first open `learning_human.html`" in files["commands/sdd.md"]
+        and '"learning_human.html"' in files["package.json"]
+        and "learning_human.html" in files["AGENTS.md"] and "learning_human.html" in files["docs/GETTING-STARTED.md"]
+    )
+HUMAN_FILES = ("bin/sh-install.sh", "commands/init.md", "commands/sdd.md", "package.json", "AGENTS.md", "docs/GETTING-STARTED.md")
+human_page = (root / "learning_human.html").read_text()
+human_files = {path: (root / path).read_text() for path in HUMAN_FILES}
+require(human_page_ok(human_page, human_files), "the human explainer is one offline file, staged by the installer and opened at init")
+require(not human_page_ok(human_page + '<script src="https://cdn.example/x.js"></script>', human_files), "RED control: the human explainer loads a remote script")
+for path in HUMAN_FILES:
+    require(not human_page_ok(human_page, dict(human_files, **{path: "[planted omission]"})), f"RED control: human explainer wiring missing from {path}")
 require(not agent_file_ok(agent_file + "\n[gone](./no-such-file.md)\n"), "RED control: dead link in the root agent file")
 require(not agent_file_ok(agent_file.replace("## Job 2:", "## Other:")), "RED control: a job section removed from the root agent file")
 require(light_route_contract(d), "MICRO light route is one file, two stages and an independent verifier")
