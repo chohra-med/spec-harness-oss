@@ -398,7 +398,8 @@ for directory, dirnames, filenames in os.walk(root, topdown=True, followlinks=Fa
         if is_instruction_file(path_rel):
             instruction_files.append((path_rel, path))
         # The staged root loop.sh is the harness's own placeholder, not project source.
-        if Path(name).suffix.lower() in SOURCE_SUFFIXES and path_rel != "loop.sh":
+        harness_loop = path_rel == "loop.sh" and b"# Spec Harness minimal loop" in (read_bounded(path, 65536)[0] or b"")
+        if Path(name).suffix.lower() in SOURCE_SUFFIXES and not harness_loop:
             source_paths.append((relative_dir, path_rel, path))
 
     if truncated:
