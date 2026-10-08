@@ -131,13 +131,15 @@ you. The command only copies files. It prints a status and four lists:
 
 | List | Meaning |
 |---|---|
-| `ADDED` | New files. Roughly 85 on a project that had none of them. |
+| `ADDED` | New files, one per entry in `install-manifest.json` on a project that had none of them. |
 | `PRESERVED` | Your files that already existed. They are never overwritten. |
 | `CONFLICTS` | Preserved files whose content differs from the harness version. Yours was kept. |
 | `PENDING` | What still needs a model: rules, roles and skills. |
 | `status : PENDING` | Expected. Nothing has read your code yet. |
 
 Running it a second time is safe: it adds nothing and changes nothing.
+
+`install-manifest.json` at the repository root is the owner of the staged set: every destination, its source file, the two substitutions, the directories and the loader block below. `tests/install-manifest-contract.sh` installs into an empty git repository and checks that the files created match the manifest exactly, byte for byte.
 
 What lands in the repository:
 

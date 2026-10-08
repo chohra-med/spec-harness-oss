@@ -1,6 +1,6 @@
 {
   "name": "spec-harness",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "private": true,
   "description": "Spec-driven development wrapped in a harness: a persistent memory bank, a ratchet that only tightens, a separate verifier that says PASS/FAIL, and a learning loop that classifies feedback before reviewed corrections become rules.",
   "author": "Malik Chohra <malik@getwireai.com>",
@@ -23,6 +23,7 @@
     "skills",
     "templates",
     "docs",
+    "install-manifest.json",
     "README.md",
     "ARCHITECTURE.md"
   ],

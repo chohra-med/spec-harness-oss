@@ -128,17 +128,9 @@ plan_copy() {
   PLAN_SRCS+=("$2")
 }
 
-plan_stdin() {
-  local rel=$1 index=${#PLAN_RELS[@]} expected
-  expected="$PLAN_DIR/$index"
-  cat >"$expected"
-  chmod 644 "$expected"
-  PLAN_RELS+=("$rel")
-  PLAN_SRCS+=("$expected")
-}
-
 render_template() {
   local template=$1 token=$2 replacement=$3 line
+  [ -f "$SYS_DIR/$template" ] || { echo "missing installer source: $SYS_DIR/$template; no target files were written." >&2; exit 1; }
   while IFS= read -r line || [ -n "$line" ]; do
     line=${line//"$token"/"$replacement"}
     printf '%s\n' "$line"
@@ -164,97 +156,19 @@ plan_copy loop.sh "$SYS_DIR/bin/loop.sh"
 plan_copy workflows/README.md "$SYS_DIR/templates/workflows/README.md"
 plan_copy workflows/EXAMPLE.md "$SYS_DIR/templates/workflows/EXAMPLE.md"
 
-SPEC_HARNESS_SOURCE="$PLAN_DIR/SPEC-HARNESS.md"
-{
-  printf '# Spec Harness — %s\n\n' "$NAME"
-  cat <<'EOF'
-Status: **PENDING**. This deterministic install stages the harness; it does not inspect this
-project, derive rules or skills, bind roles, or create feature-specific acceptance.
+plan_template SPEC-HARNESS.md templates/install/SPEC-HARNESS.md '{{PROJECT_NAME}}' "$NAME"
 
-## SDD entry
-- Claude: `/sdd init` or `/sdd <ticket text or connected reference>` → `.claude/commands/sdd.md`.
-- Codex: use `.agents/skills/sdd/SKILL.md` when project skills are available, or follow the same
-  procedure manually. File presence does not prove native discovery or delegation.
-- Shell: `spec-harness sdd ...` prints the shared procedure and exits 2/PENDING; no model stage or
-  independent gate ran.
-
-## Next work
-- Read this project's existing policies and preserve their authority.
-- Fill the memory bank and ai_rules/rules/frequent_rules.md from project evidence.
-- Bind each installed role and the project skills to cited package evidence; have a separate
-  fresh reviewer confirm the claims after the structural check.
-- Keep each ticket's acceptance in `specs/<feature>/goal.md`; preserve the root goal scaffold.
-- Re-run the relevant checks before calling this setup READY.
-EOF
-} >"$SPEC_HARNESS_SOURCE"
-chmod 644 "$SPEC_HARNESS_SOURCE"
-plan_copy SPEC-HARNESS.md "$SPEC_HARNESS_SOURCE"
-
-declare -a BANK=()
-BANK+=("00-description:Cold:one-paragraph what-this-is")
-BANK+=("01-brief:Cold:the decoded brief and source intent")
-BANK+=("10-product:Cold:who it serves, the goal, and success")
-BANK+=("20-system:Warm:architecture and how the pieces connect")
-BANK+=("30-tech:Warm:stack, commands, dependencies, and justifications")
-BANK+=("40-active:Hot:current focus and next action")
-BANK+=("50-progress:Hot:dated progress log")
-BANK+=("60-decisions:Warm:context, options, choices, and reasons")
-BANK+=("70-knowledge:Warm:durable lessons and patterns")
-BANK+=("80-feedback:Hot:learning-loop inbox")
-for entry in "${BANK[@]}"; do
-  IFS=: read -r file tier desc <<<"$entry"
-  plan_stdin ".memory/$file.md" <<EOF
-# $file — $NAME
-
-> Tier: $tier. $desc
-
-PENDING: fill only from this project's evidence. This header is not a completed memory entry.
-EOF
+for file in 00-description 01-brief 10-product 20-system 30-tech 40-active 50-progress 60-decisions 70-knowledge 80-feedback; do
+  plan_template ".memory/$file.md" "templates/install/memory/$file.md" '{{PROJECT_NAME}}' "$NAME"
 done
 
-plan_stdin ai_rules/globalRules.md <<EOF
-# $NAME — rules index
-
-Startup load order (see CLAUDE.md): core -> context_management -> frequent_rules.
-- rules/core.md — behavioral foundation
-- rules/context_management.md — anti-hallucination checklist
-- rules/frequent_rules.md — project-derived rules (PENDING until researched)
-- ../AGENTS.md — the project's ratchet and hard constraints
-- ../constitution.md — SDD non-negotiables
-EOF
-plan_stdin ai_rules/context_map.md <<EOF
-# $NAME — context map
-
-PENDING: map real modules after inspecting this repository.
-EOF
-plan_stdin ai_rules/updated_rules.md <<EOF
-# $NAME — living overrides
-
-PENDING: add dated overrides only when project evidence requires them.
-EOF
-plan_stdin ai_rules/rules/core.md <<EOF
-# Core rules — $NAME
-1. Surface uncertainty and assumptions before code.
-2. Use the minimum change that solves the task.
-3. Preserve unrelated user work.
-4. State acceptance criteria and verify before reporting completion.
-EOF
-plan_stdin ai_rules/rules/context_management.md <<EOF
-# Context checks — $NAME
-Before using a file, symbol, or command, confirm it exists and its current definition matches
-the intended use. A missing or contradictory source means stop and inspect first.
-EOF
-plan_stdin ai_rules/rules/frequent_rules.md <<EOF
-# Frequent rules — $NAME
-
-PENDING: derive rules from this project's own code and policies. Do not copy rules from another
-stack or treat this placeholder as completed policy.
-EOF
-plan_stdin learning/NOTES.md <<EOF
-# Learning log — $NAME
-
-PENDING: record project-specific techniques only after observing them in real work.
-EOF
+plan_template ai_rules/globalRules.md templates/install/ai_rules/globalRules.md '{{PROJECT_NAME}}' "$NAME"
+plan_template ai_rules/context_map.md templates/install/ai_rules/context_map.md '{{PROJECT_NAME}}' "$NAME"
+plan_template ai_rules/updated_rules.md templates/install/ai_rules/updated_rules.md '{{PROJECT_NAME}}' "$NAME"
+plan_template ai_rules/rules/core.md templates/install/ai_rules/rules/core.md '{{PROJECT_NAME}}' "$NAME"
+plan_template ai_rules/rules/context_management.md templates/install/ai_rules/rules/context_management.md '{{PROJECT_NAME}}' "$NAME"
+plan_template ai_rules/rules/frequent_rules.md templates/install/ai_rules/rules/frequent_rules.md '{{PROJECT_NAME}}' "$NAME"
+plan_template learning/NOTES.md templates/install/learning/NOTES.md '{{PROJECT_NAME}}' "$NAME"
 
 # Stage only existing Spec Harness-owned files. Never delete target content or refresh over it.
 shopt -s nullglob
@@ -268,23 +182,7 @@ for source in "$SYS_DIR"/commands/*.md; do
   plan_copy ".claude/commands/spec-harness/${source##*/}" "$source"
 done
 plan_copy .claude/commands/sdd.md "$SYS_DIR/commands/sdd.md"
-plan_stdin .agents/skills/sdd/SKILL.md <<'EOF'
----
-name: sdd
-description: Start the shared Spec Harness procedure for project initialization or ticket work.
----
-
-# sdd
-
-This is a thin Codex project-skill adapter. Read and follow `.claude/commands/sdd.md`, the one
-shared procedure, including its feature-specific goal, Ponytail, Grill Me, fresh-context gate and
-merger-authority requirements. Use only bound role and skill paths named by
-`.claude/agents/.init-synthesis.json`; do not copy project-specific guidance here.
-
-If this client cannot discover or delegate the requested role, report the capability as
-UNVERIFIED and follow the shared manual handoff with truly separate contexts, or leave the gate
-PENDING. Do not infer native behavior from this file's presence.
-EOF
+plan_copy .agents/skills/sdd/SKILL.md "$SYS_DIR/templates/install/agents-skill-sdd.md"
 for method in ponytail grill-me package-finder skill-finder; do
   plan_copy ".agents/skills/spec-harness-$method/SKILL.md" "$SYS_DIR/skills/spec-harness-$method/SKILL.md"
 done
