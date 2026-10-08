@@ -29,6 +29,81 @@ what the initialiser wrote; allow longer on a large app.
 The harness adds no dependency to your application and never edits application source during
 install or initialisation.
 
+## Get the CLI: two routes
+
+The CLI only copies files and runs checks. Pick one route and use it for every `spec-harness`
+command in the steps below.
+
+### Route A: `npx`, nothing to install
+
+```sh
+npx -y github:chohra-med/spec-harness-oss help
+```
+
+`npx` downloads the repository from GitHub each time and runs it. Good for a first try. To make
+every run use the same version, pin a commit:
+
+```sh
+npx -y "github:chohra-med/spec-harness-oss#1777c79" help
+```
+
+### Route B: `git clone`, a local checkout
+
+Use this when you want to read the source first, work offline, pin a version for a team, or when
+`npx` from GitHub is blocked on your network. It needs no Node.js.
+
+1. **Clone it outside your project.** The checkout is a tool, not part of your application.
+
+   ```sh
+   mkdir -p ~/tools
+   git clone https://github.com/chohra-med/spec-harness-oss.git ~/tools/spec-harness-oss
+   ```
+
+2. **Check what you got.**
+
+   ```sh
+   cd ~/tools/spec-harness-oss
+   git log --oneline -1          # the version you are about to use
+   bash bin/spec-harness help    # prints the command list
+   python3 --version             # 3.11 or newer
+   ```
+
+3. **Put the CLI on your `PATH`.** For the current terminal only:
+
+   ```sh
+   export PATH="$HOME/tools/spec-harness-oss/bin:$PATH"
+   spec-harness help
+   ```
+
+   To keep it, add that `export` line to `~/.zshrc` (or `~/.bashrc`) and open a new terminal.
+   If you would rather not change `PATH`, call it by its full path instead:
+   `bash ~/tools/spec-harness-oss/bin/spec-harness help`.
+
+4. **Optional: run its own tests** before trusting it. They need `rg` (ripgrep) on your `PATH`.
+
+   ```sh
+   cd ~/tools/spec-harness-oss
+   for t in tests/*.sh; do bash "$t" >/dev/null 2>&1; echo "exit $? $t"; done
+   ```
+
+   Every line should say `exit 0`.
+
+5. **Update later** with `git -C ~/tools/spec-harness-oss pull`. To stay on one version, check out
+   a commit: `git -C ~/tools/spec-harness-oss checkout <commit>`. Updating the checkout does not
+   change a project you already staged; re-running `init` there only adds files that are missing.
+
+With route B, every command below that starts with
+`npx -y github:chohra-med/spec-harness-oss` becomes `spec-harness`:
+
+| Step | Route A | Route B |
+|---|---|---|
+| 2. Stage | `npx -y github:chohra-med/spec-harness-oss init . integrate` | `spec-harness init . integrate` |
+| 4. Inventory | `npx -y github:chohra-med/spec-harness-oss index .` | `spec-harness index .` |
+| 5. Check | `npx -y github:chohra-med/spec-harness-oss generate-agents --check .` | `spec-harness generate-agents --check .` |
+
+The files staged into your project are the same on both routes. Inside Claude Code, `/sdd init`
+runs `spec-harness` when it is on your `PATH` and falls back to the `npx` form when it is not.
+
 ## Step by step
 
 ### 1. Start on a branch
@@ -45,10 +120,11 @@ There is no uninstall command. The branch is your undo: delete it, or see
 ### 2. Stage the harness
 
 ```sh
-npx -y github:chohra-med/spec-harness-oss init . integrate
+npx -y github:chohra-med/spec-harness-oss init . integrate   # route A
+spec-harness init . integrate                                # route B, from your project root
 ```
 
-`integrate` is for an existing project, `new` for an empty one, and leaving the mode out picks for
+Run one of the two, from the root of your project (not from the harness checkout). `integrate` is for an existing project, `new` for an empty one, and leaving the mode out picks for
 you. The command only copies files. It prints a status and four lists:
 
 | List | Meaning |

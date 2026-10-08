@@ -81,7 +81,7 @@ Then open the project in Claude Code and run `/sdd init`. The first command stag
 reports `PENDING`. The second reads the codebase and writes its rules, skills and roles.
 
 **Adopting it in an existing project?** Follow [docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md):
-ten steps from a clean branch to a first verified ticket, including what to do when the project
+both ways to get the CLI (`npx`, or a `git clone` you keep on your machine), then ten steps from a clean branch to a first verified ticket, including what to do when the project
 already has its own `CLAUDE.md` and `AGENTS.md`, how to review what the initialiser wrote, and how
 to undo it.
 
@@ -100,7 +100,7 @@ To install the CLI from a local tarball instead, run `npm pack` from the checkou
 filename it prints. For the current version, that is:
 
 ```sh
-npm install --global ./spec-harness-0.1.2.tgz
+npm install --global ./spec-harness-0.1.3.tgz
 ```
 
 Staging reports `PENDING`. It copies a scaffold; it does not synthesize project rules, run agents,
