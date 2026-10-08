@@ -137,7 +137,7 @@ from. Read them here to understand the method; act on the installed copies in th
 | `bin/sh-make-skills.sh` | **Generates** `skills/` | you change a skill's text |
 | `skills/` | Generated skill entry points. **Never edit by hand** | read only |
 | `templates/` | Files copied into a target: `AGENTS.md`, `CLAUDE.md`, `RULES.md`, `constitution.md`, `goal.template.md`, `workflows/`, `project-skills/` (methods), and `install/` (memory bank, `ai_rules/`, status file) | you change what a project receives |
-| [`install-manifest.json`](./install-manifest.json) | Record of every staged file, with a hash per source | you add, remove or edit a staged file |
+| [`install-manifest.json`](./install-manifest.json) | Record of every staged file, with a hash per source | you add, remove or edit a staged file; then run `bash tests/tools/update-install-manifest.sh` |
 | `tests/*.sh` | Contract and fixture tests | before and after every change |
 | [`docs/GUARDRAILS.md`](./docs/GUARDRAILS.md) | Who may verify, learn and deliver | you touch authority rules |
 
@@ -179,8 +179,9 @@ your local run is the only gate, so report the exit lines and the failing log as
 - **After editing `bin/sh-make-skills.sh`**, run `bash bin/sh-make-skills.sh` and commit the
   regenerated `skills/`.
 - **After editing any file that gets staged** (anything under `agents/`, `commands/`, `skills/`,
-  `templates/`), update its `sha256` in `install-manifest.json`
-  (`shasum -a 256 <file>`). `tests/install-manifest-contract.sh` names the entry when you forget.
+  `templates/`), run `bash tests/tools/update-install-manifest.sh`. It rewrites every `sha256` in
+  `install-manifest.json` and sets `harnessVersion` from `package.json`, and changes nothing else.
+  `tests/install-manifest-contract.sh` names the entry when you forget.
 - **Keep the docs true.** If you change install behaviour, a count, a prerequisite or an exit code,
   update `README.md` and `docs/GETTING-STARTED.md` in the same change.
 - **Nothing private in a public repository.** No client, employer or personal directory names.

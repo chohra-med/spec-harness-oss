@@ -140,7 +140,7 @@ render_template() {
 plan_template() {
   local rel=$1 template=$2 token=$3 replacement=$4 index=${#PLAN_RELS[@]} expected
   expected="$PLAN_DIR/$index"
-  render_template "$template" "$token" "$replacement" >"$expected"
+  render_template "$template" "$token" "$replacement" >"$expected" || { echo "cannot read installer source: $SYS_DIR/$template; no target files were written." >&2; exit 1; }
   chmod 644 "$expected"
   PLAN_RELS+=("$rel")
   PLAN_SRCS+=("$expected")
