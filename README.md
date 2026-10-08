@@ -80,6 +80,12 @@ npx -y github:chohra-med/spec-harness-oss init . integrate
 Then open the project in Claude Code and run `/sdd init`. The first command stages the harness and
 reports `PENDING`. The second reads the codebase and writes its rules, skills and roles.
 
+**New here? Read the ten-minute explainer first.** [`learning_human.html`](./learning_human.html) is
+one interactive page: what Spec Harness is, how a ticket moves through it, which model does what,
+what lands in your repository and how it improves over time. It is copied into every project you
+set up, and the agent opens it for you when you run `/sdd init`. Download it and open it in a
+browser; it needs no network.
+
 **Using an agent?** Point Claude Code, Codex or any agent at this repository and say what you want,
 for example "read AGENTS.md in this repository and add Spec Harness to my project at <path>".
 [`AGENTS.md`](./AGENTS.md) tells it how to install, how to run the workflow and where everything is.
@@ -106,7 +112,7 @@ To install the CLI from a local tarball instead, run `npm pack` from the checkou
 filename it prints. For the current version, that is:
 
 ```sh
-npm install --global ./spec-harness-0.2.1.tgz
+npm install --global ./spec-harness-0.3.0.tgz
 ```
 
 Staging reports `PENDING`. It copies a scaffold; it does not synthesize project rules, run agents,
@@ -136,6 +142,7 @@ matching, and the result of a first real-ticket run remain unverified for this r
 | [`tester`](./commands/tester.md) | Adversarially validate the critical `workflows/` — per journey, a clean-context agent **runs it + tries to break it** (bad inputs, kill mid-flow, races, offline, boundaries), reporting what's BROKEN, ranked P0 first. `--scan` derives candidate workflows from the app; every BROKEN feeds `learn`. The proactive complement to `verify`. |
 | [`document`](./commands/document.md) | Docs + comments to **the project technology's own standard** (Python docstrings, TS/JS TSDoc/JSDoc, GoDoc, rustdoc, Javadoc, …) + truthful README/ARCHITECTURE. Comments the WHY, never the WHAT. Behavior-locked (re-runs the suite to prove zero logic change). |
 | [`ship`](./commands/ship.md) | Records delivery evidence and applies explicit merger authority. Green gates do not authorize a commit, push, merge, deploy or release. |
+| [`teach`](./commands/teach.md) | Explain a system to a human as one self-contained interactive page: the idea, the flow, the structure, how to use it, evidence and limits. Never edits application source. |
 | [`learn`](./commands/learn.md) | Classify feedback/corrections and add durable rules only after review (+ optional human lesson). |
 | [`audit`](./commands/audit.md) | Health-check the bank, rules, and index. Flag stale/contradictory/redundant. |
 
@@ -170,8 +177,9 @@ documentation before connecting a tool.
 1. [`ARCHITECTURE.md`](./ARCHITECTURE.md) — the diagrams: the 3 pillars, the SDD flow, the
    ratchet, and the verifier + learning loop wired in.
 2. [`docs/GUARDRAILS.md`](./docs/GUARDRAILS.md) — current procedures for evidence, reviewed learning, and delivery authority.
-3. [`docs/MCP-SERVERS.md`](./docs/MCP-SERVERS.md) — a dated illustrative MCP map; recheck vendor details before use.
-4. [`commands/init.md`](./commands/init.md) — start here to use it on a project.
+3. [`docs/COMPANION-SKILLS.md`](./docs/COMPANION-SKILLS.md) — graphify, diagram-design and the methods that ship inside.
+4. [`docs/MCP-SERVERS.md`](./docs/MCP-SERVERS.md) — a dated illustrative MCP map; recheck vendor details before use.
+5. [`commands/init.md`](./commands/init.md) — start here to use it on a project.
 
 ## More from Code Meet AI
 

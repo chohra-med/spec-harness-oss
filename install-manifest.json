@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "harnessVersion": "0.2.1",
+  "harnessVersion": "0.3.0",
   "description": "Record of the file set bin/sh-install.sh stages into a target. The installer does not read this file; tests/install-manifest-contract.sh proves a real install produces exactly this set, byte for byte.",
   "substitutions": {
     "placeholder": "{name}",
@@ -180,7 +180,7 @@
       "source": "commands/sdd.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "6b209f34b7e5ce7b31fdbdb16a54f3bbfbec26ad7a39eeff3b8dbe8487822e56",
+      "sha256": "0f49210b280459afe3b99145b8ce9feac65ca279ae1babecbc9c248f3f839172",
       "mode": "0644"
     },
     {
@@ -228,7 +228,7 @@
       "source": "commands/init.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "f1e4c7d69edd3490bc8ed82be88d866c4ad98f3527b0804fcac2dfc783f67791",
+      "sha256": "e5c4ed67d7f9262c4895481d274791f683d0e10577d1ccd1d61e6b5d71ca74eb",
       "mode": "0644"
     },
     {
@@ -309,6 +309,14 @@
       "render": "copy",
       "tokens": [],
       "sha256": "8881b392c217e124093d492204ca269b15035e8bf7a4069cca26d57e0f4a8f96",
+      "mode": "0644"
+    },
+    {
+      "destination": ".claude/commands/spec-harness/teach.md",
+      "source": "commands/teach.md",
+      "render": "copy",
+      "tokens": [],
+      "sha256": "d03325d6e11ea6a01acf35038f9276b594633d088c6b7e53e3d06a442a8f0a05",
       "mode": "0644"
     },
     {
@@ -437,6 +445,14 @@
       "render": "copy",
       "tokens": [],
       "sha256": "940ed845775c1ee2be438ff8b4ce192ea1983a1ae9d9bf5fa3ec1799f019c380",
+      "mode": "0644"
+    },
+    {
+      "destination": ".claude/skills/spec-harness-teach/SKILL.md",
+      "source": "skills/spec-harness-teach/SKILL.md",
+      "render": "copy",
+      "tokens": [],
+      "sha256": "87e894e0ab2e41f649e7d24bb7fbdffb749581e4c1f0a847e03791ccc49c57c4",
       "mode": "0644"
     },
     {
@@ -729,6 +745,14 @@
         "{{PROJECT_NAME}}"
       ],
       "sha256": "72daedbb3a5b3a9865ed263a4e99375d918d864bb5b7e0e458162f9642ca0fce",
+      "mode": "0644"
+    },
+    {
+      "destination": "learning_human.html",
+      "source": "learning_human.html",
+      "render": "copy",
+      "tokens": [],
+      "sha256": "a5b00cd45d091de64cc1edbe529dddbaed1e9a7d38c022dc3a26f89d738d7de3",
       "mode": "0644"
     },
     {

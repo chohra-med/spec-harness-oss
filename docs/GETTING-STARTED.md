@@ -143,6 +143,10 @@ you. The command only copies files. It prints a status and four lists:
 
 Running it a second time is safe: it adds nothing and changes nothing.
 
+**Read `learning_human.html` now.** It was just copied to your project root. Open it in a browser:
+it is a ten-minute interactive tour of how the harness works, and it makes the next steps obvious.
+The agent opens it for you when you run `/sdd init`. You can delete it afterwards.
+
 `install-manifest.json` at the repository root records the staged set (the installer's own code still decides what is staged, and the test below keeps the two in step): every destination, its source file, the two substitutions, the directories and the loader block below. `tests/install-manifest-contract.sh` installs into an empty git repository and checks that the files created match the manifest exactly, byte for byte.
 
 What lands in the repository:
@@ -155,6 +159,7 @@ What lands in the repository:
 | `.memory/` | the project memory bank |
 | `ai_rules/`, `RULES.md`, `AGENTS.md`, `CLAUDE.md`, `constitution.md` | rules, only where you had none |
 | `specs/`, `workflows/`, `learning/`, `SPEC-HARNESS.md`, `goal.md` | ticket packets, critical journeys, lessons, status |
+| `learning_human.html` | the interactive explainer for people; delete it once read |
 | `loop.sh` | a legacy placeholder; you can delete it |
 
 ### 3. Existing instruction files
@@ -325,7 +330,7 @@ Before the commit:
 ```sh
 git restore .
 git clean -fd .claude .agents .memory ai_rules specs workflows learning
-git clean -f AGENTS.md CLAUDE.md RULES.md SPEC-HARNESS.md constitution.md goal.md loop.sh
+git clean -f AGENTS.md CLAUDE.md RULES.md SPEC-HARNESS.md constitution.md goal.md loop.sh learning_human.html
 ```
 
 `git clean` removes only untracked files, so anything of yours that was already committed stays.
