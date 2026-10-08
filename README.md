@@ -96,11 +96,13 @@ TARGET="/path/to/existing-project"
 PATH="$PWD/bin:$PATH" spec-harness install "$TARGET" integrate
 ```
 
+`install-manifest.json` lists every file `install` stages and where each one comes from. `bash tests/install-manifest-contract.sh` runs a real install into an empty git repository and checks the result against that list, byte for byte.
+
 To install the CLI from a local tarball instead, run `npm pack` from the checkout, then install the
 filename it prints. For the current version, that is:
 
 ```sh
-npm install --global ./spec-harness-0.1.3.tgz
+npm install --global ./spec-harness-0.2.0.tgz
 ```
 
 Staging reports `PENDING`. It copies a scaffold; it does not synthesize project rules, run agents,
