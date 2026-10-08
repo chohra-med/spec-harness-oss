@@ -468,6 +468,19 @@ def tier_contract(text, owns_table=False):
         )
     return result
 
+LIGHT_ROUTE = (
+    "### MICRO light route", "specs/<feature>/ticket.md", "do not record file or diff hashes",
+    "No separate tester, reviewer, planner or\n  finisher stage runs", "is not the implementer's",
+    "explicit authority before any commit, push or merge", "Escalate to LITE", "Evidence is proportional",
+)
+
+def light_route_contract(d):
+    """MICRO is one file and two stages, and still has an independent verifier."""
+    return (
+        all(token in d["sdd"] for token in LIGHT_ROUTE)
+        and "you are the only gate" in d["verifier"]
+    )
+
 def plans_strong(d):
     """Plan strong, implement fast: the planner must not share the implementer's model."""
     models = [re.search(r"^model: (\S+)$", d[role], re.M) for role in ("planner", "implementer")]
@@ -481,6 +494,7 @@ require(all(x in d["sdd"] for x in ("specs/<feature>/input.md", "specs/<feature>
 require(tier_contract(d["sdd"], owns_table=True), "shared route owns the single model-tier table and its rules")
 require(tier_contract(d["plan"]), "plan route asks for tiers and names no model")
 require(plans_strong(d), "planner runs on a different tier from the implementer")
+require(light_route_contract(d), "MICRO light route is one file, two stages and an independent verifier")
 require(learning_contracts(d), "feedback is captured and reviewed before policy application")
 require(tester_feedback_contract(d, source=True), "source tester carriers agree on reviewed learning and PENDING/manual execution")
 bad_tester = dict(d)
@@ -508,6 +522,11 @@ for key in ("sdd", "plan"):
     require(not tier_contract(bad_stop, owns), f"RED control: planted stop-on-missing-model rule in {key}")
 bad_independence = d["sdd"].replace("Independence never bends", "Independence is preferred")
 require(not tier_contract(bad_independence, True), "RED control: removed independence rule from the tier table")
+for token in LIGHT_ROUTE:
+    bad_light = dict(d); bad_light["sdd"] = d["sdd"].replace(token, "[planted omission]")
+    require(not light_route_contract(bad_light), f"RED control: light route without {token[:40]!r}")
+bad_gate = dict(d); bad_gate["verifier"] = d["verifier"].replace("you are the only gate", "[planted omission]")
+require(not light_route_contract(bad_gate), "RED control: verifier role unaware it is the only MICRO gate")
 bad_tier = dict(d); bad_tier["planner"] = re.sub(r"^model: \S+$", "model: sonnet", d["planner"], flags=re.M)
 require(not plans_strong(bad_tier), "RED control: planner demoted to the implementer tier")
 

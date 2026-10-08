@@ -24,6 +24,9 @@ Roles ask for a model tier, not a model: plan on the strongest model, implement 
 and review on whichever the token budget allows. One table in [`commands/sdd.md`](./commands/sdd.md)
 maps tiers to models per provider, so changing provider means filling one column.
 
+Small fixes take a light route: one ticket file, one implementer and one fresh verifier. Larger or
+riskier work keeps the full packet with separate tester, verifier and reviewer.
+
 ## The three pillars
 
 Everything in Spec Harness is one of three things. The name is literal: **Spec** + **Harness**.

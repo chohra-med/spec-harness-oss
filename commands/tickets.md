@@ -37,5 +37,6 @@ Create one new `specs/<feature>/` packet as described by `.claude/commands/sdd.m
 - `tasks.md` — ordered work with changed paths, acceptance, tests and dependencies;
 - `gates/` — separate tester, verifier, reviewer and merger records.
 
-The ticket's `goal.md` is the verifier target. Root `goal.md` remains untouched. No external
+A MICRO ticket writes one `ticket.md` instead of this packet; its goal checks are the verifier
+target. Otherwise the ticket's `goal.md` is the verifier target. Root `goal.md` remains untouched. No external
 write-back, commit, push, merge, deployment or release follows from intake.

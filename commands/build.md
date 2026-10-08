@@ -43,5 +43,6 @@ tests/review does not authorize external write-back, commit, push, merge, deploy
 ## Completion
 
 The orchestrator marks a task complete only after fresh tester, verifier and reviewer records all
-pass against the same source/rule/goal revisions. Merger action follows `.claude/commands/sdd.md`
+pass against the same source/rule/goal revisions. A MICRO ticket completes on the single fresh
+verifier result in `specs/<feature>/ticket.md` (light route in `.claude/commands/sdd.md`). Merger action follows `.claude/commands/sdd.md`
 and the project's explicit authority; default is report-and-wait.

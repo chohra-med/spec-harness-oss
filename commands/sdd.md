@@ -127,13 +127,35 @@ touched scope and risk:
 - **FULL:** multi-repository, shared-interface, security-sensitive, externally consequential, or otherwise
   high-risk work. When uncertain, use FULL.
 
-Record the class and reason in the packet. Every class retains exact input provenance, accepted
-`spec.md`/`goal.md`, source identity, applicable rule paths and hashes, declared dependencies, and
-independent acceptance. MICRO/LITE may keep concise inline intent in the existing `plan.md` and `tasks.md` and skip a
+Record the class and reason in the packet. Every class retains exact input provenance, a literal
+goal, source identity, the applicable rules and independent acceptance. LITE and FULL also keep an
+accepted `spec.md`/`goal.md`, rule paths and hashes, and declared dependencies. MICRO/LITE may keep concise inline intent in the existing `plan.md` and `tasks.md` and skip a
 delegated planner when there are no material architecture/reuse decisions. Keep the same feature packet
 and enough accepted plan/task evidence for independent roles to audit the change. FULL retains the
 complete feature packet and applicable research/design/coherence work. Required startup rules and security
 constraints are never optional context.
+
+### MICRO light route
+
+A MICRO ticket is a small fix, typically one or two source files plus a test. It runs in one file
+and two stages. Where this section differs from the rest of this procedure, this section wins for
+MICRO.
+
+- **One file.** Write `specs/<feature>/ticket.md` with the exact input, one to five literal goal
+  checks, the starting `git rev-parse HEAD`, the changed paths and the gate result. Do not create
+  `spec.md`, `goal.md`, `plan.md`, `tasks.md` or `gates/`, and do not record file or diff hashes.
+- **Two stages.** The fast-tier implementer makes the change with a test that fails first. Then one
+  fresh review-tier `sdd-verifier`, given `ticket.md` as its goal path, runs the project's test
+  command, checks every goal line and reads the diff against the applicable rules. It records
+  `RESULT: PASS|FAIL` and its evidence in `ticket.md`. No separate tester, reviewer, planner or
+  finisher stage runs.
+- **Still required.** The target's startup rules and security constraints, a verifier context that
+  is not the implementer's, and explicit authority before any commit, push or merge.
+- **Escalate to LITE** when the change grows past the stated files, touches a shared contract or
+  security-sensitive code, or the verifier fails twice.
+
+Evidence is proportional for every class: record what this procedure names and nothing more. Do not
+produce manifests or hashes of unchanged files, copies of reports, or receipts about receipts.
 
 ## 4. Ground and resolve the work
 
@@ -147,7 +169,8 @@ the procedures; this shared route records their outcomes and does not duplicate 
 ## 5. Pin a feature-owned packet
 
 Choose a filesystem-safe feature slug. If `specs/<feature>/` already exists, inspect it and stop on
-an identity collision; never overwrite an older ticket packet. Keep root `goal.md` untouched. Create:
+an identity collision; never overwrite an older ticket packet. Keep root `goal.md` untouched. MICRO
+writes only `specs/<feature>/ticket.md` (light route, section 3). LITE and FULL create:
 
 ```text
 specs/<feature>/input.md
@@ -187,7 +210,8 @@ as the verifier target for this ticket.
 
 Use the project-bound `sdd-planner`, `sdd-implementer`, `sdd-tester`, `sdd-verifier` and
 `sdd-reviewer` files named in `.claude/agents/.init-synthesis.json`; keep role-specific project
-facts in those canonical files, not duplicated in a client skill. The minimum order is:
+facts in those canonical files, not duplicated in a client skill. MICRO follows its light route in
+section 3. For LITE and FULL the minimum order is:
 
 1. For FULL or material planning, the bound planner plans the accepted feature packet. For MICRO/LITE
    without material planning decisions, keep the accepted intent concise in `plan.md` and `tasks.md`.
