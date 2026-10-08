@@ -1,11 +1,11 @@
 ---
 name: spec-harness-teach
-description: Explain a system to a human as one self-contained interactive page: what it is, why it is built this way and how to use it, with diagrams and a learning ladder (principle, theory, anchor, example, use here, real code). Use when the user says 'explain this to me', 'teach me how this works', 'make a learning page', 'onboard someone to this', or wants to understand a codebase, a feature or a decision.
+description: Explain a system to a human as one self-contained page: a two-minute quick guide first (what they get, how to start), then the longer version with diagrams. Use when the user says 'explain this to me', 'teach me how this works', 'make a learning page', 'onboard someone to this', or wants to understand a codebase, a feature or a decision.
 ---
 
 # spec-harness-teach
 
-Run commands/teach.md: gather the real source, decide the reader, lay out the sections, build one offline HTML file, then verify it in a real browser at two widths, click every control and have a fresh context check every excerpt and number. Never invent an excerpt or a measurement. Never edit application source.
+Run commands/teach.md: read the real source, write the quick guide and cut it to two minutes, write the longer version underneath, then check it in a real browser at two widths and click every control. Never invent an excerpt or a number. Never edit application source.
 
 ## Run it
 1. **Load the full procedure** — read the command doc and follow it exactly:

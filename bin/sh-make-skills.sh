@@ -107,8 +107,8 @@ emit spec-harness-learn "learn" "learner" \
 "Run commands/learn.md: capture raw feedback, propose a testable cause and owner, and record the existing human/reviewer decision. Apply a canonical rule only after approval; report affected skill/role bindings as stale for the orchestrator's guarded refresh. Unsupported or pending proposals stay captured and proposed. Report LEARNED only after reviewed application; otherwise report PENDING."
 
 emit spec-harness-teach "teach" "" \
-"Explain a system to a human as one self-contained interactive page: what it is, why it is built this way and how to use it, with diagrams and a learning ladder (principle, theory, anchor, example, use here, real code). Use when the user says 'explain this to me', 'teach me how this works', 'make a learning page', 'onboard someone to this', or wants to understand a codebase, a feature or a decision." \
-"Run commands/teach.md: gather the real source, decide the reader, lay out the sections, build one offline HTML file, then verify it in a real browser at two widths, click every control and have a fresh context check every excerpt and number. Never invent an excerpt or a measurement. Never edit application source."
+"Explain a system to a human as one self-contained page: a two-minute quick guide first (what they get, how to start), then the longer version with diagrams. Use when the user says 'explain this to me', 'teach me how this works', 'make a learning page', 'onboard someone to this', or wants to understand a codebase, a feature or a decision." \
+"Run commands/teach.md: read the real source, write the quick guide and cut it to two minutes, write the longer version underneath, then check it in a real browser at two widths and click every control. Never invent an excerpt or a number. Never edit application source."
 
 emit spec-harness-rules "rules" "researcher, implementer" \
 "Derive or review package-scoped rules from an inventory, applicable policies, actual source, tests and configuration. Use during initialization or when a mixed-stack package needs its own rules." \

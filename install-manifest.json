@@ -316,7 +316,7 @@
       "source": "commands/teach.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "16d5e0a21865a52b15f2cd66b4131990b7400c248b9cee36c68cdbf785939786",
+      "sha256": "d03325d6e11ea6a01acf35038f9276b594633d088c6b7e53e3d06a442a8f0a05",
       "mode": "0644"
     },
     {
@@ -452,7 +452,7 @@
       "source": "skills/spec-harness-teach/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "d0914627c1db827a6b9a613e446abcabbdacb41bf0dea8125ffd15471c7cab4c",
+      "sha256": "8fc702d8f0ec7dd26eeb29730eabb70a1e09b46f749be9dbda1dda8a8212c7cd",
       "mode": "0644"
     },
     {
@@ -752,7 +752,7 @@
       "source": "learning_human.html",
       "render": "copy",
       "tokens": [],
-      "sha256": "0bf998c3b072c3fc97c7a3312f25f5b19560b20b76ff9d3b8f6a5ba3ec41c338",
+      "sha256": "89e0b66d423b27bc1179b6ac12033f16bc01c245cb82ab19456d640d7348a04e",
       "mode": "0644"
     },
     {

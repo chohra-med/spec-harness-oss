@@ -6,23 +6,23 @@
 <title>Spec Harness, explained for humans</title>
 <meta name="description" content="How Spec Harness works, how to use it and why: an interactive ten-minute read.">
 <style>
+  /* Colorway C: dark first, off-black and off-white, one muted-teal accent used as a line. */
   :root {
-    --paper: #f5f5f5; --paper-2: #ececec; --card: #ffffff;
-    --ink: #2d3142; --muted: #4f5d75; --soft: #7a8399;
-    --rule: rgba(45,49,66,0.12); --rule-solid: #bfc0c0;
-    --accent: #eb6c36; --accent-tint: rgba(235,108,54,0.08);
-    --link: #2e5aa8; --store: rgba(45,49,66,0.05);
-    --serif: "Instrument Serif", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    --paper: #0E0E10; --paper-2: #161618; --card: #161618;
+    --ink: #FAFAF8; --muted: rgba(250,250,248,0.74); --soft: #8A8A93;
+    --rule: #26262A; --rule-solid: #3A3A40;
+    --accent: #3BA9AE; --accent-tint: transparent;
+    --link: #3BA9AE; --store: rgba(250,250,248,0.04);
+    --serif: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
     --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   }
-  @media (prefers-color-scheme: dark) {
+  @media (prefers-color-scheme: light) {
     :root {
-      --paper: #2d3142; --paper-2: #393e53; --card: #353a4e;
-      --ink: #f5f5f5; --muted: #bfc0c0; --soft: #8e98ac;
-      --rule: rgba(245,245,245,0.12); --rule-solid: rgba(191,192,192,0.25);
-      --accent: #f08a59; --accent-tint: rgba(240,138,89,0.10);
-      --link: #6a95d8; --store: rgba(245,245,245,0.05);
+      --paper: #FAFAF8; --paper-2: #FFFFFF; --card: #FFFFFF;
+      --ink: #0E0E10; --muted: rgba(14,14,16,0.72); --soft: #6B6B73;
+      --rule: #E5E5E2; --rule-solid: #C9C9C4;
+      --accent: #1F6F73; --link: #1F6F73; --store: rgba(14,14,16,0.035);
     }
   }
   * { box-sizing: border-box; }
@@ -31,8 +31,11 @@
   .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
   header.hero { padding: 64px 0 32px; }
   .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--soft); margin: 0 0 12px; }
-  h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(2.2rem, 5vw, 3.4rem); line-height: 1.08; margin: 0 0 16px; letter-spacing: -0.01em; }
-  h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(1.7rem, 3.4vw, 2.3rem); line-height: 1.15; margin: 0 0 12px; }
+  h1 { font-family: var(--serif); font-weight: 750; font-size: clamp(2.3rem, 5.4vw, 3.8rem); line-height: 1.04; margin: 0 0 18px; letter-spacing: -0.025em; }
+  .cursor { color: var(--accent); animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .cursor { animation: none; } }
+  h2 { font-family: var(--serif); font-weight: 700; font-size: clamp(1.6rem, 3.2vw, 2.2rem); line-height: 1.12; margin: 0 0 12px; letter-spacing: -0.02em; }
   h3 { font-size: 1.05rem; margin: 0 0 6px; }
   p { margin: 0 0 14px; }
   .lede { font-size: 1.2rem; color: var(--muted); max-width: 46rem; }
@@ -48,10 +51,18 @@
   .g3 { grid-template-columns: 1.1fr 1fr 0.9fr; }
   .g2 { grid-template-columns: 1.15fr 0.85fr; }
   @media (max-width: 780px) { .g3, .g2 { grid-template-columns: 1fr; } }
-  .card { background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 20px; }
+  .card { background: transparent; border: 0; border-top: 1px solid var(--rule); border-radius: 0; padding: 18px 0 4px; }
   .card .eyebrow { margin-bottom: 8px; }
   .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); margin-right: 8px; vertical-align: middle; }
-  .dot.a { background: var(--accent); } .dot.l { background: var(--link); } .dot.i { background: var(--ink); }
+  .dot.a { background: var(--accent); } .dot.l { background: var(--ink); } .dot.i { background: var(--ink); }
+  .get { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 40px; margin: 8px 0 8px; }
+  @media (max-width: 780px) { .get { grid-template-columns: 1fr; } }
+  .get > div { border-top: 1px solid var(--rule); padding: 16px 0 10px; }
+  .get h3 { font-size: 1rem; }
+  .get p { margin: 0; color: var(--muted); font-size: 15.5px; }
+  .when { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin: 0 0 6px; }
+  .deeper { padding: 56px 0 8px; border-top: 1px solid var(--rule); }
+  .deeper h2 { margin-bottom: 6px; }
   ul { margin: 0; padding-left: 20px; } li { margin-bottom: 6px; }
   code, kbd { font-family: var(--mono); font-size: 0.86em; background: var(--store); border: 1px solid var(--rule); border-radius: 4px; padding: 1px 5px; }
   .seg { display: inline-flex; border: 1px solid var(--rule-solid); border-radius: 6px; overflow: hidden; margin: 8px 0 16px; flex-wrap: wrap; }
@@ -62,7 +73,7 @@
   .who { width: 100%; border-collapse: collapse; font-size: 15.5px; }
   .who th, .who td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
   .who th { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--soft); font-weight: 500; }
-  .who td.on { background: var(--accent-tint); }
+  .who td.on { box-shadow: inset 2px 0 0 var(--accent); }
   .diagram { overflow-x: auto; max-width: 100%; margin: 8px 0 4px; -webkit-overflow-scrolling: touch; }
   .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
   .diagram.narrow svg { min-width: 560px; max-width: 800px; margin: 0 auto; }
@@ -71,7 +82,7 @@
   .n-box { fill: var(--card); stroke: var(--ink); stroke-width: 1; }
   .n-mask { fill: var(--paper); }
   .n-user { fill: var(--store); stroke: var(--soft); }
-  .n-focal { fill: var(--accent-tint); stroke: var(--accent); }
+  .n-focal { fill: var(--card); stroke: var(--accent); stroke-width: 1.5; }
   .n-name { fill: var(--ink); font-size: 14px; font-weight: 600; }
   .n-sub { fill: var(--muted); font-size: 10px; }
   .n-tag { fill: var(--soft); font-size: 9px; letter-spacing: 0.1em; }
@@ -86,22 +97,22 @@
   .pick.off { opacity: 0.22; }
   .wire.off, .head.off { opacity: 0.18; }
   .l-band { fill: var(--card); stroke: var(--rule-solid); stroke-width: 1; }
-  .l-band.focal { fill: var(--accent-tint); stroke: var(--accent); }
+  .l-band.focal { fill: var(--card); stroke: var(--accent); stroke-width: 1.5; }
   .l-band.yours { fill: var(--store); stroke-dasharray: 4 3; }
-  .panel { background: var(--card); border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: 6px; padding: 18px 20px; margin-top: 12px; min-height: 9.5em; }
+  .panel { background: transparent; border: 0; border-left: 2px solid var(--accent); border-radius: 0; padding: 6px 0 6px 20px; margin-top: 16px; min-height: 9.5em; }
   .panel h3 { font-size: 1.15rem; }
   .panel dl { display: grid; grid-template-columns: 9.5em 1fr; gap: 6px 14px; margin: 10px 0 0; font-size: 15.5px; }
   .panel dt { font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--soft); padding-top: 3px; }
   .panel dd { margin: 0; }
   @media (max-width: 560px) { .panel dl { grid-template-columns: 1fr; } }
   .steps { counter-reset: s; list-style: none; padding: 0; }
-  .steps > li { counter-increment: s; position: relative; padding: 0 0 18px 52px; }
-  .steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 34px; height: 34px; border: 1px solid var(--ink); border-radius: 6px; display: grid; place-items: center; font: 600 15px var(--mono); }
+  .steps > li { counter-increment: s; position: relative; padding: 0 0 18px 44px; }
+  .steps > li::before { content: counter(s, decimal-leading-zero); position: absolute; left: 0; top: 2px; font: 500 13px var(--mono); color: var(--accent); letter-spacing: 0.06em; }
   .cmd { display: flex; align-items: stretch; gap: 0; margin: 8px 0 6px; border: 1px solid var(--rule-solid); border-radius: 6px; overflow: hidden; background: var(--card); }
   .cmd pre { margin: 0; padding: 11px 14px; font: 13.5px/1.5 var(--mono); overflow-x: auto; flex: 1; white-space: pre; }
   .cmd button { font: 600 12px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--store); border: 0; border-left: 1px solid var(--rule-solid); padding: 0 14px; cursor: pointer; min-width: 74px; }
   .cmd button:hover, .cmd button:focus-visible { color: var(--ink); outline: none; }
-  .aside { font-family: var(--serif); font-style: italic; font-size: 1.15rem; color: var(--muted); border-left: 2px solid var(--accent); padding: 2px 0 2px 16px; margin: 18px 0; max-width: 42rem; }
+  .aside { font-family: var(--sans); font-style: normal; font-size: 1.08rem; color: var(--muted); border-left: 2px solid var(--accent); padding: 2px 0 2px 16px; margin: 18px 0; max-width: 42rem; }
   details { border-bottom: 1px solid var(--rule); padding: 10px 0; }
   details summary { cursor: pointer; font-weight: 600; }
   details p { margin: 8px 0 4px; color: var(--muted); }
@@ -115,26 +126,78 @@
 <div class="wrap">
 
 <header class="hero">
-  <p class="eyebrow">Spec Harness · read me first · about ten minutes</p>
-  <h1>Let the AI do the typing.<br>Keep the judgment where it belongs.</h1>
+  <p class="eyebrow">Spec Harness · read me first</p>
+  <h1>Let the AI do the typing.<br>Keep the judgment yours<span class="cursor" aria-hidden="true">_</span></h1>
   <p class="lede">Spec Harness is a small set of files you add to a project. They give an AI coding agent a memory of your codebase, rules taken from your own source, and a fixed way of working: one agent writes, a different one checks, and nothing ships without you.</p>
   <nav class="toc" aria-label="On this page">
-    <a href="#middle">1 · The middle path</a>
-    <a href="#problem">2 · What it fixes</a>
-    <a href="#flow">3 · One ticket, step by step</a>
-    <a href="#tiers">4 · Which model does what</a>
-    <a href="#lands">5 · What lands in your repo</a>
-    <a href="#learn">6 · How it gets better</a>
-    <a href="#use">7 · Use it</a>
-    <a href="#why">8 · Why trust it</a>
-    <a href="#words">9 · Words</a>
+    <a href="#quick">Quick guide · 2 min</a>
+    <a href="#middle">The idea</a>
+    <a href="#flow">One ticket, step by step</a>
+    <a href="#tiers">Which model does what</a>
+    <a href="#lands">What lands in your repo</a>
+    <a href="#learn">How it gets better</a>
+    <a href="#why">Evidence and limits</a>
+    <a href="#words">Words</a>
   </nav>
 </header>
 
+<section id="quick">
+  <p class="eyebrow">Quick guide · two minutes</p>
+  <h2>What you get</h2>
+  <p class="kicker">Nothing here is a promise about the future. Each item is a file or a result you can open.</p>
+  <div class="get">
+    <div><p class="when">After setup</p><h3>Rules written from your own code</h3><p>A <code>RULES.md</code> where every rule names the file and line it came from, labelled as observed or as a recommendation. You review it like a pull request.</p></div>
+    <div><p class="when">After setup</p><h3>A memory the agent reads first</h3><p>A short description of the project, its architecture, its stack and what is in progress, plus an inventory of your packages. A new session no longer starts cold.</p></div>
+    <div><p class="when">After setup</p><h3>A skill for each technology you use</h3><p>For example one for React Native or one for your API layer: how this project uses it, with the lines that show it.</p></div>
+    <div><p class="when">On every ticket</p><h3>A goal written before the code</h3><p>One to five true-or-false checks. This is what "done" means, in writing, before anyone types.</p></div>
+    <div><p class="when">On every ticket</p><h3>A change with a test that failed first</h3><p>Written by one agent on a cheap, fast model.</p></div>
+    <div><p class="when">On every ticket</p><h3>A verdict from someone else</h3><p><code>RESULT: PASS</code> or <code>FAIL</code>, with evidence for each check, from a separate agent that never saw the code being written.</p></div>
+    <div><p class="when">Over time</p><h3>Fewer repeated mistakes</h3><p>A correction becomes a proposed rule. You say yes or no. Approved rules are read on every later ticket.</p></div>
+    <div><p class="when">Always</p><h3>The last word</h3><p>Nothing is committed, pushed or merged without you saying so. Installing never edits your application code.</p></div>
+  </div>
+
+  <h2 style="margin-top:40px">Start in five steps</h2>
+  <p class="kicker">About half an hour on a real project, most of it reading what step three wrote.</p>
+  <ol class="steps">
+    <li>
+      <h3>Start on a branch</h3>
+      <p>There is no uninstall command. The branch is your undo.</p>
+      <div class="cmd"><pre>git switch -c chore/spec-harness</pre><button type="button" data-copy>Copy</button></div>
+    </li>
+    <li>
+      <h3>Stage the files</h3>
+      <p>From the root of your project. It copies files and reports <code>PENDING</code>, which is correct: nothing has read your code yet. Your own <code>CLAUDE.md</code> or <code>AGENTS.md</code> is never overwritten.</p>
+      <div class="cmd"><pre>npx -y github:chohra-med/spec-harness-oss init . integrate</pre><button type="button" data-copy>Copy</button></div>
+    </li>
+    <li>
+      <h3>Let it read your code</h3>
+      <p>Open the project in Claude Code, on your strongest model, and type:</p>
+      <div class="cmd"><pre>/sdd init</pre><button type="button" data-copy>Copy</button></div>
+    </li>
+    <li>
+      <h3>Review what it wrote, then commit</h3>
+      <p>Read the generated <code>RULES.md</code> the way you would read a pull request from a new colleague. Is each rule true of this codebase? Does the cited line show it? Delete what is wrong. Then commit.</p>
+    </li>
+    <li>
+      <h3>Give it a first small ticket</h3>
+      <p>Paste the full text of a real, low-risk fix. A title is not a ticket.</p>
+      <div class="cmd"><pre>/sdd Free shipping should start at exactly 50.00, not above it. Add a test for an order of exactly 50.00.</pre><button type="button" data-copy>Copy</button></div>
+      <p class="note">You get one file describing the goal, a change with a test that failed first, and a verdict from a separate agent. You commit it yourself.</p>
+    </li>
+  </ol>
+  <p class="note">No <code>npx</code>, a team, or a large app? The full guide is <code>docs/GETTING-STARTED.md</code> in the Spec Harness repository, with a <code>git clone</code> route and how to undo everything.</p>
+</section>
+
+<div class="deeper">
+  <p class="eyebrow">The longer version · about ten minutes</p>
+  <h2>Now, how it actually works</h2>
+  <p class="kicker">You can stop here and start. Everything below explains why the steps above are shaped the way they are. The diagrams are clickable.</p>
+</div>
+
 <section id="middle">
-  <p class="eyebrow">1 · The idea</p>
+  <p class="eyebrow">01 / The idea</p>
   <h2>There are two popular ways to build with AI. This is the third.</h2>
-  <p class="kicker">Pick a style and see who does what. The orange cells are where the judgment sits.</p>
+  <p class="kicker">Pick a style and see who does what. The teal cells are where the judgment sits.</p>
   <div class="seg" role="group" aria-label="Working style">
     <button type="button" data-style="eng" aria-pressed="false">Engineer-led</button>
     <button type="button" data-style="sh" aria-pressed="true">Spec Harness</button>
@@ -150,7 +213,7 @@
 </section>
 
 <section id="problem">
-  <p class="eyebrow">2 · The problem</p>
+  <p class="eyebrow">02 / The problem</p>
   <h2>Three things go wrong when an agent works alone</h2>
   <div class="grid g3">
     <div class="card">
@@ -175,7 +238,7 @@
 </section>
 
 <section id="flow">
-  <p class="eyebrow">3 · The workflow</p>
+  <p class="eyebrow">03 / The workflow</p>
   <h2>One ticket, step by step</h2>
   <p class="kicker">Click any step to see what happens there. Then switch to a small fix and watch most of the steps drop away.</p>
   <div class="seg" role="group" aria-label="Ticket size">
@@ -195,7 +258,7 @@
 </section>
 
 <section id="tiers">
-  <p class="eyebrow">4 · Models</p>
+  <p class="eyebrow">04 / Models</p>
   <h2>Plan with the best model. Build with a cheap one. Review with what you can afford.</h2>
   <p class="kicker">Roles ask for a <b>tier</b>, never a model name. One table in the project maps tiers to models, so changing provider means editing one column. Move the budget and see what changes.</p>
   <div class="seg" role="group" aria-label="Token budget">
@@ -207,7 +270,7 @@
 </section>
 
 <section id="lands">
-  <p class="eyebrow">5 · In your repository</p>
+  <p class="eyebrow">05 / In your repository</p>
   <h2>What lands in your project</h2>
   <p class="kicker">Installing copies files. It never edits your application code and adds no dependency. Click a layer.</p>
   <div class="diagram narrow">
@@ -222,9 +285,9 @@
 </section>
 
 <section id="learn">
-  <p class="eyebrow">6 · The loop</p>
+  <p class="eyebrow">06 / The loop</p>
   <h2>How it gets better instead of repeating itself</h2>
-  <p class="kicker">Every pass through this loop leaves the project's rules a little sharper. The one step that is always yours is the orange one.</p>
+  <p class="kicker">Every pass through this loop leaves the project's rules a little sharper. The one step that is always yours is the teal one.</p>
   <div class="diagram narrow">
     <svg viewBox="0 0 800 600" role="img" aria-labelledby="loop-title loop-desc">
       <title id="loop-title">The learning loop</title>
@@ -284,41 +347,8 @@
   </div>
 </section>
 
-<section id="use">
-  <p class="eyebrow">7 · Use it</p>
-  <h2>Three commands and one review</h2>
-  <ol class="steps">
-    <li>
-      <h3>Start on a branch</h3>
-      <p>There is no uninstall command. The branch is your undo.</p>
-      <div class="cmd"><pre>git switch -c chore/spec-harness</pre><button type="button" data-copy>Copy</button></div>
-    </li>
-    <li>
-      <h3>Stage the files</h3>
-      <p>Run this from the root of your project. It copies files and reports <code>PENDING</code>, which is correct: nothing has read your code yet. Your own <code>CLAUDE.md</code> or <code>AGENTS.md</code> is never overwritten.</p>
-      <div class="cmd"><pre>npx -y github:chohra-med/spec-harness-oss init . integrate</pre><button type="button" data-copy>Copy</button></div>
-    </li>
-    <li>
-      <h3>Let it read your code</h3>
-      <p>Open the project in Claude Code and type the line below. Use your strongest model. It reads your source and writes rules that cite the file and line they come from, a skill for each major technology you use, and the project's role files.</p>
-      <div class="cmd"><pre>/sdd init</pre><button type="button" data-copy>Copy</button></div>
-    </li>
-    <li>
-      <h3>Review what it wrote, then commit</h3>
-      <p>Read the generated <code>RULES.md</code> the way you would read a pull request from a new colleague. Is each rule true of this codebase? Does the cited line show it? Delete what is wrong. Then commit.</p>
-    </li>
-    <li>
-      <h3>Give it a first small ticket</h3>
-      <p>Paste the full text of a real, low-risk fix. A title is not a ticket.</p>
-      <div class="cmd"><pre>/sdd Free shipping should start at exactly 50.00, not above it. Add a test for an order of exactly 50.00.</pre><button type="button" data-copy>Copy</button></div>
-      <p class="note">You get one file describing the goal, a change with a test that failed first, and a verdict from a separate agent. You commit it yourself.</p>
-    </li>
-  </ol>
-  <p class="note">Working without <code>npx</code>, on a team, or in a large app? The full guide is <code>docs/GETTING-STARTED.md</code> in the Spec Harness repository, including a <code>git clone</code> route and how to undo everything.</p>
-</section>
-
 <section id="why">
-  <p class="eyebrow">8 · Evidence and limits</p>
+  <p class="eyebrow">07 / Evidence and limits</p>
   <h2>Why trust it, and where it is weak</h2>
   <div class="grid g2">
     <div class="card">
@@ -343,7 +373,7 @@
 </section>
 
 <section id="words">
-  <p class="eyebrow">9 · Words</p>
+  <p class="eyebrow">08 / Words</p>
   <h2>The vocabulary, in plain terms</h2>
   <details><summary>Ticket</summary><p>The full text of one piece of work. The harness refuses a bare title, because a title is where invented requirements come from.</p></details>
   <details><summary>Goal</summary><p>A short list of true-or-false checks written before any code. The verifier checks these, line by line. "Tests pass" is necessary, not enough.</p></details>
@@ -356,7 +386,7 @@
 </section>
 
 <footer>
-  <p>Spec Harness · MIT licence · <a href="https://github.com/chohra-med/spec-harness-oss">github.com/chohra-med/spec-harness-oss</a></p>
+  <p>Spec Harness · MIT licence · by Malik Chohra · <a href="https://github.com/chohra-med/spec-harness-oss">github.com/chohra-med/spec-harness-oss</a></p>
   <p>This page is one file with no network requests. You can delete it from your project once you have read it.</p>
 </footer>
 </div>

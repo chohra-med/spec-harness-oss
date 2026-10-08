@@ -562,7 +562,7 @@ def human_page_ok(page, files):
     loads = re.search(r"<link\b|<script[^>]+\bsrc=|@import|\bsrc=[\"']https?:|url\(\s*[\"']?https?:", page, re.I)
     return (
         "<title>" in page and page.count("<svg") >= 3 and 'role="img"' in page and not loads
-        and "prefers-color-scheme: dark" in page
+        and "prefers-color-scheme:" in page and "## " not in page and 'id="quick"' in page
         and 'plan_copy learning_human.html "$SYS_DIR/learning_human.html"' in files["bin/sh-install.sh"]
         and "Read first: open learning_human.html" in files["bin/sh-install.sh"]
         and "## Show the human first" in files["commands/init.md"] and "open\nlearning_human.html" in files["commands/init.md"]
