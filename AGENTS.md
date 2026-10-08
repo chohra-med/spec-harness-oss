@@ -31,14 +31,14 @@ If you cannot tell which, ask. Do not start installing anything on a guess.
 |---|---|
 | **Target** | The user's project that receives the harness. Never this repository. |
 | **Ticket** | The full text of one piece of work. A title alone is not a ticket. |
-| **MICRO / LITE / FULL** | The three ticket sizes. MICRO is one small, reversible, local fix. LITE is a small multi-file change. FULL is anything shared, security-sensitive or multi-repo. |
+| **MICRO / LITE / FULL** | The three ticket sizes. MICRO is one small, reversible, local fix. LITE is a small multi-file change. FULL is anything shared, security-sensitive, multi-repo, externally consequential or otherwise high-risk. When unsure, FULL. |
 | **Light route** | How a MICRO ticket runs: one file `specs/<feature>/ticket.md`, one implementer, one fresh verifier. |
 | **Packet** | The folder `specs/<feature>/` that a LITE or FULL ticket keeps: input, spec, goal, plan, tasks and gate records. |
 | **Role** | One agent file with one job: planner, implementer, tester (runs things), verifier (checks each goal line), reviewer (reads the diff against the rules), merger, learner. |
 | **Tier** | The class of model a role asks for: `strong`, `fast` or `review`. Never a model name. |
 | **Inventory** | `ai_rules/project_inventory.json` in the target: its packages and a few sampled source files. Written by `index`. |
 | **Receipt** | `.claude/agents/.init-synthesis.json` in the target: what initialisation produced, with hashes. |
-| **PENDING / READY** | PENDING: files are staged but a model or reviewer has not done its part. READY: the structural check passes. Neither means the generated rules are correct; a reviewer decides that. |
+| **PENDING / READY** | PENDING: files are staged but a model or reviewer has not done its part. READY: the structural check prints it when hashes and citations line up. That alone does not mean the generated rules are correct; the setup is fully ready only after a fresh reviewer accepts them. |
 
 ## Job 1: install Spec Harness into the user's project
 
@@ -46,14 +46,15 @@ The full human guide is [`docs/GETTING-STARTED.md`](./docs/GETTING-STARTED.md). 
 are the same route, written for an agent. The guide numbers its steps differently; where the two
 differ in detail, the guide wins. Step numbers in this section mean the numbers in this section.
 
-**If the user is not there to answer you:** do steps 1 to 4, 6 and 8, which only add files. Do not
-edit their instruction files (step 5) and do not initialise (step 7). Report exactly what you did
-and what is waiting for them.
+**If the user is not there to answer you:** step 2 still decides. If it tells you to stop, stop
+there and change nothing. If it passes, do steps 3, 4, 6 and 8, which only add files, using the
+default source sample in step 6. Do not edit their instruction files (step 5) and do not initialise
+(step 7). Report exactly what you did and what is waiting for them.
 
 1. **Find the target.** It is the root of the user's project, never this repository. If you are
    unsure which directory they mean, ask.
-2. **Protect their work.** In the target: check `git status`. If the tree is dirty, stop and tell
-   them. Create a branch (`git switch -c chore/spec-harness`; pick another name if that one
+2. **Protect their work.** In the target: check `git status`. If it shows modified or staged
+   tracked files, stop and tell them; do not stash, commit or discard their work. Create a branch (`git switch -c chore/spec-harness`; pick another name if that one
    exists). There is no uninstall command; the branch is the undo.
 3. **Stage the files.** `cd` to the target root first; every command here runs from there. Use
    the checkout you are reading if there is one:
@@ -78,16 +79,19 @@ and what is waiting for them.
    does not mention the harness, so their client will not load the harness rules. The block to add
    is the fenced `## Spec Harness` block under the heading "3. Existing instruction files" in the
    guide. Show it to the user and add it to their file only when they agree.
-6. **Inventory the code**: `spec-harness index .` (same two forms as above). On a large project,
+6. **Inventory the code**: `bash /path/to/spec-harness-oss/bin/spec-harness index .`, or
+   `npx -y github:chohra-med/spec-harness-oss index .` with no checkout. On a large project,
    ask the user which source files best show how the code is written and pass up to five with
    `--source <path>`.
 7. **Initialise.** In Claude Code the user types `/sdd init`. If you are doing it yourself, follow
    `.claude/commands/sdd.md` section 1 and `.claude/commands/spec-harness/init.md` in the target.
    This step reads their code and writes rules, skills and role bindings, so use the strongest
    model available and do it only with the user present to review the result.
-8. **Check**: `spec-harness generate-agents --check .`. After initialisation it must print `READY`.
-   Before initialisation it prints `PENDING` and exits 1, which is expected.
-9. **Hand back.** Show the user `git status` and `git diff`, and tell them a fresh session should
+8. **Check**: `bash /path/to/spec-harness-oss/bin/spec-harness generate-agents --check .` (or the
+   `npx` form). After initialisation it must print `READY`. Before initialisation it prints
+   `PENDING: missing or unsafe synthesis receipt` and exits 1; that is the expected state, not a fault.
+9. **Hand back.** Show the user `git status` (the staged files are untracked, so `git diff` alone
+   shows nothing until they are added) and the diff of anything initialisation changed, and tell them a fresh session should
    review the generated rules against their cited lines. **Do not commit, push or merge unless the
    user tells you to.**
 
@@ -103,7 +107,8 @@ to "use sdd" while you are standing here, ask which project the ticket belongs t
 Work in **that project**. Its own files are the authority:
 
 1. Read that project's `CLAUDE.md` / `AGENTS.md` and follow the startup sequence it declares.
-2. The procedure is `.claude/commands/sdd.md` in that project. Stage contracts are under
+2. The procedure is `.claude/commands/sdd.md` in that project (Codex reaches the same procedure
+   through `.agents/skills/sdd/SKILL.md`). Stage contracts are under
    `.claude/commands/spec-harness/`. Roles are `.claude/agents/sdd-*.md`.
 3. A small fix takes the light route: one `specs/<feature>/ticket.md`, an implementer, one fresh
    verifier. Larger work keeps a packet and separate tester, verifier and reviewer contexts.
@@ -191,7 +196,7 @@ your local run is the only gate, so report the exit lines and the failing log as
 |---|---|
 | How do I install it? | Job 1 above, or `docs/GETTING-STARTED.md` |
 | Does it need Node? | Only for `npx`. A checkout needs `bash`, `git` and `python3` 3.11+ |
-| What do the exit codes mean? | `0`: the shell step finished (status may still be PENDING). `1`: a check failed and said what is missing, or `index` refused an argument. `2`: a missing target or unknown command, or a subcommand that only prints a procedure for a model to follow |
+| What do the exit codes mean? | `0`: the shell step finished (status may still be PENDING). `1`: a check failed and said what is missing, or `index` refused an argument or its target. `2`: no target given, an unknown command, a missing target for `init`, or a subcommand that only prints a procedure for a model to follow |
 | What does `PENDING` mean? | Files are staged; a model or reviewer has not done its part yet |
 | How do I undo an install? | The "Undo" section of `docs/GETTING-STARTED.md` |
 | Which model should plan? | The strongest available. Implement on a fast cheap one. Review on what the budget allows. See `Model tiers` |
