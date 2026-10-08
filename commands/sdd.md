@@ -78,19 +78,34 @@ Stop and preserve bytes whenever the inventory, source or output preimage moves 
 the old receipt and output preimages as history/evidence. No generic merge engine or automatic human
 policy writer is implied by this procedure.
 
-Before delegating, confirm the active provider, exact model IDs, context separation and stage map
-with the client actually in use. Record the confirmed planner, implementer, fresh tester, verifier,
-reviewer and finisher assignments before work begins; verify that each model is supported by that
-provider and that required stages have genuinely separate contexts. `model:` frontmatter and files
-on disk do not prove availability or dispatch.
+Before delegating, resolve every stage to a model tier and confirm with the client actually in use
+which model serves that tier and that required stages have genuinely separate contexts. Record the
+planner, implementer, fresh tester, verifier, reviewer and finisher assignments, each with the model
+that actually ran, before work begins. `model:` frontmatter and files on disk do not prove
+availability or dispatch.
 
-For Codex/OpenAI, preserve the explicitly selected `gpt-6-sol` planner and finisher, with
-`gpt-6-luna` implementation and separate fresh `gpt-6-luna` tester, verifier and reviewer contexts.
-For Claude, use explicitly confirmed, client-supported Claude model IDs for the same independent
-stages; do not invent model aliases or carry OpenAI IDs across providers. If the provider is unknown,
-the exact map is missing, a model is unsupported, or a context capability cannot be confirmed,
-leave the affected stage PENDING. Never silently fall back. If native delegation is unavailable,
-use separate manual contexts only when their independence is real; otherwise leave the gate PENDING.
+### Model tiers
+
+Roles ask for a tier, never a model. This table is the only place a model ID appears, so changing
+provider means filling one column. A `Model tiers` table in the target's own `AGENTS.md` overrides it.
+
+| Tier | Roles | Claude | Codex/OpenAI |
+|---|---|---|---|
+| strong | planner, finisher, merger | `opus` | `gpt-6-sol` |
+| fast | implementer, tester, researcher, documenter | `sonnet`, `haiku` | `gpt-6-luna` |
+| review | verifier, reviewer, architect, design and workflow testers | strong when budget allows, otherwise fast | same rule |
+
+- **Plan strong, implement fast.** The plan carries the detail, so a cheaper model can execute it.
+- **Budget picks the review tier.** Review on the strong tier when the token budget allows. Drop to
+  the fast tier when the user says the budget is low or the client reports it.
+- **Unavailable model: use the nearest available tier and say so.** Record the requested tier, the
+  model that ran and the reason in that stage's gate file. A missing model does not stop the run.
+  Never carry one provider's model IDs to another provider.
+- **Independence never bends.** The implementer cannot write its own acceptance. Tester, verifier
+  and reviewer are separate fresh contexts, on a different model from the implementer when one is
+  available. If a separate context cannot be had, that gate stays PENDING; separate manual contexts
+  count only when their independence is real.
+- For a provider without a column, add one naming its strongest model and its cheapest capable model.
 
 ## 2. Resolve the ticket input
 
@@ -210,7 +225,7 @@ merge policy and record its path/hash and the user's task-specific grant in `gat
 merger verifies current source, rules, feature goal and all gate revisions. With no explicit
 authority, write `report-and-wait`; green tests or review do not grant permission. No ticket
 write-back, commit, push, merge, deployment, release or settings change occurs without its own
-explicit authorization. The final `gpt-6-sol` judgment applies that policy; it does not expand it.
+explicit authorization. The final strong-tier judgment applies that policy; it does not expand it.
 
 ## Output
 

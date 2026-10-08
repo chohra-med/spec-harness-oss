@@ -2,7 +2,7 @@
 name: sdd-merger
 description: Performs a merge only when the current task, project policy and explicit human authority permit it, and every required acceptance gate has passed. Presence of this role grants no merge or release authority.
 tools: Read, Bash, Grep, Glob
-model: sonnet
+model: opus
 ---
 
 # SDD Merger

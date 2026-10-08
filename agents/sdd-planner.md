@@ -2,7 +2,7 @@
 name: sdd-planner
 description: Turn an accepted feature spec and goal into a source-grounded plan and ordered, testable tasks. Use for FULL tickets or when a ticket has material planning decisions; include design or research evidence when selected. Stack-agnostic.
 tools: Read, Write, Grep, Glob
-model: sonnet
+model: opus
 ---
 
 # SDD Planner

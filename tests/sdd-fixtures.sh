@@ -452,25 +452,35 @@ def tester_feedback_contract(d, source=False):
         )
     return result
 
-def provider_contract(text):
-    branch_openai = "For Codex/OpenAI" in text or "Codex/OpenAI keeps" in text
-    branch_claude = "For Claude" in text or "Claude requires" in text
-    pending_unknown = "provider is unknown" in text or "Unknown provider" in text
-    pending_map = "exact map is missing" in text or "missing model/context evidence" in text
-    no_fallback = "Never silently" in text or "silently switch/fall back" in text
-    return (
-        branch_openai and branch_claude and pending_unknown and pending_map and no_fallback
-        and all(x in text for x in ("`gpt-6-sol`", "`gpt-6-luna`", "client-supported Claude model IDs", "confirm the active provider", "frontmatter"))
-        and "This route requires the explicitly selected `gpt-6-sol`" not in text
+MODEL_ID = re.compile(r"`(?:gpt-[\w.-]+|opus|sonnet|haiku)`")
+
+def tier_contract(text, owns_table=False):
+    """Roles ask for a tier. Model IDs live only in the one Model tiers table."""
+    outside_table = "\n".join(line for line in text.splitlines() if not line.startswith("|"))
+    result = (
+        "Model tiers" in text and "nearest available tier" in text and "frontmatter" in text
+        and not MODEL_ID.search(outside_table)
+        and "Never silently" not in text and "silently switch/fall back" not in text
     )
+    if owns_table:
+        result = result and all(f"\n| {tier} |" in text for tier in ("strong", "fast", "review")) and all(
+            x in text for x in ("Plan strong, implement fast", "Budget picks the review tier", "Independence never bends", "stays PENDING")
+        )
+    return result
+
+def plans_strong(d):
+    """Plan strong, implement fast: the planner must not share the implementer's model."""
+    models = [re.search(r"^model: (\S+)$", d[role], re.M) for role in ("planner", "implementer")]
+    return all(models) and models[0].group(1) != models[1].group(1)
 
 d = docs(root)
 ok, checks = role_contracts(d)
 for label, result in checks.items():
     require(result, label)
 require(all(x in d["sdd"] for x in ("specs/<feature>/input.md", "specs/<feature>/goal.md", "specs/<feature>/plan.md", "specs/<feature>/tasks.md")), "shared route aligns with ticket packet")
-require(provider_contract(d["sdd"]), "shared route has provider-confirmed model branches")
-require(provider_contract(d["plan"]), "plan route has provider-confirmed model branches")
+require(tier_contract(d["sdd"], owns_table=True), "shared route owns the single model-tier table and its rules")
+require(tier_contract(d["plan"]), "plan route asks for tiers and names no model")
+require(plans_strong(d), "planner runs on a different tier from the implementer")
 require(learning_contracts(d), "feedback is captured and reviewed before policy application")
 require(tester_feedback_contract(d, source=True), "source tester carriers agree on reviewed learning and PENDING/manual execution")
 bad_tester = dict(d)
@@ -491,10 +501,15 @@ require(not learning_contracts(bad_learn), "RED control: planted unconditional l
 bad_skill = dict(d); bad_skill["learn_skill"] = bad_skill["learn_skill"].replace("Apply a canonical rule only after approval", "classify by package path and concern, inject into its canonical owner")
 require(not learning_contracts(bad_skill), "RED control: planted old generated unconditional injection")
 for key in ("sdd", "plan"):
-    bad_provider = d[key] + "\nThis route requires the explicitly selected `gpt-6-sol` even when Claude is active.\n"
-    require(not provider_contract(bad_provider), f"RED control: planted unconditional OpenAI-only route in {key}")
-    bad_map = d[key].replace("confirm the active provider", "skip provider confirmation")
-    require(not provider_contract(bad_map), f"RED control: missing provider-confirmed map in {key}")
+    owns = key == "sdd"
+    bad_model = d[key] + "\nThis route requires the explicitly selected `gpt-6-sol` planner.\n"
+    require(not tier_contract(bad_model, owns), f"RED control: planted hard-coded model outside the tier table in {key}")
+    bad_stop = d[key] + "\nNever silently fall back; leave the stage PENDING.\n"
+    require(not tier_contract(bad_stop, owns), f"RED control: planted stop-on-missing-model rule in {key}")
+bad_independence = d["sdd"].replace("Independence never bends", "Independence is preferred")
+require(not tier_contract(bad_independence, True), "RED control: removed independence rule from the tier table")
+bad_tier = dict(d); bad_tier["planner"] = re.sub(r"^model: \S+$", "model: sonnet", d["planner"], flags=re.M)
+require(not plans_strong(bad_tier), "RED control: planner demoted to the implementer tier")
 
 # Re-run the skill generator in a disposable copy. Only the owned learn projection may differ;
 # a second run must be byte-idempotent.

@@ -20,6 +20,10 @@ Sponsored by [AI Mobile Launcher](https://aimobilelauncher.com?utm_source=github
 
 The method stages the harness, inspects the target repository, derives project-bound rules and roles from its source, then takes one ticket through independent checks. The harness keeps project context and reviewed corrections available for later work.
 
+Roles ask for a model tier, not a model: plan on the strongest model, implement on a fast cheap one,
+and review on whichever the token budget allows. One table in [`commands/sdd.md`](./commands/sdd.md)
+maps tiers to models per provider, so changing provider means filling one column.
+
 ## The three pillars
 
 Everything in Spec Harness is one of three things. The name is literal: **Spec** + **Harness**.
