@@ -60,7 +60,7 @@
   .get > div { border-top: 1px solid var(--rule); padding: 16px 0 10px; }
   .get h3 { font-size: 1rem; }
   .get p { margin: 0; color: var(--muted); font-size: 15.5px; }
-  .when { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin: 0 0 6px; }
+  .when { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--soft); margin: 0 0 6px; }
   .deeper { padding: 56px 0 8px; border-top: 1px solid var(--rule); }
   .deeper h2 { margin-bottom: 6px; }
   ul { margin: 0; padding-left: 20px; } li { margin-bottom: 6px; }
@@ -94,6 +94,7 @@
   .pick:focus-visible .n-box, .pick:focus-visible .n-user, .pick:focus-visible .n-focal, .pick:focus-visible .l-band { stroke: var(--accent); stroke-width: 2; }
   .pick:focus { outline: none; }
   .pick.sel .n-box, .pick.sel .n-user, .pick.sel .l-band { stroke-width: 2; }
+  .pick.sel .n-focal { stroke-width: 2.5; }
   .pick.off { opacity: 0.22; }
   .wire.off, .head.off { opacity: 0.18; }
   .l-band { fill: var(--card); stroke: var(--rule-solid); stroke-width: 1; }
@@ -149,7 +150,7 @@
     <div><p class="when">After setup</p><h3>Rules written from your own code</h3><p>A <code>RULES.md</code> where every rule names the file and line it came from, labelled as observed or as a recommendation. You review it like a pull request.</p></div>
     <div><p class="when">After setup</p><h3>A memory the agent reads first</h3><p>A short description of the project, its architecture, its stack and what is in progress, plus an inventory of your packages. A new session no longer starts cold.</p></div>
     <div><p class="when">After setup</p><h3>A skill for each technology you use</h3><p>For example one for React Native or one for your API layer: how this project uses it, with the lines that show it.</p></div>
-    <div><p class="when">On every ticket</p><h3>A goal written before the code</h3><p>One to five true-or-false checks. This is what "done" means, in writing, before anyone types.</p></div>
+    <div><p class="when">On every ticket</p><h3>A goal written before the code</h3><p>A short list of true-or-false checks, one to five on a small fix. This is what "done" means, in writing, before anyone types.</p></div>
     <div><p class="when">On every ticket</p><h3>A change with a test that failed first</h3><p>Written by one agent on a cheap, fast model.</p></div>
     <div><p class="when">On every ticket</p><h3>A verdict from someone else</h3><p><code>RESULT: PASS</code> or <code>FAIL</code>, with evidence for each check, from a separate agent that never saw the code being written.</p></div>
     <div><p class="when">Over time</p><h3>Fewer repeated mistakes</h3><p>A correction becomes a proposed rule. You say yes or no. Approved rules are read on every later ticket.</p></div>
@@ -176,7 +177,7 @@
     </li>
     <li>
       <h3>Review what it wrote, then commit</h3>
-      <p>Read the generated <code>RULES.md</code> the way you would read a pull request from a new colleague. Is each rule true of this codebase? Does the cited line show it? Delete what is wrong. Then commit.</p>
+      <p>Read the generated <code>RULES.md</code> the way you would read a pull request from a new colleague. Is each rule true of this codebase? Does the cited line show it? Delete what is wrong. If you changed anything, ask the agent to refresh, because the generated files carry hashes of each other. Then commit.</p>
     </li>
     <li>
       <h3>Give it a first small ticket</h3>
@@ -559,7 +560,7 @@
   /* 5. Layers */
   var LAYERS = [
     { k: "roles", idx: "L4", name: "Roles", path: ".claude/agents/sdd-*.md", cls: "", title: "Roles: who does what, with which tools",
-      text: "Twelve small files, one per job. Each lists the tools it may use and carries a block of rules taken from your project. The verifier, for example, can run commands and read files but cannot edit.", read: "The agent, when it is dispatched in that role", yours: "Yes, after setup. They are plain markdown." },
+      text: "Twelve small files, one per job. Each lists the tools it may use. The core ones (planner, implementer, tester, verifier, reviewer) also carry a block of rules taken from your project. The verifier, for example, can run commands and read files but cannot edit.", read: "The agent, when it is dispatched in that role", yours: "Yes, after setup. They are plain markdown." },
     { k: "proc", idx: "L3", name: "Procedures", path: ".claude/commands/sdd.md", cls: "", title: "Procedures: the workflow itself",
       text: "The steps for setup and for running a ticket, the three ticket sizes, the model tiers table, and what each gate must record. This is what /sdd runs.", read: "The orchestrating agent, at the start of every run", yours: "Only the model tiers, through your own AGENTS.md" },
     { k: "rules", idx: "L2", name: "Rules", path: "RULES.md · ai_rules/", cls: "focal", title: "Rules: what is true of this codebase",

@@ -10,7 +10,7 @@ Run commands/teach.md: read the real source, write the quick guide and cut it to
 ## Run it
 1. **Load the full procedure** — read the command doc and follow it exactly:
    `.claude/commands/spec-harness/teach.md` (this repo) or the spec-harness source `commands/teach.md`.
-3. **Stay inside the 3 pillars** — Memory bank (`.memory/`) · Spec-Driven Development · Harness (ratchet `AGENTS.md` + verifier + learning loop). Read `SPEC-HARNESS.md` for how this repo is wired.
+2. **Stay inside the 3 pillars** — Memory bank (`.memory/`) · Spec-Driven Development · Harness (ratchet `AGENTS.md` + verifier + learning loop). Read `SPEC-HARNESS.md` for how this repo is wired.
 
 ## Non-negotiables
 - The ratchet only tightens after a reviewed rule change.

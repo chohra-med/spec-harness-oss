@@ -15,7 +15,7 @@ checks for them and uses them when present. It never installs one without your y
 
 ## graphify: see what was indexed
 
-[graphify](https://github.com/safishamsi/graphify) (MIT) turns a folder of code into a knowledge
+[graphify](https://github.com/Graphify-Labs/graphify) (Apache-2.0) turns a folder of code into a knowledge
 graph you can open in a browser. `spec-harness index` writes an inventory for agents; graphify
 draws the same codebase for you.
 
@@ -41,7 +41,7 @@ During `/sdd init` the agent checks `command -v graphify`. When it is there, the
 ## diagram-design: diagrams that explain
 
 [diagram-design](https://github.com/cathrynlavery/diagram-design) (MIT, by Cathryn Lavery) is a
-skill for drawing architecture, flow, sequence, layer, loop and twenty other diagram types as
+skill for drawing architecture, flow, sequence, layer, loop and many other diagram types as
 self-contained HTML with inline SVG, with a checklist that stops the usual mistakes.
 
 In Claude Code:

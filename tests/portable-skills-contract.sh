@@ -75,7 +75,7 @@ round3 = {
     "spec-harness-rules/SKILL.md": "c0fe5440b06f56d453f7ed6794a73dc925e0c0e1ffca88144a491646a063e0cb",
     "spec-harness-skill-finder/SKILL.md": "b8a8e214bc373cceb3dde9bb6f670291689febffb520454f428baf868bba3f8d",
     "spec-harness-spec/SKILL.md": "9efebaf5e6b8da7bb3fd7f2db6f87675782514c59f1f5e5cbfc984d173625879",
-    "spec-harness-teach/SKILL.md": "8fc702d8f0ec7dd26eeb29730eabb70a1e09b46f749be9dbda1dda8a8212c7cd",
+    "spec-harness-teach/SKILL.md": "87e894e0ab2e41f649e7d24bb7fbdffb749581e4c1f0a847e03791ccc49c57c4",
     "spec-harness-tasks/SKILL.md": "4281604563197c18caec9fd15a8da8bffe3b17b99bb8c7364ce8744318478925",
     "spec-harness-tester/SKILL.md": "cb0f67b79df0cbe198e5e433159ad3f281530ca65645298bac2d7d6451fbe864",
     "spec-harness-tickets/SKILL.md": "bf7621458e57b06f4f0d45a99a68bc983d8c88cdeca2b43253d298202837ac83",

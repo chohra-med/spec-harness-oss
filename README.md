@@ -178,8 +178,8 @@ documentation before connecting a tool.
    ratchet, and the verifier + learning loop wired in.
 2. [`docs/GUARDRAILS.md`](./docs/GUARDRAILS.md) — current procedures for evidence, reviewed learning, and delivery authority.
 3. [`docs/COMPANION-SKILLS.md`](./docs/COMPANION-SKILLS.md) — graphify, diagram-design and the methods that ship inside.
-3. [`docs/MCP-SERVERS.md`](./docs/MCP-SERVERS.md) — a dated illustrative MCP map; recheck vendor details before use.
-4. [`commands/init.md`](./commands/init.md) — start here to use it on a project.
+4. [`docs/MCP-SERVERS.md`](./docs/MCP-SERVERS.md) — a dated illustrative MCP map; recheck vendor details before use.
+5. [`commands/init.md`](./commands/init.md) — start here to use it on a project.
 
 ## More from Code Meet AI
 

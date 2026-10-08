@@ -33,10 +33,12 @@ emit() {
     else
       printf '1. **Load the full procedure** — read the command doc and follow it exactly:\n'
       printf '   `.claude/commands/spec-harness/%s.md` (this repo) or the spec-harness source `commands/%s.md`.\n' "$doc" "$doc"
+      pillars_step=2
       if [ -n "$agents" ]; then
         printf '2. **Agents** — follow this command and project policy for role selection.\n'
+        pillars_step=3
       fi
-      printf '3. **Stay inside the 3 pillars** — Memory bank (`.memory/`) · Spec-Driven Development · Harness (ratchet `AGENTS.md` + verifier + learning loop). Read `SPEC-HARNESS.md` for how this repo is wired.\n\n'
+      printf '%s. **Stay inside the 3 pillars** — Memory bank (`.memory/`) · Spec-Driven Development · Harness (ratchet `AGENTS.md` + verifier + learning loop). Read `SPEC-HARNESS.md` for how this repo is wired.\n\n' "$pillars_step"
     fi
     printf '## Non-negotiables\n'
     if [ "$shared_route" = method ]; then
