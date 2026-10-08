@@ -1,6 +1,6 @@
 ---
 name: spec-harness-tasks
-description: Break an accepted feature plan into ordered, testable tasks. Use when Malik says 'break this into tasks' or 'what are the steps'.
+description: Break an accepted feature plan into ordered, testable tasks. Use when the user says 'break this into tasks' or 'what are the steps'.
 ---
 
 # spec-harness-tasks

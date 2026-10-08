@@ -397,7 +397,8 @@ for directory, dirnames, filenames in os.walk(root, topdown=True, followlinks=Fa
             workspace_files.append({"path": path_rel, "format": name, "status": "present; contents not parsed"})
         if is_instruction_file(path_rel):
             instruction_files.append((path_rel, path))
-        if Path(name).suffix.lower() in SOURCE_SUFFIXES:
+        # The staged root loop.sh is the harness's own placeholder, not project source.
+        if Path(name).suffix.lower() in SOURCE_SUFFIXES and path_rel != "loop.sh":
             source_paths.append((relative_dir, path_rel, path))
 
     if truncated:

@@ -7,7 +7,7 @@ model: sonnet
 
 # SDD Implementer
 
-Execute exactly one numbered task from `specs/<feature>/tasks.md` per invocation.
+Execute exactly one numbered task from `specs/<feature>/tasks.md` per invocation. A MICRO ticket has no task list: `specs/<feature>/ticket.md` is both the task and the goal, so read it in place of startup items 1 and 2, and never edit it.
 
 ## Mandatory startup
 1. The assigned task and whole `specs/<feature>/tasks.md` for dependencies

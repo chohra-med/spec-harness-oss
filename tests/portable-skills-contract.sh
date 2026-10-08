@@ -84,7 +84,11 @@ assert set(round3) == set(before) == set(after), "generated skill path set diffe
 trigger = Path(sys.argv[3]).read_text().splitlines()[2]
 assert "implementation work" in trigger and "code" in trigger, "generated Ponytail trigger omits implementation/code work"
 changed = sorted(path for path in after if round3[path] != after[path])
-assert changed == ["spec-harness-ponytail/SKILL.md", "spec-harness-tester/SKILL.md"], f"unexpected historical skill deviations: {changed}"
+# The four method adapters stay frozen. Every command skill deviates since its trigger text
+# says "the user" instead of naming the author; install also gained technology skills.
+frozen = ["spec-harness-grill-me/SKILL.md", "spec-harness-package-finder/SKILL.md", "spec-harness-skill-finder/SKILL.md"]
+assert changed == sorted(set(round3) - set(frozen)), f"unexpected historical skill deviations: {changed}"
+assert not any("Malik" in (Path(sys.argv[3]).parents[1] / path).read_text() for path in round3), "generated skill names the author"
 for path in round3:
     assert before[path] == after[path], f"isolated regeneration changed source adapter bytes: {path}"
 PY

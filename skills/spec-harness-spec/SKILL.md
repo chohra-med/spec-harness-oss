@@ -1,6 +1,6 @@
 ---
 name: spec-harness-spec
-description: Turn accepted ticket text into a structured, testable feature spec and goal. Use when Malik says 'spec this', 'write the spec for X', or asks what the requirements are. First SDD artifact stage.
+description: Turn accepted ticket text into a structured, testable feature spec and goal. Use when the user says 'spec this', 'write the spec for X', or asks what the requirements are. First SDD artifact stage.
 ---
 
 # spec-harness-spec

@@ -1,6 +1,6 @@
 ---
 name: spec-harness-tickets
-description: Intake exact ticket text or a retrieved body from an explicitly connected provider. Use when Malik asks to run /sdd on ticket text, a connected issue, or a feature request. Bare issue names without a retrievable body stop for clarification. Produces a feature-owned specs/<feature>/ packet and goal.
+description: Intake exact ticket text or a retrieved body from an explicitly connected provider. Use when the user asks to run /sdd on ticket text, a connected issue, or a feature request. Bare issue names without a retrievable body stop for clarification. Produces a feature-owned specs/<feature>/ packet and goal.
 ---
 
 # spec-harness-tickets

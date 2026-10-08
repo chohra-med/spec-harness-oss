@@ -12,7 +12,8 @@ spec-harness ship             # manual instructions only; no external action is 
 
 Read the packet's `spec.md`, `goal.md`, source revision and gate records under
 `specs/<feature>/gates/`. A delivery is eligible for a decision only when fresh tester, verifier and
-reviewer results pass against the same current inputs.
+reviewer results pass against the same current inputs. For a MICRO ticket the required set is the
+single fresh verifier PASS in `specs/<feature>/ticket.md`, and the grant is recorded there.
 
 ## Merger authority
 

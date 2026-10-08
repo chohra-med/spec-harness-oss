@@ -68,6 +68,8 @@ guarantee correct outputs or prevent every mistake. The bundled `bin/loop.sh` is
 │  researcher → planner → implementer → tester → VERIFIER → reviewer
 │  UI diffs add a second gate after the verifier: DESIGN-VERIFIER
 │  (impeccable detect + ui-ux-pro-max + design-taste as PASS/FAIL)
+│  Small fixes: implementer → VERIFIER only. After a ticket: LEARNER.
+│  Each role asks for a model tier: strong · fast · review.
 └───────────────────────────────────────────────────────────────┘
 ```
 

@@ -192,15 +192,24 @@ else:
 
 required_skills = {"spec-harness-architecture", "spec-harness-performance", "spec-harness-packages"}
 skill_rows = receipt.get("skills", [])
-if not isinstance(skill_rows, list) or {row.get("name") for row in skill_rows if isinstance(row, dict)} != required_skills:
-    fail("receipt must contain exactly the architecture, performance and packages project skills")
+skill_names = [row.get("name") for row in skill_rows if isinstance(row, dict) and isinstance(row.get("name"), str)] if isinstance(skill_rows, list) else []
+# Technology skills are optional and scoped to the packages that use that technology.
+tech_skills = [name for name in skill_names if name not in required_skills]
+if not isinstance(skill_rows, list) or len(skill_names) != len(skill_rows) or len(set(skill_names)) != len(skill_names) or not required_skills.issubset(skill_names):
+    fail("receipt must contain the architecture, performance and packages project skills, once each")
+elif len(tech_skills) > 5 or not all(re.fullmatch(r"spec-harness-tech-[a-z0-9]+(?:-[a-z0-9]+)*", name) for name in tech_skills):
+    fail("extra project skills must be named spec-harness-tech-<technology>, at most five")
 else:
     for row in skill_rows:
         name = row["name"]
         path = row.get("path")
         packages_for_skill = row.get("package_paths")
         expected_skill_path = f".claude/skills/{name}/SKILL.md"
-        if row.get("status") != "READY" or path != expected_skill_path or not safe_rel(path) or not isinstance(packages_for_skill, list) or packages_for_skill != package_paths:
+        scoped = isinstance(packages_for_skill, list) and (
+            packages_for_skill == package_paths if name in required_skills
+            else bool(packages_for_skill) and set(packages_for_skill) <= set(package_paths)
+        )
+        if row.get("status") != "READY" or path != expected_skill_path or not safe_rel(path) or not scoped:
             fail(f"skill {name}: status/path/package applicability is incomplete")
             continue
         data = safe_file(path)
@@ -210,12 +219,13 @@ else:
         text = data.decode("utf-8", errors="replace")
         if "<!-- source-bound: inventory-sha256=" + str(receipt.get("inventory_sha256")) + " -->" not in text:
             fail(f"skill {name}: source binding is stale or missing")
-        if "PENDING" in text or "{{" in text:
+        # Skills quote real code and prose: only the upper-case status word marks an unfinished copy.
+        if re.search(rb"\bPENDING\b", data):
             fail(f"skill {name}: generic scaffold or placeholder remains")
-        for package_path in package_paths:
+        for package_path in packages_for_skill:
             if package_path not in text:
                 fail(f"skill {name}: missing package applicability {package_path}")
-        validate_citations(f"skill {name}", row.get("citations"), package_paths)
+        validate_citations(f"skill {name}", row.get("citations"), packages_for_skill)
         for citation in row.get("citations", []):
             if isinstance(citation, dict) and f"{citation.get('path')}:{citation.get('line_start')}" not in text:
                 fail(f"skill {name}: citation line is absent from skill output: {citation.get('path')}:{citation.get('line_start')}")
@@ -273,7 +283,7 @@ if errors:
         print(f"- {error}")
     raise SystemExit(1)
 package_label = "package" if len(package_paths) == 1 else "packages"
-print(f"READY: {len(package_paths)} {package_label}, 3 skills, {len(roles)} selected roles; inventory and cited hashes match")
+print(f"READY: {len(package_paths)} {package_label}, {len(skill_rows)} skills, {len(roles)} selected roles; inventory and cited hashes match")
 PY
   exit $?
 fi
@@ -312,19 +322,19 @@ cat > "$TEMP_PROMPT" <<'EOF_PROMPT'
 
 - Target root: `@TARGET_ROOT@`
 - Inventory path: `@INVENTORY_PATH@` (@INVENTORY_STATUS@)
-- Read `.claude/commands/spec-harness/{init,rules,generate-agents}.md` and `.claude/spec-harness/methods/spec-harness-{architecture,performance,packages}.md`. In a source checkout only, fall back to `commands/` and `templates/project-skills/` respectively. Inventory with the installed `spec-harness index <target>` entrypoint (source checkout fallback: `bin/sh-index.sh <target>`).
+- Read `.claude/commands/spec-harness/{init,rules,generate-agents}.md` and `.claude/spec-harness/methods/spec-harness-{architecture,performance,packages,tech}.md`. In a source checkout only, fall back to `commands/` and `templates/project-skills/` respectively. Inventory with the installed `spec-harness index <target>` entrypoint (source checkout fallback: `bin/sh-index.sh <target>`).
 
 ## Execute in this order
 
-0. For an already initialized target, before reindexing snapshot the exact old receipt, inventory, every selected package rule, all three project skills and each selected role file. Confirm prior synthesis and separate semantic-review evidence, source-bound markers, receipt paths/citations/output hashes, and the authorized generated region for each output. A matching receipt hash alone never authorizes replacement. If preimage, ownership or no-intervening-edit evidence is missing, preserve that output byte-for-byte and record `CONFLICT/PENDING`. Keep populated human `RULES.md` without a clearly authorized generated region untouched.
+0. For an already initialized target, before reindexing snapshot the exact old receipt, inventory, every selected package rule, all project skills and each selected role file. Confirm prior synthesis and separate semantic-review evidence, source-bound markers, receipt paths/citations/output hashes, and the authorized generated region for each output. A matching receipt hash alone never authorizes replacement. If preimage, ownership or no-intervening-edit evidence is missing, preserve that output byte-for-byte and record `CONFLICT/PENDING`. Keep populated human `RULES.md` without a clearly authorized generated region untouched.
 1. Read the target's `AGENTS.md`, `RULES.md`, `CONTRIBUTING.md`, `ai_rules/globalRules.md`, `ai_rules/rules/frequent_rules.md`, `ai_rules/context_map.md` or `ai_rules/project_inventory.json`, `.memory/`, `.cursor/rules/`, `.Codex/`, `README.md` and every startup path those instructions name. Follow startup instructions. Read the selected inventory and inspect project structure; enumerate package boundaries, manifests, lockfiles, installed skills, exclusions and unsupported formats before deriving any project guidance.
 2. Open the actual representative source files, imports/resolution evidence and relevant tests/config for every package. Cite exact line spans and SHA-256. Confirm declared dependency ranges separately from resolved/installed versions. Do not make package-use, architecture, SOLID or performance claims from inventory labels or names alone. Surface policy/source conflicts; do not silently replace existing policy.
 3. After steps 1-2, apply relevant reusable methods from the installed `ponytail.md`, `grill-me.md`, `package-finder.md` and `skill-finder.md` owners (source checkout fallback: `commands/`). Open only relevant skill candidates, check exposed capabilities, and record selected/excluded evidence in the existing owned outputs. Match package documentation identity/version to target runtime/native/peer constraints; unavailable coverage, provenance or tooling stays PENDING. Do not install packages or third-party skills.
 4. Fill only empty rule sections or explicit PENDING scaffolds. Produce one package-scoped `RULES.md` output record for every inventory package, with all five standard sections and citations. Do not copy rules across package boundaries.
-5. Maintain exactly `.claude/skills/spec-harness-architecture/SKILL.md`, `.claude/skills/spec-harness-performance/SKILL.md` and `.claude/skills/spec-harness-packages/SKILL.md`. On first initialization, create each only when absent. On guarded refresh, reuse or refresh an existing skill only when its captured preimage and prior receipt, source-bound marker, documented generated ownership and no-custom-edit evidence all agree. If ownership is unproven or the file is custom/mismatched, preserve its bytes and record `CONFLICT/PENDING`. Use the corresponding installed method file. Each generated skill includes `<!-- source-bound: inventory-sha256=<raw inventory file hash> -->`.
-6. Bind the required roles `sdd-planner`, `sdd-implementer`, `sdd-tester`, `sdd-verifier` and `sdd-reviewer` inside their existing `GEN:rules` regions. After reindex, enumerate every selected role GEN block and each of the three skill markers whose raw inventory hash changed, even when only one package's source changed. Refresh all such verified generated marker consumers and their receipt hashes. The project-aware planner binding is required for ticket planning. Require separate fresh contexts for tester, verifier and reviewer. Preserve each canonical role file outside its GEN block byte-for-byte, including its duties, safeguards, procedures and output format. Add package-specific rules inside the block; do not replace role behavior with generic evidence notes. Bind merger only with an explicit cited authority and current need. Select research, design or workflow roles only from observed project/task evidence. Cite package-specific source lines, record exclusions and preserve bytes outside owned markers.
+5. Maintain the three core skills `.claude/skills/spec-harness-architecture/SKILL.md`, `.claude/skills/spec-harness-performance/SKILL.md` and `.claude/skills/spec-harness-packages/SKILL.md`, plus one `.claude/skills/spec-harness-tech-<technology>/SKILL.md` per major technology the source actually uses (at most five, per the `tech` method). On first initialization, create each only when absent. On guarded refresh, reuse or refresh an existing skill only when its captured preimage and prior receipt, source-bound marker, documented generated ownership and no-custom-edit evidence all agree. If ownership is unproven or the file is custom/mismatched, preserve its bytes and record `CONFLICT/PENDING`. Use the corresponding installed method file. Each generated skill includes `<!-- source-bound: inventory-sha256=<raw inventory file hash> -->`.
+6. Bind the required roles `sdd-planner`, `sdd-implementer`, `sdd-tester`, `sdd-verifier` and `sdd-reviewer` inside their existing `GEN:rules` regions. After reindex, enumerate every selected role GEN block and each skill marker whose raw inventory hash changed, even when only one package's source changed. Refresh all such verified generated marker consumers and their receipt hashes. The project-aware planner binding is required for ticket planning. Require separate fresh contexts for tester, verifier and reviewer. Preserve each canonical role file outside its GEN block byte-for-byte, including its duties, safeguards, procedures and output format. Add package-specific rules inside the block; do not replace role behavior with generic evidence notes. Bind merger only with an explicit cited authority and current need. Select research, design or workflow roles only from observed project/task evidence. Cite package-specific source lines, record exclusions and preserve bytes outside owned markers.
 7. Write `.claude/agents/.init-synthesis.json` using schema 1 described in `.claude/commands/spec-harness/generate-agents.md` (source checkout fallback: `commands/generate-agents.md`). It must use the exact package paths from the inventory, include output hashes and citation path/line/hash records, and remain `PENDING` for missing, conflicting, unsupported or stale evidence.
-8. Follow guarded refresh owned by `.claude/commands/sdd.md`. Before any reindex, use step 0's snapshots; a receipt hash is not write authority. Preserve populated human rules without an authorized generated region, custom/mismatched skills and unproven outputs byte-for-byte as `CONFLICT/PENDING`. After re-grounding affected claims, enumerate and refresh every stale raw-inventory marker consumer across all three skills and selected role GEN blocks, then run `bash <spec-harness>/bin/sh-gen-agents.sh --check <target>`. A failed check names the missing, stale, conflicting or unsupported evidence. A passing result confirms recorded structure and current cited bytes; it does not establish that the claim follows from its citation. In a separate fresh reviewer context, inspect each generated rule, skill and role claim against its cited source span; check package scope, policy conflicts, and whether any recommendation is mislabeled as observed behavior. Record that review and its outcome. If a source cannot be read or does not independently support the claim, or no independent review context is available, leave overall initialization PENDING.
+8. Follow guarded refresh owned by `.claude/commands/sdd.md`. Before any reindex, use step 0's snapshots; a receipt hash is not write authority. Preserve populated human rules without an authorized generated region, custom/mismatched skills and unproven outputs byte-for-byte as `CONFLICT/PENDING`. After re-grounding affected claims, enumerate and refresh every stale raw-inventory marker consumer across all project skills and selected role GEN blocks, then run `bash <spec-harness>/bin/sh-gen-agents.sh --check <target>`. A failed check names the missing, stale, conflicting or unsupported evidence. A passing result confirms recorded structure and current cited bytes; it does not establish that the claim follows from its citation. In a separate fresh reviewer context, inspect each generated rule, skill and role claim against its cited source span; check package scope, policy conflicts, and whether any recommendation is mislabeled as observed behavior. Record that review and its outcome. If a source cannot be read or does not independently support the claim, or no independent review context is available, leave overall initialization PENDING.
 A passing --check proves structural integrity and current cited bytes only. Before declaring overall initialization READY, a separate fresh reviewer must check that each cited span supports its rule, skill and role claim, package boundaries are respected, and conflicts or unsupported recommendations are surfaced. Record that independent review; if no such context is available, keep overall initialization PENDING even when --check prints READY. Feature goals, test results, human approval and release remain separate. Do not claim a role was dispatched unless the current native client confirms that capability and run.
 EOF_PROMPT
 python3 - "$TEMP_PROMPT" "$(basename "$ABS")" "$ABS" "${INVENTORY:-missing}" "$INVENTORY_STATUS" <<'PY'

@@ -1,6 +1,6 @@
 ---
 name: spec-harness-verify
-description: Run a fresh verifier against the current feature-specific goal. Use when Malik says 'verify it', 'is it actually done', or 'check against the goal'. Tests passing ≠ goal met.
+description: Run a fresh verifier against the current feature-specific goal. Use when the user says 'verify it', 'is it actually done', or 'check against the goal'. Tests passing ≠ goal met.
 ---
 
 # spec-harness-verify

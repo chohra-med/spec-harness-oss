@@ -20,6 +20,13 @@ Sponsored by [AI Mobile Launcher](https://aimobilelauncher.com?utm_source=github
 
 The method stages the harness, inspects the target repository, derives project-bound rules and roles from its source, then takes one ticket through independent checks. The harness keeps project context and reviewed corrections available for later work.
 
+Roles ask for a model tier, not a model: plan on the strongest model, implement on a fast cheap one,
+and review on whichever the token budget allows. One table in [`commands/sdd.md`](./commands/sdd.md)
+maps tiers to models per provider, so changing provider means filling one column.
+
+Small fixes take a light route: one ticket file, one implementer and one fresh verifier. Larger or
+riskier work keeps the full packet with separate tester, verifier and reviewer.
+
 ## The three pillars
 
 Everything in Spec Harness is one of three things. The name is literal: **Spec** + **Harness**.
@@ -45,7 +52,8 @@ The harness has four moving parts that together make the system *converge* inste
   change* against the goal; the tester checks *reality* against the critical journeys.
 - **The learning loop** (`learn`) — the verifier or tester records a failure; `learn` captures and
   classifies it, then a reviewed durable correction can become a dated rule (a BROKEN workflow can
-  also yield a recommended regression guard). Feedback never evaporates. The machine learns from its failures
+  also yield a recommended regression guard). The `sdd-learner` agent owns it: it also records
+  decisions, promotes a cause that repeats, and corrects project skills as well as rules. Feedback never evaporates. The machine learns from its failures
   (→ rules); the operator learns from its wins (→ `learning/` lessons). *This is the "loop" —
   reframed: not a cron schedule, a learning schedule.*
 
@@ -55,12 +63,27 @@ The harness has four moving parts that together make the system *converge* inste
   source-backed rules and skills, SDD roles, independent gates, and a learning loop. It adds no
   application dependency. The source commands use Bash. Python 3.11+ is required for the complete
   index-and-check flow. This source repository is MIT-licensed; see [LICENSE](./LICENSE). Run the
-  CLI from a checkout, or use npm to install a locally packed tarball. This source release is not
-  published to npm; install this checkout or its local tarball, not the registry package with the
-  same name. Model-led work needs a capable client; the shell stages files and reports
+  CLI with `npx` from GitHub, from a checkout, or from a locally packed tarball. This source release
+  is not published to npm; the registry package with the same name is unrelated. Model-led work needs a capable client; the shell stages files and reports
   `PENDING` rather than claiming that agents ran.
 - **It runs the dev, not the product.** The harness guides the development workflow; the shipped
   application remains yours.
+
+## Quick start
+
+From the root of an existing project, with Node, Bash and Python 3.11+ available:
+
+```sh
+npx -y github:chohra-med/spec-harness-oss init . integrate
+```
+
+Then open the project in Claude Code and run `/sdd init`. The first command stages the harness and
+reports `PENDING`. The second reads the codebase and writes its rules, skills and roles.
+
+**Adopting it in an existing project?** Follow [docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md):
+ten steps from a clean branch to a first verified ticket, including what to do when the project
+already has its own `CLAUDE.md` and `AGENTS.md`, how to review what the initialiser wrote, and how
+to undo it.
 
 ## Install and stage from a checkout
 
@@ -77,7 +100,7 @@ To install the CLI from a local tarball instead, run `npm pack` from the checkou
 filename it prints. For the current version, that is:
 
 ```sh
-npm install --global ./spec-harness-0.1.1.tgz
+npm install --global ./spec-harness-0.1.2.tgz
 ```
 
 Staging reports `PENDING`. It copies a scaffold; it does not synthesize project rules, run agents,
@@ -97,7 +120,7 @@ matching, and the result of a first real-ticket run remain unverified for this r
 |---|---|
 | [`install`](./bin/sh-install.sh) | Add/refresh the system in any repo. One entry point for **both** "start new" (`new`) and "integrate into existing" (`integrate`). Idempotent. |
 | [`/sdd`](./commands/sdd.md) | Shared entry for project initialization and ticket-text/reference execution. Runs only in a capable client; the shell route stays PENDING/manual. |
-| [`init`](./commands/init.md) | Stage then synthesize project-specific rules, three skills, and source-bound roles. Overall READY requires structural checks and a separate fresh semantic review. |
+| [`init`](./commands/init.md) | Stage then synthesize project-specific rules, three core skills plus one per major technology, and source-bound roles. Overall READY requires structural checks and a separate fresh semantic review. |
 | [`index`](./bin/sh-index.sh) / [`migrate`](./commands/migrate.md) | Adopt an existing repo: inventory the codebase into the index layer, then enrich. |
 | [`tickets`](./commands/tickets.md) | Accept exact ticket text or a retrieved body from an explicitly connected provider → one `specs/<feature>/` packet with its own `goal.md`. Unretrievable names stop for clarification. |
 | [`rules`](./commands/rules.md) | **Per-directory rules.** Resolve the nearest `RULES.md` for a path (coding/architecture/packages/testing/reviewing), or generate it from a directory's real code. Each section owned by one agent; deepest-wins cascade. Built for mixed-stack monorepos. |
@@ -137,6 +160,7 @@ documentation before connecting a tool.
 
 ## Read next
 
+1. [`docs/GETTING-STARTED.md`](./docs/GETTING-STARTED.md) — step by step: stage, initialise, review, first ticket, undo.
 1. [`ARCHITECTURE.md`](./ARCHITECTURE.md) — the diagrams: the 3 pillars, the SDD flow, the
    ratchet, and the verifier + learning loop wired in.
 2. [`docs/GUARDRAILS.md`](./docs/GUARDRAILS.md) — current procedures for evidence, reviewed learning, and delivery authority.

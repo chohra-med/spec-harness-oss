@@ -1,6 +1,6 @@
 ---
 name: spec-harness-plan
-description: Plan a ticket against actual source and target rules. Use when Malik says 'plan the implementation', 'how should we build this', or 'design this'. Apply full Ponytail and source-grounded Grill Me before finalizing the plan.
+description: Plan a ticket against actual source and target rules. Use when the user says 'plan the implementation', 'how should we build this', or 'design this'. Apply full Ponytail and source-grounded Grill Me before finalizing the plan.
 ---
 
 # spec-harness-plan

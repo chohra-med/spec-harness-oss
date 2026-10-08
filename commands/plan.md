@@ -15,12 +15,11 @@ before planning. Read `design.md` and `research.md` when present or selected for
 bound planner writes or updates `plan.md` first, then `tasks.md`; neither optional artifact is a
 prerequisite for a trivial ticket.
 
-Before dispatch, confirm the active provider and exact supported model map for planner,
-implementer, separate fresh tester, verifier, reviewer and finisher. Codex/OpenAI keeps the
-confirmed `gpt-6-sol` planner/finisher and `gpt-6-luna` implementation and independent gate contexts.
-Claude requires explicitly confirmed, client-supported Claude model IDs for those same stages.
-Unknown provider, missing model/context evidence or an unsupported exact model leaves planning
-PENDING. Never infer dispatch from `model:` frontmatter or silently switch/fall back.
+Before dispatch, resolve planner, implementer, separate fresh tester, verifier, reviewer and
+finisher to model tiers using the `Model tiers` table in `.claude/commands/sdd.md` (source checkout:
+`commands/sdd.md`), and confirm the serving models with the active client. Planning runs on the
+strong tier. An unavailable model moves to the nearest available tier and is recorded; a missing
+separate context leaves that gate PENDING. Never infer dispatch from `model:` frontmatter.
 
 ## Grill Me and Ponytail receipts
 

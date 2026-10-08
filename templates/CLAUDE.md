@@ -23,7 +23,8 @@ template are not project-derived policy or acceptance; never call them READY by 
 ## 🔒 The SDD pipeline (how work happens here)
 Use `/sdd init` for project synthesis and `/sdd <ticket text or connected reference>` for feature
 work. The shared procedure is `.claude/commands/sdd.md`; it creates a ticket-specific
-`specs/<feature>/goal.md` and runs the independent tester, verifier and reviewer. Never substitute
+`specs/<feature>/goal.md` and runs the independent tester, verifier and reviewer. A small fix takes
+the light route instead: one `specs/<feature>/ticket.md`, an implementer and one fresh verifier. Never substitute
 the unrelated root `goal.md`. Tests passing is necessary, not sufficient.
 
 ## ⚖️ The non-negotiables

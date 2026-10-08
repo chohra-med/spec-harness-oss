@@ -181,7 +181,7 @@ project, derive rules or skills, bind roles, or create feature-specific acceptan
 ## Next work
 - Read this project's existing policies and preserve their authority.
 - Fill the memory bank and ai_rules/rules/frequent_rules.md from project evidence.
-- Bind each installed role and the three project skills to cited package evidence; have a separate
+- Bind each installed role and the project skills to cited package evidence; have a separate
   fresh reviewer confirm the claims after the structural check.
 - Keep each ticket's acceptance in `specs/<feature>/goal.md`; preserve the root goal scaffold.
 - Re-run the relevant checks before calling this setup READY.
@@ -288,7 +288,7 @@ EOF
 for method in ponytail grill-me package-finder skill-finder; do
   plan_copy ".agents/skills/spec-harness-$method/SKILL.md" "$SYS_DIR/skills/spec-harness-$method/SKILL.md"
 done
-for method in architecture performance packages; do
+for method in architecture performance packages tech; do
   plan_copy ".claude/spec-harness/methods/spec-harness-${method}.md" "$SYS_DIR/templates/project-skills/spec-harness-${method}.md"
 done
 
@@ -418,5 +418,8 @@ print_paths ADDED "${ADDED[@]}"
 print_paths PRESERVED "${PRESERVED[@]}"
 print_paths CONFLICTS "${CONFLICTS[@]}"
 print_paths PENDING "${PENDING[@]}"
+if [ "${#CONFLICTS[@]}" -gt 0 ]; then
+  printf 'CONFLICTS: your existing files were kept unchanged. If AGENTS.md or CLAUDE.md is listed, add the block from step 3 of https://github.com/chohra-med/spec-harness-oss/blob/main/docs/GETTING-STARTED.md so your client loads the harness.\n'
+fi
 printf 'Next: run /sdd init for source-grounded rules/roles/skills; create feature goals under specs/<feature>/goal.md.\n'
 exit 0

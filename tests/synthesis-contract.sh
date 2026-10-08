@@ -85,7 +85,7 @@ assert before == after, (before.keys() ^ after.keys(), before, after)
 assert (copy_root / "skills/spec-harness-build/KEEP.txt").read_text() == "extra user file\n"
 assert "actual representative source" in (copy_root / "skills/spec-harness-install/SKILL.md").read_text()
 assert "--check" in (copy_root / "skills/spec-harness-generate-agents/SKILL.md").read_text()
-assert "affected skill/role bindings stale" in (copy_root / "skills/spec-harness-learn/SKILL.md").read_text()
+assert "affected skill/role bindings as stale" in (copy_root / "skills/spec-harness-learn/SKILL.md").read_text()
 generated_agents = (copy_root / "skills/spec-harness-generate-agents/SKILL.md").read_text()
 assert "project-aware planner" in generated_agents
 assert "separate fresh reviewer" in generated_agents
@@ -246,6 +246,42 @@ write(receipt_path, json.dumps(receipt, indent=2) + "\n")
 green = run(["bash", str(bind), "--check", str(mixed)], 0, "valid synthesis GREEN control")
 assert "READY: 3 packages, 3 skills, 5 selected roles" in green
 print(green.strip())
+
+# Technology skills are optional, named spec-harness-tech-<technology>, capped at five and scoped
+# to the packages that use the technology.
+tech_package = package_paths[0]
+tech_citation = citations[tech_package]
+tech_path = ".claude/skills/spec-harness-tech-react-native/SKILL.md"
+write(mixed / tech_path, "\n".join([
+    "# spec-harness-tech-react-native", "", f"Package applicability: {tech_package}", "",
+    f"<!-- source-bound: inventory-sha256={inventory_hash} -->",
+    f"Evidence: {tech_citation['path']}:{tech_citation['line_start']}-{tech_citation['line_end']}",
+]) + "\n")
+tech_row = {
+    "name": "spec-harness-tech-react-native", "status": "READY", "path": tech_path,
+    "sha256": sha(mixed / tech_path), "package_paths": [tech_package], "citations": [tech_citation],
+}
+def check_skills(rows, expected, label):
+    write(receipt_path, json.dumps(dict(receipt, skills=rows), indent=2) + "\n")
+    return run(["bash", str(bind), "--check", str(mixed)], expected, label)
+assert "READY: 3 packages, 4 skills, 5 selected roles" in check_skills(skills + [tech_row], 0, "scoped technology skill GREEN control")
+assert "spec-harness-tech-<technology>" in check_skills(skills + [dict(tech_row, name="random-skill")], 1, "RED control: unnamed extra skill")
+assert "at most five" in check_skills(skills + [dict(tech_row, name=f"spec-harness-tech-t{i}") for i in range(6)], 1, "RED control: six technology skills")
+assert "package applicability is incomplete" in check_skills(skills + [dict(tech_row, package_paths=["not-a-package"])], 1, "RED control: technology skill on an unknown package")
+assert "package applicability is incomplete" in check_skills(skills + [dict(tech_row, package_paths=[])], 1, "RED control: unscoped technology skill")
+assert "once each" in check_skills(skills[:2] + [tech_row], 1, "RED control: technology skill replacing a core skill")
+five = []
+for i in range(5):
+    p = f".claude/skills/spec-harness-tech-t{i}/SKILL.md"
+    write(mixed / p, (mixed / tech_path).read_text() + "\nExample: `<View style={{flex: 1}} />` and the `FETCH_PENDING` action. Show a spinner while the request is pending.\n")
+    five.append(dict(tech_row, name=f"spec-harness-tech-t{i}", path=p, sha256=sha(mixed / p)))
+assert "READY: 3 packages, 8 skills" in check_skills(skills + five, 0, "five technology skills with JSX and *_PENDING text GREEN control")
+assert "once each" in check_skills(skills + [dict(tech_row, name=["x"])], 1, "RED control: non-string skill name fails closed without a traceback")
+for row in five:
+    (mixed / row["path"]).unlink(); (mixed / row["path"]).parent.rmdir()
+(mixed / tech_path).unlink(); (mixed / tech_path).parent.rmdir()
+assert "READY: 3 packages, 3 skills, 5 selected roles" in check_skills(skills, 0, "core-only receipt restored GREEN")
+print("PASS: technology skill accepted when named, capped and scoped; five planted failures rejected")
 
 # Human-authored policy can contain code examples whose syntax resembles a
 # template marker. JSX object props and TypeScript generics belong in a valid
