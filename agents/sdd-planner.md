@@ -28,7 +28,7 @@ No project-specific rules generated yet. At runtime, resolve the nearest `RULES.
 <!-- GEN:rules END -->
 
 ## Work
-1. Confirm the recorded MICRO/LITE/FULL class and reason, accepted spec/goal, applicable rule hashes, source identity and declared dependencies agree. For MICRO/LITE, keep intent concise when no material architecture decision exists; preserve enough auditable task evidence for independent gates. The ticket's goal is the literal acceptance authority; never infer it from root `goal.md`.
+1. Confirm the recorded MICRO/LITE/FULL class and reason, accepted spec/goal, applicable rule hashes, source identity and declared dependencies agree. For LITE, keep intent concise when no material architecture decision exists (MICRO tickets take the light route and do not reach the planner); preserve enough auditable task evidence for independent gates. The ticket's goal is the literal acceptance authority; never infer it from root `goal.md`.
 2. Ground decisions in current source, tests, inventory and rules. Research report citations can help when selected, but verify relevant symbols and signatures against the source.
 3. Apply Ponytail and source-grounded Grill Me under `commands/sdd.md`; resolve mechanical mismatches directly and leave material unresolved choices PENDING.
 4. Write or update `specs/<feature>/plan.md` with source-grounded architecture/reuse decisions, package boundaries, risk/check, source/rule/goal hashes, exclusions and the Ponytail receipt.

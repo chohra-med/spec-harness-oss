@@ -27,20 +27,23 @@ derive package-scoped rules, the three core project skills and a skill per major
 `spec-harness index "$PWD"` before synthesis and
 `spec-harness generate-agents --check "$PWD"` after it. That result proves structure and
 provenance only. A separate fresh reviewer must accept the cited claims before overall
-initialization is READY. Missing evidence or an unavailable reviewer leaves it PENDING. If the
-CLI is unavailable, report that limitation and keep initialization PENDING. If `init` also carries optional ticket text or a connected reference, continue through input resolution and the ticket steps after initialization. If no optional ticket is present, complete the initialization gates and return; init-only work does not request ticket content or classify a ticket.
+initialization is READY. Missing evidence or an unavailable reviewer leaves it PENDING. When
+`spec-harness` is not on `PATH`, run the same subcommand through
+`npx -y github:chohra-med/spec-harness-oss <subcommand> ...`. If neither is available, report that limitation and keep initialization PENDING. If `init` also carries optional ticket text or a connected reference, continue through input resolution and the ticket steps after initialization. If no optional ticket is present, complete the initialization gates and return; init-only work does not request ticket content or classify a ticket.
 
 Initialization reads project rules, structure, manifests/lockfiles, representative source and project-local installed skills before selecting reusable methods. The four portable method owners at `.claude/commands/spec-harness/{ponytail,grill-me,package-finder,skill-finder}.md` are usable before synthesis or a feature goal exists. Keep the project-specific outputs and schema-1 receipt unchanged.
 
 For ticket work, record the current source state before planning:
 
-- Git source: `git rev-parse HEAD` and SHA-256 of the exact `git diff --binary HEAD` bytes.
+- Git source: `git rev-parse HEAD` and SHA-256 of the exact `git diff --binary HEAD` bytes. MICRO records `HEAD` only.
 - Non-Git source: mark Git state unavailable and hash the relevant files and rule inputs.
 - Record the applicable rule paths and hashes. Read the target's `AGENTS.md`, `RULES.md`,
   `CONTRIBUTING.md`, `ai_rules/`, `.memory/`, `.cursor/rules/`, `.Codex/` and README, following
   their startup instructions. Load only the package/source evidence needed for this ticket.
 - Read `.claude/agents/.init-synthesis.json` and validate it with
   `spec-harness generate-agents --check "$PWD"`. Use only role and skill paths named by the receipt.
+  The harness-owned `sdd-learner` is the one exception: it binds to no package source, needs no
+  receipt row and is dispatched from `.claude/agents/sdd-learner.md`.
   A structural `READY` is not semantic approval. Missing/stale bindings or unresolved semantic
   review leave the run PENDING; do not substitute generic templates.
 
@@ -79,10 +82,12 @@ the old receipt and output preimages as history/evidence. No generic merge engin
 policy writer is implied by this procedure.
 
 Before delegating, resolve every stage to a model tier and confirm with the client actually in use
-which model serves that tier and that required stages have genuinely separate contexts. Record the
-planner, implementer, fresh tester, verifier, reviewer and finisher assignments, each with the model
-that actually ran, before work begins. `model:` frontmatter and files on disk do not prove
-availability or dispatch.
+which model serves that tier and that required stages have genuinely separate contexts. Before work
+begins, record the tier and model chosen for each stage the ticket's class runs: planner,
+implementer, fresh tester, verifier, reviewer and finisher for FULL. Correct the record if a
+different model ran. A role file's `model:` frontmatter carries the Claude default for its tier;
+pass the tier's model at dispatch, and the table below wins where they differ. `model:` frontmatter
+and files on disk do not prove availability or dispatch.
 
 ### Model tiers
 
@@ -92,20 +97,22 @@ provider means filling one column. A `Model tiers` table in the target's own `AG
 | Tier | Roles | Claude | Codex/OpenAI |
 |---|---|---|---|
 | strong | planner, finisher, merger | `opus` | `gpt-6-sol` |
-| fast | implementer, tester, researcher, documenter | `sonnet`, `haiku` | `gpt-6-luna` |
+| fast | implementer, tester, researcher, documenter | `sonnet`; `haiku` for the tester | `gpt-6-luna` |
 | review | verifier, reviewer, architect, learner, design and workflow testers | strong when budget allows, otherwise fast | same rule |
 
 - **Plan strong, implement fast.** The plan carries the detail, so a cheaper model can execute it.
 - **Budget picks the review tier.** Review on the strong tier when the token budget allows. Drop to
   the fast tier when the user says the budget is low or the client reports it.
 - **Unavailable model: use the nearest available tier and say so.** Record the requested tier, the
-  model that ran and the reason in that stage's gate file. A missing model does not stop the run.
+  model that ran and the reason in that stage's gate file (`ticket.md` for MICRO). A missing model
+  does not stop the run.
   Never carry one provider's model IDs to another provider.
 - **Independence never bends.** The implementer cannot write its own acceptance. Tester, verifier
   and reviewer are separate fresh contexts, on a different model from the implementer when one is
   available. If a separate context cannot be had, that gate stays PENDING; separate manual contexts
   count only when their independence is real.
 - For a provider without a column, add one naming its strongest model and its cheapest capable model.
+- The finisher is the orchestrator's own final strong-tier judgment, not a role file.
 
 ## 2. Resolve the ticket input
 
@@ -129,9 +136,10 @@ touched scope and risk:
 
 Record the class and reason in the packet. Every class retains exact input provenance, a literal
 goal, source identity, the applicable rules and independent acceptance. LITE and FULL also keep an
-accepted `spec.md`/`goal.md`, rule paths and hashes, and declared dependencies. MICRO/LITE may keep concise inline intent in the existing `plan.md` and `tasks.md` and skip a
+accepted `spec.md`/`goal.md`, rule paths and hashes, and declared dependencies. LITE may keep concise inline intent in the existing `plan.md` and `tasks.md` and skip a
 delegated planner when there are no material architecture/reuse decisions. Keep the same feature packet
-and enough accepted plan/task evidence for independent roles to audit the change. FULL retains the
+and enough accepted plan/task evidence for independent roles to audit the change. MICRO uses the
+light route below instead of a packet. FULL retains the
 complete feature packet and applicable research/design/coherence work. Required startup rules and security
 constraints are never optional context.
 
@@ -141,16 +149,23 @@ A MICRO ticket is a small fix, typically one or two source files plus a test. It
 and two stages. Where this section differs from the rest of this procedure, this section wins for
 MICRO.
 
-- **One file.** Write `specs/<feature>/ticket.md` with the exact input, one to five literal goal
-  checks, the starting `git rev-parse HEAD`, the changed paths and the gate result. Do not create
-  `spec.md`, `goal.md`, `plan.md`, `tasks.md` or `gates/`, and do not record file or diff hashes.
+- **One file.** Before implementation the orchestrator writes `specs/<feature>/ticket.md` with the
+  exact input, one to five literal goal checks, the starting `git rev-parse HEAD` and the paths
+  expected to change. Do not create `spec.md`, `goal.md`, `plan.md`, `tasks.md` or `gates/`, and do
+  not record file or diff hashes. The implementer never edits `ticket.md`.
 - **Two stages.** The fast-tier implementer makes the change with a test that fails first. Then one
-  fresh review-tier `sdd-verifier`, given `ticket.md` as its goal path, runs the project's test
-  command, checks every goal line and reads the diff against the applicable rules. It records
-  `RESULT: PASS|FAIL` and its evidence in `ticket.md`. No separate tester, reviewer, planner or
-  finisher stage runs.
+  fresh review-tier `sdd-verifier` receives the goal checks and expected paths in its dispatch,
+  together with the `ticket.md` path. It runs the project's test command, checks every goal line and
+  reads the diff against the applicable rules. It returns FAIL when the goal checks in `ticket.md`
+  differ from the dispatched ones, or when `git diff --name-only` from the starting `HEAD` lists a
+  path outside the expected ones. It returns `RESULT: PASS|FAIL` with its evidence, and the
+  orchestrator copies that return unchanged into `ticket.md`. No separate tester, reviewer, planner
+  or finisher stage runs.
 - **Still required.** The target's startup rules and security constraints, a verifier context that
-  is not the implementer's, and explicit authority before any commit, push or merge.
+  is not the implementer's, and explicit authority before any commit, push or merge. A merge
+  decision uses the verifier's PASS in `ticket.md` as its gate set and records the grant there.
+- **Not required.** Rule hashes, Grill Me and Ponytail receipts, and a stage map beyond the two
+  models used. Apply Ponytail directly while implementing.
 - **Escalate to LITE** when the change grows past the stated files, touches a shared contract or
   security-sensitive code, or the verifier fails twice.
 
@@ -196,7 +211,7 @@ Use `.claude/commands/spec-harness/tickets.md`, then `.claude/commands/spec-harn
 stage contracts. Route verifier failures and other corrections through
 `.claude/commands/spec-harness/learn.md`. When selected for FULL or material planning, the planner consumes the accepted packet's `input.md`,
 `spec.md`, `goal.md`, existing `plan.md` and existing `tasks.md`; it produces or updates those files.
-For MICRO/LITE without material planning decisions, the orchestrator records concise intent and checks
+For LITE without material planning decisions, the orchestrator records concise intent and checks
 in the packet directly. Optional `design.md` and `research.md` are read when present or
 selected for the ticket, never required for every ticket. The reviewer reads the feature goal, plan
 and assigned tasks alongside the diff, rules and gate evidence. `spec.md` states the problem, testable
@@ -213,7 +228,7 @@ Use the project-bound `sdd-planner`, `sdd-implementer`, `sdd-tester`, `sdd-verif
 facts in those canonical files, not duplicated in a client skill. MICRO follows its light route in
 section 3. For LITE and FULL the minimum order is:
 
-1. For FULL or material planning, the bound planner plans the accepted feature packet. For MICRO/LITE
+1. For FULL or material planning, the bound planner plans the accepted feature packet. For LITE
    without material planning decisions, keep the accepted intent concise in `plan.md` and `tasks.md`.
 2. Bound implementer makes one task-sized change at a time and records the exact source revision.
 3. A fresh bound tester runs the task's actual test commands and adversarial cases; record commands,
@@ -230,7 +245,7 @@ and reviewer answer distinct questions. Reuse a prior manual gate receipt only w
 source identity, accepted goal hash, applicable rule hashes and declared dependency identities match
 the current packet; otherwise invalidate that receipt and rerun that gate in a fresh context. A changed
 input invalidates only evidence that depends on it. This receipt rule is an instruction-level reuse
-contract, not an automatic cache or scheduler. If an independent context, exact runtime or
+contract, not an automatic cache or scheduler. If an independent context or
 required project role is unavailable, record PENDING/UNVERIFIED rather than borrowing an earlier
 agent's context. Fixes that change an accepted input or source revision invalidate only evidence tied to the affected
 input and its declared dependents; widen review for shared-interface changes. After two unsuccessful
@@ -254,7 +269,8 @@ explicit authorization. The final strong-tier judgment applies that policy; it d
 ## 8. Learn from the ticket
 
 When a gate failed, a human corrected the work, or a decision was made that later tickets should
-follow, dispatch the bound `sdd-learner` in a fresh review-tier context after the gates. It follows
+follow, dispatch `sdd-learner` in a fresh review-tier context after the gates, for every class
+including MICRO. It follows
 `.claude/commands/spec-harness/learn.md`: it captures the signal, proposes one change to one rule or
 project skill, and applies it only after the project's review authority approves. A clean ticket with
 no correction and no new decision skips this stage.
@@ -263,5 +279,6 @@ no correction and no new decision skips this stage.
 
 Report the selected input and provenance, packet and feature goal paths, source/rule revisions,
 Ponytail and Grill Me receipts, each independent gate path and observed result, unavailable client
-capabilities, and the next action. File presence, a shell handoff, a structural checker, or a green
+capabilities, and the next action. For MICRO, report the `ticket.md` path and its result in place of
+packet, receipt and gate paths. File presence, a shell handoff, a structural checker, or a green
 review is not a completed feature or authorization to ship.

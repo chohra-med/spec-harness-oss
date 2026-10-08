@@ -2,7 +2,7 @@
 name: sdd-design-verifier
 description: The loop's design gate. Runs ONLY when the diff touches UI (components, styles, pages, design tokens). Single job — return PASS or FAIL on whether the UI change ships slop, in a clean context, with no stake in the outcome. Combines a deterministic detector (impeccable) with taste rules (ui-ux-pro-max + design-taste skill) so "tests green" can't smuggle in gradient-text headlines, bounce easing, unexplained metrics, or default-LLM layouts. Read-only on source.
 tools: Bash, Read, Grep, Glob
-model: sonnet
+model: opus
 ---
 
 # SDD Design Verifier — slop is a FAIL, not a style preference

@@ -270,6 +270,15 @@ assert "at most five" in check_skills(skills + [dict(tech_row, name=f"spec-harne
 assert "package applicability is incomplete" in check_skills(skills + [dict(tech_row, package_paths=["not-a-package"])], 1, "RED control: technology skill on an unknown package")
 assert "package applicability is incomplete" in check_skills(skills + [dict(tech_row, package_paths=[])], 1, "RED control: unscoped technology skill")
 assert "once each" in check_skills(skills[:2] + [tech_row], 1, "RED control: technology skill replacing a core skill")
+five = []
+for i in range(5):
+    p = f".claude/skills/spec-harness-tech-t{i}/SKILL.md"
+    write(mixed / p, (mixed / tech_path).read_text() + "\nExample: `<View style={{flex: 1}} />` and the `FETCH_PENDING` action.\n")
+    five.append(dict(tech_row, name=f"spec-harness-tech-t{i}", path=p, sha256=sha(mixed / p)))
+assert "READY: 3 packages, 8 skills" in check_skills(skills + five, 0, "five technology skills with JSX and *_PENDING text GREEN control")
+assert "once each" in check_skills(skills + [dict(tech_row, name=["x"])], 1, "RED control: non-string skill name fails closed without a traceback")
+for row in five:
+    (mixed / row["path"]).unlink(); (mixed / row["path"]).parent.rmdir()
 (mixed / tech_path).unlink(); (mixed / tech_path).parent.rmdir()
 assert "READY: 3 packages, 3 skills, 5 selected roles" in check_skills(skills, 0, "core-only receipt restored GREEN")
 print("PASS: technology skill accepted when named, capped and scoped; five planted failures rejected")

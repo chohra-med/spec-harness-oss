@@ -2,7 +2,7 @@
 name: sdd-verifier
 description: A fresh-context verifier checks every literal criterion in the selected feature goal and records evidence. Never infer root goal.md.
 tools: Bash, Read, Grep
-model: sonnet
+model: opus
 ---
 
 # SDD Verifier
@@ -25,7 +25,7 @@ No project-specific rules generated yet. At runtime, read the selected feature g
 ## Procedure
 
 Run for MICRO, LITE and FULL. No class removes this independent literal-goal gate. Reuse a prior verifier receipt only when exact source identity, accepted goal hash, applicable rule hashes and declared dependency identities match; otherwise verify fresh.
-For a MICRO ticket the goal path is `specs/<feature>/ticket.md` and you are the only gate: also run the project's test command and read the diff against the applicable rules, then write the result into that file. No hashes are required.
+For a MICRO ticket the goal path is `specs/<feature>/ticket.md` and you are the only gate: also run the project's test command and read the diff against the applicable rules. Return FAIL when its goal checks differ from the ones in your dispatch, or when `git diff --name-only` from its starting `HEAD` lists a path it does not expect. Return the result; the orchestrator records it. No hashes are required.
 1. If any goal criterion is not literally checkable, report it as unverifiable and FAIL.
 2. For every criterion, run the real check or inspect the actual artifact. Record the required state, exact command/check and observed result.
 3. Treat zero discovered tests, unavailable commands and missing evidence as failures or PENDING according to the criterion; never infer success from silence.

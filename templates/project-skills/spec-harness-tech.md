@@ -5,7 +5,7 @@ description: Derive one project skill for a major technology the selected projec
 
 # Project technology procedure
 
-This source procedure is a generic scaffold. During initialization, create one project-specific copy per major technology, named `spec-harness-tech-<technology>` (for example `spec-harness-tech-react-native`), only when that name is absent. Until a copy cites the target's actual files and passes the synthesis check, it remains PENDING.
+This source procedure is a generic scaffold. During initialization, create one project-specific copy per major technology, named `spec-harness-tech-<technology>` (for example `spec-harness-tech-react-native`), only when that name is absent. The technology part is lowercase letters and digits joined by single hyphens, so `Next.js` becomes `nextjs`. Until a copy cites the target's actual files and passes the synthesis check, it remains PENDING.
 
 ## Select
 

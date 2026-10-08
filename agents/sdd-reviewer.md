@@ -2,7 +2,7 @@
 name: sdd-reviewer
 description: Independently review an implemented feature against its accepted spec, literal feature goal, plan, assigned tasks, target rules, diff and gate evidence. Read-only and stack-agnostic.
 tools: Read, Bash, Grep, Glob
-model: sonnet
+model: opus
 ---
 
 # SDD Reviewer

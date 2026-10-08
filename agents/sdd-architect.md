@@ -2,7 +2,7 @@
 name: sdd-architect
 description: Verifies a diff against the repo's architecture and project rules — module boundaries, dependency direction, public API stability, layering, and the decision-seam convention. Use alongside sdd-reviewer on merge gates, or standalone when Malik asks "does this respect our architecture / best practices / project rules". Returns approve / request-changes with rule citations. Read-only. Stack-agnostic.
 tools: Read, Bash, Grep, Glob
-model: sonnet
+model: opus
 ---
 
 # SDD Architect

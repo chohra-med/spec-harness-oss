@@ -168,7 +168,7 @@ done
 
 if [[ -f "$HARNESS_DIR/commands/build.md" ]]; then
   build_text="$(cat "$HARNESS_DIR/commands/build.md")"
-  has_text "$build_text" 'confirmed in the shared SDD stage map' 'build uses confirmed provider model map'
+  has_text "$build_text" 'its tier resolved to in the shared SDD stage map' 'build uses the tier model map'
   if [[ "$build_text" == *'bound Luna'* ]]; then fail 'build does not hardcode Luna across providers'; else pass 'build does not hardcode Luna across providers'; fi
 fi
 
@@ -453,7 +453,7 @@ def tester_feedback_contract(d, source=False):
         )
     return result
 
-MODEL_ID = re.compile(r"`(?:gpt-[\w.-]+|opus|sonnet|haiku)`")
+MODEL_ID = re.compile(r"\b(?:gpt-\d[\w.-]*|opus|sonnet|haiku)\b")
 
 def tier_contract(text, owns_table=False):
     """Roles ask for a tier. Model IDs live only in the one Model tiers table."""
@@ -470,9 +470,11 @@ def tier_contract(text, owns_table=False):
     return result
 
 LIGHT_ROUTE = (
-    "### MICRO light route", "specs/<feature>/ticket.md", "do not record file or diff hashes",
-    "No separate tester, reviewer, planner or\n  finisher stage runs", "is not the implementer's",
+    "### MICRO light route", "specs/<feature>/ticket.md", "not record file or diff hashes",
+    "No separate tester, reviewer, planner", "is not the implementer's",
     "explicit authority before any commit, push or merge", "Escalate to LITE", "Evidence is proportional",
+    "The implementer never edits `ticket.md`", "differ from the dispatched ones",
+    "outside the expected ones", "copies that return unchanged", "as its gate set",
 )
 
 def light_route_contract(d):
@@ -480,6 +482,8 @@ def light_route_contract(d):
     return (
         all(token in d["sdd"] for token in LIGHT_ROUTE)
         and "you are the only gate" in d["verifier"]
+        and "differ from the ones in your dispatch" in d["verifier"]
+        and "never edit it" in d["implementer"]
     )
 
 LEARNER_ROLE = (
@@ -491,14 +495,42 @@ def learner_contract(d):
     """A learning agent owns the loop, reaches skills and decisions, and never applies unreviewed."""
     return (
         all(token in d["learner"] for token in LEARNER_ROLE)
-        and "dispatch the bound `sdd-learner`" in d["sdd"] and "only after the project's review authority approves" in d["sdd"]
+        and "dispatch `sdd-learner`" in d["sdd"] and "needs no\n  receipt row" in d["sdd"] and "only after the project's review authority approves" in d["sdd"]
         and "bound `sdd-learner` role runs this procedure" in d["learn"] and "or correct the project skill" in d["learn"]
     )
 
-def plans_strong(d):
-    """Plan strong, implement fast: the planner must not share the implementer's model."""
-    models = [re.search(r"^model: (\S+)$", d[role], re.M) for role in ("planner", "implementer")]
-    return all(models) and models[0].group(1) != models[1].group(1)
+TIER_ROLES = {
+    "strong": ("planner", "merger"),
+    "fast": ("implementer", "tester", "researcher", "documenter"),
+    "review": ("verifier", "reviewer", "architect", "learner", "design-verifier", "workflow-tester"),
+}
+
+def role_models(base):
+    return {p.stem[4:]: re.search(r"^model: (\S+)$", p.read_text(), re.M).group(1) for p in sorted((base / "agents").glob("sdd-*.md"))}
+
+def frontmatter_matches_table(sdd, models):
+    """Role frontmatter carries the Claude column of the tier table; review defaults to strong."""
+    ids = {tier: MODEL_ID.findall(next(l for l in sdd.splitlines() if l.startswith(f"| {tier} |")).split("|")[3]) for tier in ("strong", "fast")}
+    return (
+        len(ids["strong"]) == 1 and bool(ids["fast"]) and ids["strong"][0] not in ids["fast"]
+        and sorted(models) == sorted(r for roles in TIER_ROLES.values() for r in roles)
+        and all(models[r] == ids["strong"][0] for r in TIER_ROLES["strong"] + TIER_ROLES["review"])
+        and all(models[r] in ids["fast"] for r in TIER_ROLES["fast"])
+    )
+
+def no_model_ids_outside_table(texts):
+    return not any(MODEL_ID.search(l) for t in texts for l in t.splitlines() if not l.startswith("|"))
+
+TECH_WIRING = {
+    "commands/init.md": "spec-harness-tech-<technology>", "commands/sdd.md": "a skill per major technology",
+    "bin/sh-gen-agents.sh": "spec-harness-tech-<technology>/SKILL.md", "bin/sh-install.sh": "architecture performance packages tech",
+    "templates/project-skills/spec-harness-tech.md": "## Derive",
+    "README.md": "npx -y github:chohra-med/spec-harness-oss init . integrate",
+    "docs/GETTING-STARTED.md": "3. Existing instruction files",
+}
+
+def wiring_contract(files):
+    return all(token in files[path] for path, token in TECH_WIRING.items()) and "npx -y github:chohra-med/spec-harness-oss <subcommand>" in files["commands/sdd.md"]
 
 d = docs(root)
 ok, checks = role_contracts(d)
@@ -507,7 +539,12 @@ for label, result in checks.items():
 require(all(x in d["sdd"] for x in ("specs/<feature>/input.md", "specs/<feature>/goal.md", "specs/<feature>/plan.md", "specs/<feature>/tasks.md")), "shared route aligns with ticket packet")
 require(tier_contract(d["sdd"], owns_table=True), "shared route owns the single model-tier table and its rules")
 require(tier_contract(d["plan"]), "plan route asks for tiers and names no model")
-require(plans_strong(d), "planner runs on a different tier from the implementer")
+models = role_models(root)
+require(frontmatter_matches_table(d["sdd"], models), "role frontmatter matches the Claude column of the tier table")
+command_texts = {p.name: p.read_text() for p in sorted((root / "commands").glob("*.md"))}
+require(no_model_ids_outside_table(command_texts.values()), "no command names a model outside the tier table")
+wiring = {path: (root / path).read_text() for path in TECH_WIRING}
+require(wiring_contract(wiring), "technology skills, quick start and CLI fallback are wired in every carrier")
 require(light_route_contract(d), "MICRO light route is one file, two stages and an independent verifier")
 require(learner_contract(d), "learning agent owns the loop and applies only reviewed changes")
 require(learning_contracts(d), "feedback is captured and reviewed before policy application")
@@ -543,12 +580,17 @@ for token in LIGHT_ROUTE:
 for token in LEARNER_ROLE:
     bad_learner = dict(d); bad_learner["learner"] = d["learner"].replace(token, "[planted omission]")
     require(not learner_contract(bad_learner), f"RED control: learner role without {token[:32]!r}")
-bad_dispatch = dict(d); bad_dispatch["sdd"] = d["sdd"].replace("dispatch the bound `sdd-learner`", "[planted omission]")
+bad_dispatch = dict(d); bad_dispatch["sdd"] = d["sdd"].replace("dispatch `sdd-learner`", "[planted omission]")
 require(not learner_contract(bad_dispatch), "RED control: shared route never dispatches the learner")
 bad_gate = dict(d); bad_gate["verifier"] = d["verifier"].replace("you are the only gate", "[planted omission]")
 require(not light_route_contract(bad_gate), "RED control: verifier role unaware it is the only MICRO gate")
-bad_tier = dict(d); bad_tier["planner"] = re.sub(r"^model: \S+$", "model: sonnet", d["planner"], flags=re.M)
-require(not plans_strong(bad_tier), "RED control: planner demoted to the implementer tier")
+for role, planted in (("planner", "sonnet"), ("verifier", "haiku"), ("merger", "sonnet"), ("implementer", "opus")):
+    require(not frontmatter_matches_table(d["sdd"], dict(models, **{role: planted})), f"RED control: {role} frontmatter moved to {planted}")
+require(not no_model_ids_outside_table(["Always dispatch the planner on gpt-6-sol and stop if it is missing."]), "RED control: planted unquoted model id in a command")
+for path in TECH_WIRING:
+    require(not wiring_contract(dict(wiring, **{path: "[planted omission]"})), f"RED control: wiring missing from {path}")
+bad_micro = dict(d); bad_micro["implementer"] = d["implementer"].replace("never edit it", "[planted omission]")
+require(not light_route_contract(bad_micro), "RED control: MICRO implementer allowed to edit its own goal")
 
 # Re-run the skill generator in a disposable copy. Only the owned learn projection may differ;
 # a second run must be byte-idempotent.

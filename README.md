@@ -63,9 +63,8 @@ The harness has four moving parts that together make the system *converge* inste
   source-backed rules and skills, SDD roles, independent gates, and a learning loop. It adds no
   application dependency. The source commands use Bash. Python 3.11+ is required for the complete
   index-and-check flow. This source repository is MIT-licensed; see [LICENSE](./LICENSE). Run the
-  CLI from a checkout, or use npm to install a locally packed tarball. This source release is not
-  published to npm; install this checkout or its local tarball, not the registry package with the
-  same name. Model-led work needs a capable client; the shell stages files and reports
+  CLI with `npx` from GitHub, from a checkout, or from a locally packed tarball. This source release
+  is not published to npm; the registry package with the same name is unrelated. Model-led work needs a capable client; the shell stages files and reports
   `PENDING` rather than claiming that agents ran.
 - **It runs the dev, not the product.** The harness guides the development workflow; the shipped
   application remains yours.
@@ -80,6 +79,11 @@ npx -y github:chohra-med/spec-harness-oss init . integrate
 
 Then open the project in Claude Code and run `/sdd init`. The first command stages the harness and
 reports `PENDING`. The second reads the codebase and writes its rules, skills and roles.
+
+**Adopting it in an existing project?** Follow [docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md):
+ten steps from a clean branch to a first verified ticket, including what to do when the project
+already has its own `CLAUDE.md` and `AGENTS.md`, how to review what the initialiser wrote, and how
+to undo it.
 
 ## Install and stage from a checkout
 
@@ -156,6 +160,7 @@ documentation before connecting a tool.
 
 ## Read next
 
+1. [`docs/GETTING-STARTED.md`](./docs/GETTING-STARTED.md) — step by step: stage, initialise, review, first ticket, undo.
 1. [`ARCHITECTURE.md`](./ARCHITECTURE.md) — the diagrams: the 3 pillars, the SDD flow, the
    ratchet, and the verifier + learning loop wired in.
 2. [`docs/GUARDRAILS.md`](./docs/GUARDRAILS.md) — current procedures for evidence, reviewed learning, and delivery authority.

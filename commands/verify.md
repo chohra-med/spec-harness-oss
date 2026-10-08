@@ -24,5 +24,8 @@ review-tier context distinct from the implementer and tester (`Model tiers` in
 4. Save the context/model identity, source/rule/goal hashes and result at
    `specs/<feature>/gates/verifier.md`.
 
+For a MICRO ticket the goal is `specs/<feature>/ticket.md`: return the result to the orchestrator,
+save no hashes and write no `gates/` file.
+
 The verifier checks `specs/<feature>/goal.md`, never an unrelated root `goal.md`. A result does not
 grant commit, merge, deployment or release authority.

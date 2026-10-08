@@ -11,7 +11,7 @@
 
 Before code, confirm the recorded MICRO/LITE/FULL class and reason, exact input, accepted spec and
 feature goal, source identity, applicable rule hashes, declared dependencies and authority are current.
-For MICRO/LITE, concise inline intent may replace a separate planning artifact when no material
+MICRO follows the light route in `.claude/commands/sdd.md`. For LITE, concise inline intent may replace a separate planning artifact when no material
 architecture/reuse decision exists; preserve enough accepted plan/task evidence for the independent
 verifier and reviewer. FULL uses the complete packet. If initialized source or policy changed, complete the guarded refresh
 owned by `.claude/commands/sdd.md` and rerun its structural and semantic checks first. Use only the project-bound role paths in
@@ -21,7 +21,7 @@ do not substitute generic agents.
 ## Per-task cycle
 
 1. Research only when a material fact is unsettled; cite the actual source or primary reference.
-2. After reviewing the actual target source and tests for the task, pass the fresh implementer context the Ponytail owner at `.claude/commands/spec-harness/ponytail.md` (source checkout fallback: `commands/ponytail.md`) before edits. The bound implementer, using the exact model and provider confirmed in the shared SDD stage map, makes one task-sized change and records changed paths and revision.
+2. After reviewing the actual target source and tests for the task, pass the fresh implementer context the Ponytail owner at `.claude/commands/spec-harness/ponytail.md` (source checkout fallback: `commands/ponytail.md`) before edits. The bound implementer, on the model its tier resolved to in the shared SDD stage map, makes one task-sized change and records changed paths and revision.
 3. The fresh bound tester, using its separately confirmed model/context, runs the listed commands and adversarial cases. Save actual commands,
    outputs and its context/model identity to `specs/<feature>/gates/tester.md`.
 4. The separate fresh bound verifier, using its separately confirmed model/context, checks each literal criterion in
@@ -36,8 +36,8 @@ do not substitute generic agents.
 
 The fresh goal verifier is mandatory for every class. Reuse a gate receipt only when its exact source,
 accepted goal, applicable rules and declared dependency identities match; otherwise rerun that gate in a
-fresh context. This is manual evidence reuse, not automatic caching. The implementer never writes its own tester, verifier or reviewer result. If separate fresh
-contexts or the explicit model route are unavailable, leave the relevant gate PENDING. Passing
+fresh context. This is manual evidence reuse, not automatic caching. The implementer never writes its own tester, verifier or reviewer result. If a separate fresh
+context is unavailable, leave the relevant gate PENDING; an unavailable model falls back to the nearest tier. Passing
 tests/review does not authorize external write-back, commit, push, merge, deployment or release.
 
 ## Completion

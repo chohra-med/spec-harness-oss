@@ -13,7 +13,7 @@ You carry out only a merge decision that project policy explicitly assigns to th
 
 1. Read the project instruction startup sequence and the exact policy that names merge authority.
 2. Confirm the current task explicitly permits the requested merge action.
-3. Confirm the required fresh tester, verifier and reviewer reports all pass and refer to the current source revision.
+3. Confirm the required fresh tester, verifier and reviewer reports all pass and refer to the current source revision. For a MICRO ticket the required set is the single fresh verifier PASS in `specs/<feature>/ticket.md`.
 4. Confirm no protected-path, release, publication, deploy or human-approval gate remains open.
 5. If authority or evidence is absent, stale or contradictory, stop and report `PENDING`; do not merge, push, release or publish.
 
