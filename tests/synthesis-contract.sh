@@ -247,6 +247,33 @@ green = run(["bash", str(bind), "--check", str(mixed)], 0, "valid synthesis GREE
 assert "READY: 3 packages, 3 skills, 5 selected roles" in green
 print(green.strip())
 
+# Technology skills are optional, named spec-harness-tech-<technology>, capped at five and scoped
+# to the packages that use the technology.
+tech_package = package_paths[0]
+tech_citation = citations[tech_package]
+tech_path = ".claude/skills/spec-harness-tech-react-native/SKILL.md"
+write(mixed / tech_path, "\n".join([
+    "# spec-harness-tech-react-native", "", f"Package applicability: {tech_package}", "",
+    f"<!-- source-bound: inventory-sha256={inventory_hash} -->",
+    f"Evidence: {tech_citation['path']}:{tech_citation['line_start']}-{tech_citation['line_end']}",
+]) + "\n")
+tech_row = {
+    "name": "spec-harness-tech-react-native", "status": "READY", "path": tech_path,
+    "sha256": sha(mixed / tech_path), "package_paths": [tech_package], "citations": [tech_citation],
+}
+def check_skills(rows, expected, label):
+    write(receipt_path, json.dumps(dict(receipt, skills=rows), indent=2) + "\n")
+    return run(["bash", str(bind), "--check", str(mixed)], expected, label)
+assert "READY: 3 packages, 4 skills, 5 selected roles" in check_skills(skills + [tech_row], 0, "scoped technology skill GREEN control")
+assert "spec-harness-tech-<technology>" in check_skills(skills + [dict(tech_row, name="random-skill")], 1, "RED control: unnamed extra skill")
+assert "at most five" in check_skills(skills + [dict(tech_row, name=f"spec-harness-tech-t{i}") for i in range(6)], 1, "RED control: six technology skills")
+assert "package applicability is incomplete" in check_skills(skills + [dict(tech_row, package_paths=["not-a-package"])], 1, "RED control: technology skill on an unknown package")
+assert "package applicability is incomplete" in check_skills(skills + [dict(tech_row, package_paths=[])], 1, "RED control: unscoped technology skill")
+assert "once each" in check_skills(skills[:2] + [tech_row], 1, "RED control: technology skill replacing a core skill")
+(mixed / tech_path).unlink(); (mixed / tech_path).parent.rmdir()
+assert "READY: 3 packages, 3 skills, 5 selected roles" in check_skills(skills, 0, "core-only receipt restored GREEN")
+print("PASS: technology skill accepted when named, capped and scoped; five planted failures rejected")
+
 # Human-authored policy can contain code examples whose syntax resembles a
 # template marker. JSX object props and TypeScript generics belong in a valid
 # synthesis fixture without being mistaken for unresolved placeholders.

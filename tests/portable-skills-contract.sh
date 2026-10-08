@@ -84,7 +84,8 @@ assert set(round3) == set(before) == set(after), "generated skill path set diffe
 trigger = Path(sys.argv[3]).read_text().splitlines()[2]
 assert "implementation work" in trigger and "code" in trigger, "generated Ponytail trigger omits implementation/code work"
 changed = sorted(path for path in after if round3[path] != after[path])
-assert changed == ["spec-harness-ponytail/SKILL.md", "spec-harness-tester/SKILL.md"], f"unexpected historical skill deviations: {changed}"
+# install deviates since technology skills joined the three core project skills.
+assert changed == ["spec-harness-install/SKILL.md", "spec-harness-ponytail/SKILL.md", "spec-harness-tester/SKILL.md"], f"unexpected historical skill deviations: {changed}"
 for path in round3:
     assert before[path] == after[path], f"isolated regeneration changed source adapter bytes: {path}"
 PY

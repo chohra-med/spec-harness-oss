@@ -23,14 +23,14 @@ project-specific role and skill paths. Do not maintain a second copy of those ge
 For `init`, follow `.claude/commands/spec-harness/init.md`,
 `.claude/commands/spec-harness/rules.md` and
 `.claude/commands/spec-harness/generate-agents.md`: inventory the target, preserve its policy,
-derive package-scoped rules and exactly the declared project skills, then bind the core roles. Run
+derive package-scoped rules, the three core project skills and a skill per major technology, then bind the core roles. Run
 `spec-harness index "$PWD"` before synthesis and
 `spec-harness generate-agents --check "$PWD"` after it. That result proves structure and
 provenance only. A separate fresh reviewer must accept the cited claims before overall
 initialization is READY. Missing evidence or an unavailable reviewer leaves it PENDING. If the
 CLI is unavailable, report that limitation and keep initialization PENDING. If `init` also carries optional ticket text or a connected reference, continue through input resolution and the ticket steps after initialization. If no optional ticket is present, complete the initialization gates and return; init-only work does not request ticket content or classify a ticket.
 
-Initialization reads project rules, structure, manifests/lockfiles, representative source and project-local installed skills before selecting reusable methods. The four portable method owners at `.claude/commands/spec-harness/{ponytail,grill-me,package-finder,skill-finder}.md` are usable before synthesis or a feature goal exists. Keep the three project-specific outputs and schema-1 receipt unchanged.
+Initialization reads project rules, structure, manifests/lockfiles, representative source and project-local installed skills before selecting reusable methods. The four portable method owners at `.claude/commands/spec-harness/{ponytail,grill-me,package-finder,skill-finder}.md` are usable before synthesis or a feature goal exists. Keep the project-specific outputs and schema-1 receipt unchanged.
 
 For ticket work, record the current source state before planning:
 
@@ -51,7 +51,7 @@ before ticket gates. This is a model-led procedure; no receipt hash alone grants
 replace existing bytes.
 
 1. Before reindexing, read the old receipt and inventory and snapshot their exact bytes and hashes,
-   plus every selected package rule, all three project skills and every selected role file. Enumerate
+   plus every selected package rule, all project skills and every selected role file. Enumerate
    each output's trusted generated ownership from its prior synthesis/review evidence and source-bound
    markers. Confirm the receipt path, citation identity, output hashes, skill markers and role GEN
    boundaries agree with those preimages. A receipt match is necessary for reuse, never sufficient

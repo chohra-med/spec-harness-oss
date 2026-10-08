@@ -69,6 +69,17 @@ The harness has four moving parts that together make the system *converge* inste
 - **It runs the dev, not the product.** The harness guides the development workflow; the shipped
   application remains yours.
 
+## Quick start
+
+From the root of an existing project, with Node, Bash and Python 3.11+ available:
+
+```sh
+npx -y github:chohra-med/spec-harness-oss init . integrate
+```
+
+Then open the project in Claude Code and run `/sdd init`. The first command stages the harness and
+reports `PENDING`. The second reads the codebase and writes its rules, skills and roles.
+
 ## Install and stage from a checkout
 
 Clone the source and run the CLI directly; npm is not needed for this route:
@@ -104,7 +115,7 @@ matching, and the result of a first real-ticket run remain unverified for this r
 |---|---|
 | [`install`](./bin/sh-install.sh) | Add/refresh the system in any repo. One entry point for **both** "start new" (`new`) and "integrate into existing" (`integrate`). Idempotent. |
 | [`/sdd`](./commands/sdd.md) | Shared entry for project initialization and ticket-text/reference execution. Runs only in a capable client; the shell route stays PENDING/manual. |
-| [`init`](./commands/init.md) | Stage then synthesize project-specific rules, three skills, and source-bound roles. Overall READY requires structural checks and a separate fresh semantic review. |
+| [`init`](./commands/init.md) | Stage then synthesize project-specific rules, three core skills plus one per major technology, and source-bound roles. Overall READY requires structural checks and a separate fresh semantic review. |
 | [`index`](./bin/sh-index.sh) / [`migrate`](./commands/migrate.md) | Adopt an existing repo: inventory the codebase into the index layer, then enrich. |
 | [`tickets`](./commands/tickets.md) | Accept exact ticket text or a retrieved body from an explicitly connected provider → one `specs/<feature>/` packet with its own `goal.md`. Unretrievable names stop for clarification. |
 | [`rules`](./commands/rules.md) | **Per-directory rules.** Resolve the nearest `RULES.md` for a path (coding/architecture/packages/testing/reviewing), or generate it from a directory's real code. Each section owned by one agent; deepest-wins cascade. Built for mixed-stack monorepos. |
