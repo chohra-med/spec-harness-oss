@@ -100,9 +100,10 @@ def check(manifest, root, target, name):
         if os.path.isfile(ip):
             if open(ip, "rb").read() != expect:
                 bad.append("BYTES differ for installed " + d)
-            mode = "%04o" % (stat.S_IMODE(os.stat(ip).st_mode))
-            if mode != e["mode"]:
-                bad.append("MODE differs for %s: installed %s manifest %s" % (d, mode, e["mode"]))
+            installed_x = bool(stat.S_IMODE(os.stat(ip).st_mode) & 0o111)
+            manifest_x = bool(int(e["mode"], 8) & 0o111)
+            if installed_x != manifest_x:
+                bad.append("EXECUTABLE BIT differs for %s: installed %s manifest %s" % (d, installed_x, manifest_x))
     listed = set(manifest["directories"])
     implied = set(listed)
     for p in listed | want:
@@ -112,7 +113,10 @@ def check(manifest, root, target, name):
         bad.append("EXTRA directory not in manifest: " + p)
     for p in sorted(listed - dirs):
         bad.append("MISSING manifest directory not created: " + p)
-    if loader_block(root) != manifest.get("loaderBlock"):
+    lb = loader_block(root)
+    if not lb or not manifest.get("loaderBlock"):
+        bad.append("LOADER BLOCK empty or absent in the manifest or in docs/GETTING-STARTED.md")
+    elif lb != manifest["loaderBlock"]:
         bad.append("LOADER BLOCK differs from the fenced block in docs/GETTING-STARTED.md")
     return bad
 
@@ -169,6 +173,18 @@ def main():
     t4 = os.path.join(fresh("i"), "t"); install(root, t4, name)
     open(os.path.join(t4, "SPEC-HARNESS.md"), "ab").write(b"x")
     controls.append(("i one installed byte changed", check(manifest, root, t4, name), "BYTES differ for installed SPEC-HARNESS.md"))
+    r = copy_root("j"); p = os.path.join(r, "docs/GETTING-STARTED.md")
+    s = open(p, encoding="utf-8").read().replace("```markdown", "```text", 1)
+    open(p, "w", encoding="utf-8").write(s)
+    m = m_copy(); m["loaderBlock"] = ""
+    controls.append(("j loader block absent on both sides", check(m, r, target, name), "LOADER BLOCK empty or absent"))
+    r = copy_root("k"); os.remove(os.path.join(r, "templates/install/learning/NOTES.md"))
+    t5 = os.path.join(fresh("k2"), "t"); os.makedirs(t5)
+    subprocess.run(["git", "init", "-q", t5], check=True)
+    res = subprocess.run(["bash", os.path.join(r, "bin/sh-install.sh"), t5, "integrate", name], capture_output=True, text=True)
+    staged, _ = walk(t5)
+    fired = res.returncode != 0 and "missing installer source" in res.stderr and not staged
+    controls.append(("k missing template source", [] if not fired else ["missing installer source: rc=%d, nothing staged" % res.returncode], "missing installer source: rc="))
     ok = True
     for label, bad, needle in controls:
         if any(b.startswith(needle) for b in bad):
@@ -182,7 +198,7 @@ main()
 PYEOF
 
 # Names exercise shell metacharacters, a token inside the name, and a plain name.
-NAMES=('Demo $(touch SHOULD_NOT_EXIST) & Co' 'X{{PROJECT_NAME}}Y' 'plain-name' '{{DIR}} edge')
+NAMES=('Demo $(touch SHOULD_NOT_EXIST) & Co' 'X{{PROJECT_NAME}}Y' 'plain-name' '{{DIR}} edge' 'A$&B$$C')
 i=0
 for NAME in "${NAMES[@]}"; do
   i=$((i + 1))

@@ -4,11 +4,23 @@
   "description": "Owner of the file set bin/sh-install.sh stages into a target. tests/install-manifest-contract.sh proves a real install produces exactly this set, byte for byte.",
   "substitutions": {
     "placeholder": "{name}",
+    "projectName": {
+      "default": "basename of the resolved target directory when no name is passed",
+      "mustBeNonEmpty": true,
+      "forbiddenCharacters": [
+        "LF",
+        "CR",
+        "TAB",
+        "/",
+        "\\"
+      ],
+      "note": "The installer refuses a name containing any forbidden character (exit 2). Every other character, including $, &, backticks and {{...}}, is taken literally."
+    },
     "tokens": {
       "{{PROJECT_NAME}}": "{name}",
       "{{DIR}}": "{name} (repo root - base rules)"
     },
-    "rule": "Each token is replaced literally, once per occurrence, line by line, on a template source. A rendered file always ends with one LF. {name} is the project name given to the installer."
+    "rule": "Only the tokens listed in an entry's own tokens array are replaced in that entry; every other {{...}} token in the source survives untouched. Replacement is literal (no escape or back-reference processing), single pass, every occurrence on each line. A substituted value is never rescanned. {name} in a token value is the project name."
   },
   "directories": [
     ".claude/agents",
@@ -72,7 +84,7 @@
       "source": "agents/sdd-architect.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "d6944a9e6b5673aa6acce65de4768351b83ec1dbed47f31f8e79f561fed590cc",
+      "sha256": "5b62aa5cdaf57bcc787be1cd68db0664a21b0b641a6b8588cbb7ba4c021b6b76",
       "mode": "0644"
     },
     {
@@ -743,5 +755,10 @@
       "sha256": "c89407e88870a57d55e9c5c06093d839480bdf7e49b9484baf495f86919c5c10",
       "mode": "0644"
     }
-  ]
+  ],
+  "renders": {
+    "copy": "destination bytes equal the source bytes; tokens is empty",
+    "template": "line by line: replace the entry's tokens, then end every line with LF. A LF is appended only if the last line of the source lacks one; a source already ending in LF gains none, and an empty source renders empty."
+  },
+  "modeNote": "mode is informational. Conformance is bytes-only; the only staged executable is loop.sh (0755), everything else is 0644. Actual file modes depend on the installing tool and umask."
 }

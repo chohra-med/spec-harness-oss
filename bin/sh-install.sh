@@ -130,6 +130,7 @@ plan_copy() {
 
 render_template() {
   local template=$1 token=$2 replacement=$3 line
+  [ -f "$SYS_DIR/$template" ] || { echo "missing installer source: $SYS_DIR/$template; no target files were written." >&2; exit 1; }
   while IFS= read -r line || [ -n "$line" ]; do
     line=${line//"$token"/"$replacement"}
     printf '%s\n' "$line"
