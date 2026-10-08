@@ -52,7 +52,8 @@ The harness has four moving parts that together make the system *converge* inste
   change* against the goal; the tester checks *reality* against the critical journeys.
 - **The learning loop** (`learn`) — the verifier or tester records a failure; `learn` captures and
   classifies it, then a reviewed durable correction can become a dated rule (a BROKEN workflow can
-  also yield a recommended regression guard). Feedback never evaporates. The machine learns from its failures
+  also yield a recommended regression guard). The `sdd-learner` agent owns it: it also records
+  decisions, promotes a cause that repeats, and corrects project skills as well as rules. Feedback never evaporates. The machine learns from its failures
   (→ rules); the operator learns from its wins (→ `learning/` lessons). *This is the "loop" —
   reframed: not a cron schedule, a learning schedule.*
 

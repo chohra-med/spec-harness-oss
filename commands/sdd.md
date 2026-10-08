@@ -93,7 +93,7 @@ provider means filling one column. A `Model tiers` table in the target's own `AG
 |---|---|---|---|
 | strong | planner, finisher, merger | `opus` | `gpt-6-sol` |
 | fast | implementer, tester, researcher, documenter | `sonnet`, `haiku` | `gpt-6-luna` |
-| review | verifier, reviewer, architect, design and workflow testers | strong when budget allows, otherwise fast | same rule |
+| review | verifier, reviewer, architect, learner, design and workflow testers | strong when budget allows, otherwise fast | same rule |
 
 - **Plan strong, implement fast.** The plan carries the detail, so a cheaper model can execute it.
 - **Budget picks the review tier.** Review on the strong tier when the token budget allows. Drop to
@@ -250,6 +250,14 @@ merger verifies current source, rules, feature goal and all gate revisions. With
 authority, write `report-and-wait`; green tests or review do not grant permission. No ticket
 write-back, commit, push, merge, deployment, release or settings change occurs without its own
 explicit authorization. The final strong-tier judgment applies that policy; it does not expand it.
+
+## 8. Learn from the ticket
+
+When a gate failed, a human corrected the work, or a decision was made that later tickets should
+follow, dispatch the bound `sdd-learner` in a fresh review-tier context after the gates. It follows
+`.claude/commands/spec-harness/learn.md`: it captures the signal, proposes one change to one rule or
+project skill, and applies it only after the project's review authority approves. A clean ticket with
+no correction and no new decision skips this stage.
 
 ## Output
 

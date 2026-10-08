@@ -364,6 +364,7 @@ def docs(base):
         "reviewer": (roles / "sdd-reviewer.md").read_text(),
         "verifier": (roles / "sdd-verifier.md").read_text(),
         "researcher": (roles / "sdd-researcher.md").read_text(),
+        "learner": (roles / "sdd-learner.md").read_text(),
         "sdd": sdd_command.read_text(),
         "plan": (commands / "plan.md").read_text(),
         "learn": (commands / "learn.md").read_text(),
@@ -481,6 +482,19 @@ def light_route_contract(d):
         and "you are the only gate" in d["verifier"]
     )
 
+LEARNER_ROLE = (
+    "Never edit application source", "Apply only what is approved", ".memory/60-decisions.md",
+    "appears in two or more entries", "corrected project skill", "<!-- GEN:rules START -->",
+)
+
+def learner_contract(d):
+    """A learning agent owns the loop, reaches skills and decisions, and never applies unreviewed."""
+    return (
+        all(token in d["learner"] for token in LEARNER_ROLE)
+        and "dispatch the bound `sdd-learner`" in d["sdd"] and "only after the project's review authority approves" in d["sdd"]
+        and "bound `sdd-learner` role runs this procedure" in d["learn"] and "or correct the project skill" in d["learn"]
+    )
+
 def plans_strong(d):
     """Plan strong, implement fast: the planner must not share the implementer's model."""
     models = [re.search(r"^model: (\S+)$", d[role], re.M) for role in ("planner", "implementer")]
@@ -495,6 +509,7 @@ require(tier_contract(d["sdd"], owns_table=True), "shared route owns the single 
 require(tier_contract(d["plan"]), "plan route asks for tiers and names no model")
 require(plans_strong(d), "planner runs on a different tier from the implementer")
 require(light_route_contract(d), "MICRO light route is one file, two stages and an independent verifier")
+require(learner_contract(d), "learning agent owns the loop and applies only reviewed changes")
 require(learning_contracts(d), "feedback is captured and reviewed before policy application")
 require(tester_feedback_contract(d, source=True), "source tester carriers agree on reviewed learning and PENDING/manual execution")
 bad_tester = dict(d)
@@ -525,6 +540,11 @@ require(not tier_contract(bad_independence, True), "RED control: removed indepen
 for token in LIGHT_ROUTE:
     bad_light = dict(d); bad_light["sdd"] = d["sdd"].replace(token, "[planted omission]")
     require(not light_route_contract(bad_light), f"RED control: light route without {token[:40]!r}")
+for token in LEARNER_ROLE:
+    bad_learner = dict(d); bad_learner["learner"] = d["learner"].replace(token, "[planted omission]")
+    require(not learner_contract(bad_learner), f"RED control: learner role without {token[:32]!r}")
+bad_dispatch = dict(d); bad_dispatch["sdd"] = d["sdd"].replace("dispatch the bound `sdd-learner`", "[planted omission]")
+require(not learner_contract(bad_dispatch), "RED control: shared route never dispatches the learner")
 bad_gate = dict(d); bad_gate["verifier"] = d["verifier"].replace("you are the only gate", "[planted omission]")
 require(not light_route_contract(bad_gate), "RED control: verifier role unaware it is the only MICRO gate")
 bad_tier = dict(d); bad_tier["planner"] = re.sub(r"^model: \S+$", "model: sonnet", d["planner"], flags=re.M)
