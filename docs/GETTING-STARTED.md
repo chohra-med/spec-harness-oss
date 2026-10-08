@@ -139,7 +139,7 @@ you. The command only copies files. It prints a status and four lists:
 
 Running it a second time is safe: it adds nothing and changes nothing.
 
-`install-manifest.json` at the repository root is the owner of the staged set: every destination, its source file, the two substitutions, the directories and the loader block below. `tests/install-manifest-contract.sh` installs into an empty git repository and checks that the files created match the manifest exactly, byte for byte.
+`install-manifest.json` at the repository root records the staged set (the installer's own code still decides what is staged, and the test below keeps the two in step): every destination, its source file, the two substitutions, the directories and the loader block below. `tests/install-manifest-contract.sh` installs into an empty git repository and checks that the files created match the manifest exactly, byte for byte.
 
 What lands in the repository:
 
