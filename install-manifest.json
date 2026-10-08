@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "harnessVersion": "0.2.0",
+  "harnessVersion": "0.2.1",
   "description": "Record of the file set bin/sh-install.sh stages into a target. The installer does not read this file; tests/install-manifest-contract.sh proves a real install produces exactly this set, byte for byte.",
   "substitutions": {
     "placeholder": "{name}",

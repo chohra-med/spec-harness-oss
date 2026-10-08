@@ -80,6 +80,10 @@ npx -y github:chohra-med/spec-harness-oss init . integrate
 Then open the project in Claude Code and run `/sdd init`. The first command stages the harness and
 reports `PENDING`. The second reads the codebase and writes its rules, skills and roles.
 
+**Using an agent?** Point Claude Code, Codex or any agent at this repository and say what you want,
+for example "read AGENTS.md in this repository and add Spec Harness to my project at <path>".
+[`AGENTS.md`](./AGENTS.md) tells it how to install, how to run the workflow and where everything is.
+
 **Adopting it in an existing project?** Follow [docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md):
 both ways to get the CLI (`npx`, or a `git clone` you keep on your machine), then ten steps from a clean branch to a first verified ticket, including what to do when the project
 already has its own `CLAUDE.md` and `AGENTS.md`, how to review what the initialiser wrote, and how
@@ -102,7 +106,7 @@ To install the CLI from a local tarball instead, run `npm pack` from the checkou
 filename it prints. For the current version, that is:
 
 ```sh
-npm install --global ./spec-harness-0.2.0.tgz
+npm install --global ./spec-harness-0.2.1.tgz
 ```
 
 Staging reports `PENDING`. It copies a scaffold; it does not synthesize project rules, run agents,

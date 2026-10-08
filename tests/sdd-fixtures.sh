@@ -546,6 +546,18 @@ command_texts = {p.name: p.read_text() for p in sorted((root / "commands").glob(
 require(no_model_ids_outside_table(command_texts.values()), "no command names a model outside the tier table")
 wiring = {path: (root / path).read_text() for path in TECH_WIRING}
 require(wiring_contract(wiring), "technology skills, quick start and CLI fallback are wired in every carrier")
+def agent_file_ok(text):
+    """The root agent file routes the three jobs and every repository link in it resolves."""
+    links = re.findall(r"\]\(\./([^)#]+)", text)
+    return (
+        len(links) >= 6 and all((root / link).exists() for link in links)
+        and all(x in text for x in ("## Job 1:", "## Job 2:", "## Job 3:", "templates/AGENTS.md", "Never overwrite a preserved or conflicting"))
+    )
+agent_file = (root / "AGENTS.md").read_text()
+require(agent_file_ok(agent_file), "root AGENTS.md routes the three jobs and its links resolve")
+require((root / "CLAUDE.md").read_text().strip() == "@AGENTS.md", "root CLAUDE.md imports AGENTS.md")
+require(not agent_file_ok(agent_file + "\n[gone](./no-such-file.md)\n"), "RED control: dead link in the root agent file")
+require(not agent_file_ok(agent_file.replace("## Job 2:", "## Other:")), "RED control: a job section removed from the root agent file")
 require(light_route_contract(d), "MICRO light route is one file, two stages and an independent verifier")
 require(learner_contract(d), "learning agent owns the loop and applies only reviewed changes")
 require(learning_contracts(d), "feedback is captured and reviewed before policy application")

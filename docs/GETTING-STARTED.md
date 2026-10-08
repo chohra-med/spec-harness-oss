@@ -103,6 +103,10 @@ With route B, every command below that starts with
 | 4. Inventory | `npx -y github:chohra-med/spec-harness-oss index .` | `spec-harness index .` |
 | 5. Check | `npx -y github:chohra-med/spec-harness-oss generate-agents --check .` | `spec-harness generate-agents --check .` |
 
+**Let an agent do it.** With a checkout on your machine, open your project in Claude Code or Codex
+and say: "Read `~/tools/spec-harness-oss/AGENTS.md` and add Spec Harness to this project." That file
+walks the agent through these same steps and tells it what it must not touch.
+
 The files staged into your project are the same on both routes. Inside Claude Code, `/sdd init`
 runs `spec-harness` when it is on your `PATH` and falls back to the `npx` form when it is not.
 
