@@ -71,7 +71,7 @@ The harness has four moving parts that together make the system *converge* inste
 
 ## Quick start
 
-From the root of an existing project, with Node, Bash and Python 3.11+ available:
+From the root of an existing project, with Node (only for `npx`), Bash and Python 3.11+ available:
 
 ```sh
 npx -y github:chohra-med/spec-harness-oss init . integrate

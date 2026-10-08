@@ -41,7 +41,8 @@ npx -y github:chohra-med/spec-harness-oss help
 ```
 
 `npx` downloads the repository from GitHub each time and runs it. Good for a first try. To make
-every run use the same version, pin a commit:
+every run use the same version, pin a commit. Replace `1777c79` with the commit you want, from
+the repository's commit list on GitHub:
 
 ```sh
 npx -y "github:chohra-med/spec-harness-oss#1777c79" help
@@ -89,7 +90,8 @@ Use this when you want to read the source first, work offline, pin a version for
    Every line should say `exit 0`.
 
 5. **Update later** with `git -C ~/tools/spec-harness-oss pull`. To stay on one version, check out
-   a commit: `git -C ~/tools/spec-harness-oss checkout <commit>`. Updating the checkout does not
+   a commit: `git -C ~/tools/spec-harness-oss checkout <commit>`. A pinned checkout no longer follows
+   updates; run `git -C ~/tools/spec-harness-oss checkout main` before the next `pull`. Updating the checkout does not
    change a project you already staged; re-running `init` there only adds files that are missing.
 
 With route B, every command below that starts with
