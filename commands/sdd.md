@@ -152,13 +152,13 @@ MICRO.
 - **One file.** Before implementation the orchestrator writes `specs/<feature>/ticket.md` with the
   exact input, one to five literal goal checks, the starting `git rev-parse HEAD` and the paths
   expected to change. Do not create `spec.md`, `goal.md`, `plan.md`, `tasks.md` or `gates/`, and do
-  not record file or diff hashes. The implementer never edits `ticket.md`.
+  not record file or diff hashes. The implementer never edits `ticket.md`. Only the orchestrator does.
 - **Two stages.** The fast-tier implementer makes the change with a test that fails first. Then one
   fresh review-tier `sdd-verifier` receives the goal checks and expected paths in its dispatch,
   together with the `ticket.md` path. It runs the project's test command, checks every goal line and
   reads the diff against the applicable rules. It returns FAIL when the goal checks in `ticket.md`
-  differ from the dispatched ones, or when `git diff --name-only` from the starting `HEAD` lists a
-  path outside the expected ones. It returns `RESULT: PASS|FAIL` with its evidence, and the
+  differ from the dispatched ones, or when `git diff --name-only <starting HEAD>` on the working tree or
+  `git status --porcelain --untracked-files=all` lists a path outside the expected ones and `ticket.md` itself. It returns `RESULT: PASS|FAIL` with its evidence, and the
   orchestrator copies that return unchanged into `ticket.md`. No separate tester, reviewer, planner
   or finisher stage runs.
 - **Still required.** The target's startup rules and security constraints, a verifier context that

@@ -17,4 +17,4 @@ Read `.claude/commands/spec-harness/rules.md` (source checkout fallback: `comman
 - The ratchet only tightens after a reviewed rule change.
 - Nothing is "done" until the separate verifier returns PASS against the applicable goal.
 - Every correction or FAIL cause goes through `spec-harness-learn` classification.
-- Never scaffold the second-brain vault. Never commit a client repo unless asked.
+- Never commit, push or merge unless asked.

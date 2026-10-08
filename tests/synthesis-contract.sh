@@ -85,7 +85,7 @@ assert before == after, (before.keys() ^ after.keys(), before, after)
 assert (copy_root / "skills/spec-harness-build/KEEP.txt").read_text() == "extra user file\n"
 assert "actual representative source" in (copy_root / "skills/spec-harness-install/SKILL.md").read_text()
 assert "--check" in (copy_root / "skills/spec-harness-generate-agents/SKILL.md").read_text()
-assert "affected skill/role bindings stale" in (copy_root / "skills/spec-harness-learn/SKILL.md").read_text()
+assert "affected skill/role bindings as stale" in (copy_root / "skills/spec-harness-learn/SKILL.md").read_text()
 generated_agents = (copy_root / "skills/spec-harness-generate-agents/SKILL.md").read_text()
 assert "project-aware planner" in generated_agents
 assert "separate fresh reviewer" in generated_agents
@@ -273,7 +273,7 @@ assert "once each" in check_skills(skills[:2] + [tech_row], 1, "RED control: tec
 five = []
 for i in range(5):
     p = f".claude/skills/spec-harness-tech-t{i}/SKILL.md"
-    write(mixed / p, (mixed / tech_path).read_text() + "\nExample: `<View style={{flex: 1}} />` and the `FETCH_PENDING` action.\n")
+    write(mixed / p, (mixed / tech_path).read_text() + "\nExample: `<View style={{flex: 1}} />` and the `FETCH_PENDING` action. Show a spinner while the request is pending.\n")
     five.append(dict(tech_row, name=f"spec-harness-tech-t{i}", path=p, sha256=sha(mixed / p)))
 assert "READY: 3 packages, 8 skills" in check_skills(skills + five, 0, "five technology skills with JSX and *_PENDING text GREEN control")
 assert "once each" in check_skills(skills + [dict(tech_row, name=["x"])], 1, "RED control: non-string skill name fails closed without a traceback")

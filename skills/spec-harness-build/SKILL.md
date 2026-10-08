@@ -1,6 +1,6 @@
 ---
 name: spec-harness-build
-description: Execute a feature packet one task at a time with independent acceptance. Use when Malik says 'build it', 'run the pipeline', or 'implement the tasks'.
+description: Execute a feature packet one task at a time with independent acceptance. Use when the user says 'build it', 'run the pipeline', or 'implement the tasks'.
 ---
 
 # spec-harness-build

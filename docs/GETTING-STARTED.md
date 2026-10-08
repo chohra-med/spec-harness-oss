@@ -2,7 +2,7 @@
 
 This is the step-by-step route for a real codebase, including a large app that already has its own
 `CLAUDE.md`, `AGENTS.md` and `.claude/` directory. It takes about half an hour, most of it reading
-what the initialiser wrote.
+what the initialiser wrote; allow longer on a large app.
 
 ## The words used here
 
@@ -49,14 +49,15 @@ npx -y github:chohra-med/spec-harness-oss init . integrate
 ```
 
 `integrate` is for an existing project, `new` for an empty one, and leaving the mode out picks for
-you. The command only copies files. It prints three lists and one status:
+you. The command only copies files. It prints a status and four lists:
 
 | List | Meaning |
 |---|---|
 | `ADDED` | New files. Roughly 85 on a project that had none of them. |
 | `PRESERVED` | Your files that already existed. They are never overwritten. |
 | `CONFLICTS` | Preserved files whose content differs from the harness version. Yours was kept. |
-| `Status: PENDING` | Expected. Nothing has read your code yet. |
+| `PENDING` | What still needs a model: rules, roles and skills. |
+| `status : PENDING` | Expected. Nothing has read your code yet. |
 
 Running it a second time is safe: it adds nothing and changes nothing.
 
@@ -102,7 +103,7 @@ representative source files per package. It reads `package.json` and `pyproject.
 and Android folders are not packages of their own; `Pods`, `DerivedData` and `build` are skipped.
 
 On a large app the default sample may miss the files that show how the app is really written.
-Choose up to five yourself, and pass the same flags every time you re-index:
+Choose up to five yourself, five in total across the repository, and pass the same flags every time you re-index:
 
 ```sh
 npx -y github:chohra-med/spec-harness-oss index . \
@@ -157,7 +158,9 @@ git add .claude .agents .memory ai_rules specs workflows learning \
 git commit -m "chore: add Spec Harness"
 ```
 
-Commit all of it, the inventory and the receipt included. The roles read them.
+Commit all of it, the inventory and the receipt included. The roles read them. In a monorepo, also
+add each `<package>/RULES.md` the receipt lists. If your team ignores `.claude/` in git, decide first
+whether the harness files are shared or personal.
 
 ### 7. Run a first small ticket
 
@@ -182,8 +185,8 @@ explicitly.
 ### 8. Larger work
 
 A change across several files is **LITE**; shared interfaces, security-sensitive or multi-repo
-work is **FULL**. These keep a packet under `specs/<feature>/` and run every role in its own
-context:
+work is **FULL**. These keep a packet under `specs/<feature>/` and run the roles in separate
+contexts (LITE may skip the planner when there is no design decision to make):
 
 ```text
 planner (strong) -> implementer (fast) -> tester -> verifier -> reviewer -> merger (only with your say-so)
@@ -219,6 +222,18 @@ To change it for your project or your provider, add a `Model tiers` table with t
 your own `AGENTS.md`; it overrides the default. If a model is not available, the run uses the
 nearest tier and says so. It does not stop.
 
+## Known limits
+
+- **Initialisation is thorough, not light.** It reads every instruction file and writes rules, skills
+  and memory entries. On a tiny repository that is more harness than code; the payoff is on a real
+  codebase.
+- **Editing a generated rule makes the receipt stale.** Rules, skills and role blocks carry hashes,
+  so one edit means a refresh of the files that cite it. Batch your review edits, then refresh once.
+- **A green structural check is not a quality verdict.** It proves hashes and citations line up. The
+  fresh reviewer in step 6 is the gate that finds wrong rules.
+- **Only source files can be cited.** Claims about `package.json` or a README are not covered by the
+  structural check, so read those rules yourself.
+
 ## Undo
 
 Before the commit:
@@ -230,15 +245,17 @@ git clean -f AGENTS.md CLAUDE.md RULES.md SPEC-HARNESS.md constitution.md goal.m
 ```
 
 `git clean` removes only untracked files, so anything of yours that was already committed stays.
-Run it with `-n` first to see the list. After the commit, revert the commit or delete the branch.
+Run it with `-n` first to see the list. Two cautions: `git restore .` also discards any other
+uncommitted edit in the working tree, and `git clean -fd .claude` also removes your own untracked
+files there. In a monorepo, remove each generated `<package>/RULES.md` as well. After the commit, revert the commit or delete the branch.
 
 ## Exit codes
 
 | Code | Meaning |
 |---|---|
 | `0` | The shell step finished. The status may still be PENDING. |
-| `1` | A check failed and printed what is missing or stale. |
-| `2` | Bad arguments, or a command that only prints a procedure for a model to follow. |
+| `1` | A check failed and printed what is missing or stale, or `index` refused an argument. |
+| `2` | A missing target or unknown command, or a command that only prints a procedure for a model to follow. |
 
 ## When something looks wrong
 
@@ -246,6 +263,6 @@ Run it with `-n` first to see the list. After the commit, revert the commit or d
 |---|---|---|
 | `PENDING: missing or unsafe synthesis receipt` | `/sdd init` has not run yet | run step 5 |
 | The client ignores the harness | your own `CLAUDE.md` was preserved | step 3 |
-| `Indexed 0 package boundaries` | no `package.json` or `pyproject.toml` at the root you indexed | index the directory that has one |
+| `Indexed 0 package boundary/boundaries` | no `package.json` or `pyproject.toml` at the root you indexed | index the directory that has one |
 | The check fails after you edited a generated file | the receipt hash is stale | ask the client to run the guarded refresh in `/sdd init` |
 | `/sdd` is not recognised in Codex | the project skill was not discovered | open `.agents/skills/sdd/SKILL.md` and follow it |

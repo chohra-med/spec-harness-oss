@@ -1,6 +1,6 @@
 ---
 name: spec-harness-audit
-description: Health-check the memory bank, rules, and index — flag stale, contradictory, or redundant entries and spec↔code drift. Use when Malik says 'audit the bank', 'is the memory stale', 'check spec harness health', or 'clean up the rules'.
+description: Health-check the memory bank, rules, and index — flag stale, contradictory, or redundant entries and spec↔code drift. Use when the user says 'audit the bank', 'is the memory stale', 'check spec harness health', or 'clean up the rules'.
 ---
 
 # spec-harness-audit
@@ -17,4 +17,4 @@ Cross-check the bank, ai_rules, and index for staleness, contradiction, redundan
 - The ratchet only tightens after a reviewed rule change.
 - Nothing is "done" until the separate verifier returns PASS against the applicable goal.
 - Every correction or FAIL cause goes through `spec-harness-learn` classification.
-- Never scaffold the second-brain vault. Never commit a client repo unless asked.
+- Never commit, push or merge unless asked.

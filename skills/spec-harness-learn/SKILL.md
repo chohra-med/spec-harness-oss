@@ -1,11 +1,11 @@
 ---
 name: spec-harness-learn
-description: Capture a human correction, review finding, bug postmortem or verifier/tester failure as one testable rule. Use when Malik says 'learn this', 'remember this', 'capture this lesson', or a separate acceptance role finds a cause.
+description: Capture a human correction, review finding, bug postmortem or verifier/tester failure as one testable rule. Use when the user says 'learn this', 'remember this', 'capture this lesson', or a separate acceptance role finds a cause.
 ---
 
 # spec-harness-learn
 
-Run commands/learn.md: capture raw feedback, propose a testable cause and owner, and record the existing human/reviewer decision. Apply a canonical rule only after approval; mark only affected skill/role bindings stale, refresh those bindings and run the synthesis check. Unsupported or pending proposals stay captured and proposed. Report LEARNED only after reviewed application; otherwise report PENDING.
+Run commands/learn.md: capture raw feedback, propose a testable cause and owner, and record the existing human/reviewer decision. Apply a canonical rule only after approval; report affected skill/role bindings as stale for the orchestrator's guarded refresh. Unsupported or pending proposals stay captured and proposed. Report LEARNED only after reviewed application; otherwise report PENDING.
 
 ## Run it
 1. **Load the full procedure** — read the command doc and follow it exactly:
@@ -17,4 +17,4 @@ Run commands/learn.md: capture raw feedback, propose a testable cause and owner,
 - The ratchet only tightens after a reviewed rule change.
 - Nothing is "done" until the separate verifier returns PASS against the applicable goal.
 - Every correction or FAIL cause goes through `spec-harness-learn` classification.
-- Never scaffold the second-brain vault. Never commit a client repo unless asked.
+- Never commit, push or merge unless asked.

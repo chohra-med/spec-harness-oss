@@ -9,7 +9,7 @@
 - At the end of a build when a reusable rule may have been learned.
 - A decision made during a ticket that later tickets should follow.
 
-The bound `sdd-learner` role runs this procedure in a fresh context. It improves rules and project
+The `sdd-learner` role runs this procedure in a fresh context. It improves rules and project
 skills; it never edits application source.
 
 ## Invocation
@@ -38,10 +38,10 @@ spec-harness learn --from .memory/80-feedback.md
    its reviewed canonical owner.
    Preserve history and unrelated policy. If another current rule conflicts, stop and return it to
    its owner rather than silently replacing it.
-6. **Refresh affected bindings.** Identify only roles and skills whose cited source, rule owner,
-   package path or concern changed. Re-read changed inputs, regenerate only their owned regions,
-   preserve custom bytes, and run the target's structural/provenance check. A stale or failed check
-   leaves the work PENDING.
+6. **Report stale bindings.** Name the roles and skills whose cited source, rule owner, package
+   path or concern changed. The learner does not regenerate them: the orchestrator runs the guarded
+   refresh in `.claude/commands/sdd.md` and the structural check. Until that passes, readiness is
+   PENDING.
 
 ## Human learning (optional)
 
@@ -67,7 +67,7 @@ LEARNED: <one-line testable rule>
   captured: .memory/80-feedback.md
   reviewed: <decision evidence>
   applied: <canonical file> (package + concern)
-  refreshed bindings: <only affected paths, or none>
+  stale bindings: <affected paths for the orchestrator to refresh, or none>
   readiness: <exact check and result, or PENDING reason>
   taught: <lesson path, or skipped with reason>
 ```

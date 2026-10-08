@@ -397,7 +397,7 @@ def role_contracts(d):
 
 def learning_contracts(d):
     learn, verifier, skill = d["learn"], d["verifier"], d["learn_skill"]
-    order = [learn.find(x) for x in ("1. **Capture.**", "2. **Propose.**", "3. **Classify.**", "4. **Review.**", "5. **Apply only after approval.**", "6. **Refresh affected bindings.**")]
+    order = [learn.find(x) for x in ("1. **Capture.**", "2. **Propose.**", "3. **Classify.**", "4. **Review.**", "5. **Apply only after approval.**", "6. **Report stale bindings.**")]
     return (
         all(i >= 0 for i in order) and order == sorted(order)
         and "PENDING: feedback captured; classification proposed" in learn
@@ -475,6 +475,7 @@ LIGHT_ROUTE = (
     "explicit authority before any commit, push or merge", "Escalate to LITE", "Evidence is proportional",
     "The implementer never edits `ticket.md`", "differ from the dispatched ones",
     "outside the expected ones", "copies that return unchanged", "as its gate set",
+    "--untracked-files=all", "Only the orchestrator does",
 )
 
 def light_route_contract(d):
@@ -496,7 +497,7 @@ def learner_contract(d):
     return (
         all(token in d["learner"] for token in LEARNER_ROLE)
         and "dispatch `sdd-learner`" in d["sdd"] and "needs no\n  receipt row" in d["sdd"] and "only after the project's review authority approves" in d["sdd"]
-        and "bound `sdd-learner` role runs this procedure" in d["learn"] and "or correct the project skill" in d["learn"]
+        and "The `sdd-learner` role runs this procedure" in d["learn"] and "or correct the project skill" in d["learn"]
     )
 
 TIER_ROLES = {

@@ -1,6 +1,6 @@
 ---
 name: spec-harness-install
-description: Add or refresh Spec Harness in a repo, greenfield or existing. Use when Malik asks to install or initialize Spec Harness. The shell stages files and leaves project synthesis PENDING.
+description: Add or refresh Spec Harness in a repo, greenfield or existing. Use when the user asks to install or initialize Spec Harness. The shell stages files and leaves project synthesis PENDING.
 ---
 
 # spec-harness-install
@@ -17,4 +17,4 @@ Stage the harness, then follow `.claude/commands/spec-harness/init.md` as a capa
 - The ratchet only tightens after a reviewed rule change.
 - Nothing is "done" until the separate verifier returns PASS against the applicable goal.
 - Every correction or FAIL cause goes through `spec-harness-learn` classification.
-- Never scaffold the second-brain vault. Never commit a client repo unless asked.
+- Never commit, push or merge unless asked.

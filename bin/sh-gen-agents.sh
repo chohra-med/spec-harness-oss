@@ -219,7 +219,8 @@ else:
         text = data.decode("utf-8", errors="replace")
         if "<!-- source-bound: inventory-sha256=" + str(receipt.get("inventory_sha256")) + " -->" not in text:
             fail(f"skill {name}: source binding is stale or missing")
-        if has_unresolved_scaffold(data):
+        # Skills quote real code and prose: only the upper-case status word marks an unfinished copy.
+        if re.search(rb"\bPENDING\b", data):
             fail(f"skill {name}: generic scaffold or placeholder remains")
         for package_path in packages_for_skill:
             if package_path not in text:
