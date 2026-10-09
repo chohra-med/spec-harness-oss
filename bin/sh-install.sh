@@ -187,7 +187,7 @@ plan_copy .agents/skills/sdd/SKILL.md "$SYS_DIR/templates/install/agents-skill-s
 for method in ponytail grill-me package-finder skill-finder; do
   plan_copy ".agents/skills/spec-harness-$method/SKILL.md" "$SYS_DIR/skills/spec-harness-$method/SKILL.md"
 done
-for method in architecture performance packages tech; do
+for method in architecture performance packages tech quality conduct; do
   plan_copy ".claude/spec-harness/methods/spec-harness-${method}.md" "$SYS_DIR/templates/project-skills/spec-harness-${method}.md"
 done
 
