@@ -1,6 +1,6 @@
 # Companion skills and tools
 
-Spec Harness is deliberately small. These are the tools it is designed to work beside. Two ship
+Spec Harness is deliberately small. These are the tools it is designed to work beside. Three ship
 inside it; the others are separate projects you install yourself. An agent following the harness
 checks for them and uses them when present. It never installs one without your yes.
 
