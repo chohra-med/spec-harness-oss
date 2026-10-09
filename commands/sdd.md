@@ -53,23 +53,8 @@ If an initialized target's source, applicable policy or inventory changed, use t
 before ticket gates. This is a model-led procedure; no receipt hash alone grants permission to
 replace existing bytes.
 
-1. Before reindexing, read the old receipt and inventory and snapshot their exact bytes and hashes,
-   plus every selected package rule, all project skills and every selected role file. Enumerate
-   each output's trusted generated ownership from its prior synthesis/review evidence and source-bound
-   markers. Confirm the receipt path, citation identity, output hashes, skill markers and role GEN
-   boundaries agree with those preimages. A receipt match is necessary for reuse, never sufficient
-   authority to rewrite a human-authored file. If a preimage, trusted ownership or prior semantic
-   review is missing, or a concurrent edit changes a captured byte, preserve it and mark that output
-   `CONFLICT/PENDING`.
-2. Reindex only after preserving those preimages. Read the changed representative source and current
-   applicable policy, then re-ground affected claims, citations, line spans and hashes. Compute the
-   raw inventory hash and enumerate every skill and selected role GEN block whose embedded inventory
-   marker changed, including consumers outside the edited package. Refresh only verified generated
-   content and its receipt rows. Preserve human policy, custom files and all role bytes outside
-   `GEN:rules`. A populated `RULES.md` without a clearly authorized generated region is never replaced;
-   surface its conflict as PENDING. A missing skill may be created under init's existing absent-only
-   rule, while a custom, mismatched or unproven existing reserved name remains byte-identical and
-   PENDING.
+1. Before reindexing, follow the guarded refresh in `init.md` step 8 (source checkout fallback: `commands/init.md`). Snapshot every preimage first; its authority and CONFLICT/PENDING rules are defined there.
+2. Reindex, re-ground changed claims and refresh only verified generated content, as `init.md` step 8 defines. Skill and role rules are in `init.md` steps 5 and 6.
 3. Run `spec-harness generate-agents --check "$PWD"` against the refreshed receipt. A separate fresh
    semantic reviewer must recheck citations, package scope and policy conflicts. Recheck packet,
    source, rule and goal identities; invalidate stale tester, verifier and reviewer records and run
@@ -77,7 +62,7 @@ replace existing bytes.
    acceptance. Ordinary source evolution is a metadata/binding refresh, not a permanent learned rule;
    use `learn` only for an observed reusable failure that passes its review.
 
-Stop and preserve bytes whenever the inventory, source or output preimage moves during refresh. Keep
+Preserve bytes whenever a preimage moves during refresh, as `init.md` step 8 defines. Keep
 the old receipt and output preimages as history/evidence. No generic merge engine or automatic human
 policy writer is implied by this procedure.
 

@@ -148,8 +148,11 @@ assert "Status: PENDING" in prompt
 assert "CONFLICT/PENDING" in prompt
 assert ".claude/commands/spec-harness/{init,rules,generate-agents}.md" in prompt
 assert "templates/project-skills/" in prompt
-assert "A matching receipt hash alone never authorizes replacement." in prompt
-assert "preserve its bytes and record `CONFLICT/PENDING`" in prompt
+# The authority and CONFLICT/PENDING rules are owned by commands/init.md; the work order only points there.
+init_owner = (root / "commands/init.md").read_text()
+assert "A receipt hash is not write authority." in init_owner
+assert "Otherwise preserve its bytes and report `CONFLICT/PENDING`." in init_owner
+assert "follow the guarded refresh in init.md step 8" in prompt
 assert sha(conflict_target / ".claude/skills/spec-harness-performance/SKILL.md") == conflict_hash
 missing = run(["bash", str(bind), "--check", str(conflict_target)], 1, "missing receipt RED control")
 assert "PENDING: missing or unsafe synthesis receipt" in missing
