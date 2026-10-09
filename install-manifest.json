@@ -228,7 +228,7 @@
       "source": "commands/init.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "e5c4ed67d7f9262c4895481d274791f683d0e10577d1ccd1d61e6b5d71ca74eb",
+      "sha256": "93bb127666828bc2172efce1c2b35914b04925d8f93ed31568bed7d28d9618ad",
       "mode": "0644"
     },
     {
@@ -496,6 +496,14 @@
       "mode": "0644"
     },
     {
+      "destination": ".claude/spec-harness/methods/spec-harness-conduct.md",
+      "source": "templates/project-skills/spec-harness-conduct.md",
+      "render": "copy",
+      "tokens": [],
+      "sha256": "75c95384190c617390ebc5b88dcbc2fb5e0ef7dcd16ca6ea8d279c6f79d9ff45",
+      "mode": "0644"
+    },
+    {
       "destination": ".claude/spec-harness/methods/spec-harness-packages.md",
       "source": "templates/project-skills/spec-harness-packages.md",
       "render": "copy",
@@ -509,6 +517,14 @@
       "render": "copy",
       "tokens": [],
       "sha256": "f0c5ade9565cf43f717b002b86da4ca5bbc3e48e01bc48d39a036f5c0386d7e3",
+      "mode": "0644"
+    },
+    {
+      "destination": ".claude/spec-harness/methods/spec-harness-quality.md",
+      "source": "templates/project-skills/spec-harness-quality.md",
+      "render": "copy",
+      "tokens": [],
+      "sha256": "b16c25f645576e91323711936d68a591e5b187d4ed4d62f205b122022108ca11",
       "mode": "0644"
     },
     {
