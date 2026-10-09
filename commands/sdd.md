@@ -23,7 +23,7 @@ project-specific role and skill paths. Do not maintain a second copy of those ge
 For `init`, first open `learning_human.html` for the user as `init.md` describes, then follow `.claude/commands/spec-harness/init.md`,
 `.claude/commands/spec-harness/rules.md` and
 `.claude/commands/spec-harness/generate-agents.md`: inventory the target, preserve its policy,
-derive package-scoped rules, the five core project skills and a skill per major technology, then bind the core roles. Run
+derive package-scoped rules, the core project skills for the receipt's schema (five on a first initialization; see `init.md` step 7 for a refresh of an existing schema 1 receipt) and a skill per major technology, then bind the core roles. Run
 `spec-harness index "$PWD"` before synthesis and
 `spec-harness generate-agents --check "$PWD"` after it. That result proves structure and
 provenance only. A separate fresh reviewer must accept the cited claims before overall

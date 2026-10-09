@@ -31,7 +31,7 @@ Do not fill unselected roles merely because a template exists. A change to the i
 
 ## Receipt schema and readiness
 
-`.claude/agents/.init-synthesis.json` uses `format: "spec-harness-synthesis"` and `schema_version: 2`. Schema 1 is still accepted for an existing receipt that holds the three original core skills. It records:
+`.claude/agents/.init-synthesis.json` uses `format: "spec-harness-synthesis"`. `schema_version` is `2` for a first initialization (all five core skills) or `1` for an existing receipt that keeps the three original core skills; `commands/init.md` step 7 owns which one to write. Only the integers `1` and `2` are accepted; booleans, floats and strings fail closed. It records:
 
 - `status`, `inventory_path`, raw `inventory_sha256`, exact inventoried `package_paths`, and `pending_reasons`;
 - each package's `rules_path`, output SHA-256 and `citations`;

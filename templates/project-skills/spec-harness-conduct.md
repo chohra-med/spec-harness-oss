@@ -17,6 +17,6 @@ This source procedure is a generic scaffold. During initialization, create a pro
 
 ## Output contract
 
-The project copy lists the policy files it read with their paths, gives the test command with its citation, and states the review, commit, pull request and human-decision rules, each with a citation or `not established`. Conflicts between policy files are listed for the owner. Unsupported or unreadable policy is listed and remains PENDING.
+The project copy lists the policy files it read with their paths, gives the test command with its citation, and states the code of conduct, review, commit, pull request and human-decision rules, each with a citation or `not established`. Conflicts between policy files are listed for the owner. Unsupported or unreadable policy is listed and remains PENDING.
 
 Record output path, citations and source hashes in `.claude/agents/.init-synthesis.json`. After changing a cited source or rule, refresh only affected bindings. Run `bash <spec-harness>/bin/sh-gen-agents.sh --check <target>`; a passing structural check does not replace a fresh semantic review.

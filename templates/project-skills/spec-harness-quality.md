@@ -12,7 +12,7 @@ This source procedure is a generic scaffold. During initialization, create a pro
 1. Read the target's applicable instructions and inventory. Keep each package's coding conventions in its own `RULES.md`; do not restate them here as new rules.
 2. Open actual representative source for each applicable package. Cite exact `path:line` spans and SHA-256. Inventory names and paths alone do not show a quality pattern.
 3. Derive clean-code rules only from that source: naming, function size, error handling, duplication and readability. Label each rule `OBSERVED` with its citation. Label a general practice the source does not show as `RECOMMENDATION`.
-4. SOLID is a labeled heuristic. Consider it only when source shows a concrete boundary or testability issue; otherwise label it as a review heuristic, not a project fact. Cite the code that shows the issue.
+4. Mention SOLID only when source shows a concrete boundary or testability issue, with a `path:line` citation. Otherwise omit it or label it `REVIEW HEURISTIC`, not a project fact.
 5. Do not invent a metric, a line-count limit or a style rule. Write `not established` where the source gives no evidence.
 
 ## Output contract

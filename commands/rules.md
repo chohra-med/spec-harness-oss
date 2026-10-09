@@ -22,14 +22,14 @@ spec-harness rules --check <file-path>
 
 ## Boundaries and output
 
-Purpose rules live in the skills; `RULES.md` holds what differs by directory.
+`RULES.md` holds the rules for one directory in its five sections; rules by purpose live in the project skills.
 
 Use a root `RULES.md` plus deeper files only for packages with distinct manifests or demonstrated conventions. Each file uses the existing five sections: Coding, Architecture, Packages, Testing and Reviewing. Cite each project-specific rule to a concrete package path and source/config/test line. Do not repeat an inherited rule, and do not copy guidance between different stacks.
 
 - Existing populated rules remain authoritative and byte-identical. Map or cite them; surface a source contradiction for human resolution.
 - Fill only empty sections or unmistakable Spec Harness PENDING scaffolds. Never overwrite a human-authored section.
 - An `ai_rules/rules/frequent_rules.md` stub, a generic `RULES.md`, a missing citation, or a source/code conflict unresolved by the project owner is PENDING.
-- SOLID and performance advice without direct project evidence is a labeled review heuristic, not a project fact. Do not invent metrics or prescribe blanket memoization.
+- Performance advice without direct project evidence is a labeled review heuristic, not a project fact; SOLID follows the quality method (`.claude/spec-harness/methods/spec-harness-quality.md`). Do not invent metrics or prescribe blanket memoization.
 - Record unsupported formats and incomplete scans as `PARTIAL`. They cannot produce overall initialization `READY` until the missing evidence is resolved or explicitly excluded by the project owner.
 
 ## Rule record

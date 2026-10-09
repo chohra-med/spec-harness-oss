@@ -426,8 +426,10 @@ assert "READY:" in run(["bash", str(bind), "--check", str(mixed)], 0, "final syn
 # Receipt schema versions: schema 1 keeps the three original core skills (the receipt above,
 # unchanged); schema 2 requires all five core skills. A schema 2 receipt without
 # spec-harness-quality must fail with the core-skill diagnostic.
-assert "READY: 3 packages, 3 skills" in run(["bash", str(bind), "--check", str(mixed)], 0, "schema 1 three-skill receipt still passes")
-print("PASS: schema 1 receipt with the three original core skills still passes")
+schema1_output = run(["bash", str(bind), "--check", str(mixed)], 0, "schema 1 three-skill receipt still passes")
+assert "READY: 3 packages, 3 skills, 5 selected roles; inventory and cited hashes match" in schema1_output, schema1_output
+assert "NOTE: this project uses the earlier three-skill core set (receipt schema 1)" in schema1_output, schema1_output
+print("PASS: schema 1 receipt still passes with its READY line unchanged and the three-skill note printed")
 core_v2_names = ("spec-harness-architecture", "spec-harness-performance", "spec-harness-packages",
                  "spec-harness-quality", "spec-harness-conduct")
 five_core_path = tmp / "five-core"
@@ -456,9 +458,19 @@ print("PASS: schema 2 receipt with all five core skills is READY")
 without_quality = [row for row in five_rows if row["name"] != "spec-harness-quality"]
 result = check_five(without_quality)
 assert result.returncode == 1, f"expected exit 1, got {result.returncode}: {result.stdout}"
-assert "receipt must contain every core project skill for its schema version, once each" in result.stdout, result.stdout
+assert "receipt must contain every core project skill for its schema version, once each; missing: spec-harness-quality" in result.stdout, result.stdout
 failure_line = next(line for line in result.stdout.splitlines() if "receipt must contain" in line)
 print(f"RED control observed (exit {result.returncode}): {failure_line.strip()}")
+
+# Strict schema_version: only the JSON integers 1 and 2 are accepted. JSON true (Python True) and
+# 2.0 must not coerce to 1 or 2; "2" and 3 must fail too. Each fixture must exit 1 with the schema diagnostic.
+for raw, label in ((True, "true"), (2.0, "2.0"), ("2", "\"2\""), (3, "3")):
+    write(five_receipt_path, json.dumps(dict(receipt, schema_version=raw, skills=five_rows), indent=2) + "\n")
+    negative = subprocess.run(["bash", str(bind), "--check", str(five_core_path)], text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    assert negative.returncode == 1, f"schema_version {label}: expected exit 1, got {negative.returncode}: {negative.stdout}"
+    assert "receipt format/schema_version must be spec-harness-synthesis/1" in negative.stdout, negative.stdout
+    print(f"RED control observed (exit {negative.returncode}): schema_version {label} rejected")
 
 # Guarded-refresh controls run only in a disposable initialized target. A source
 # citation edit goes RED; a raw inventory marker change then exercises every
