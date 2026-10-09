@@ -180,7 +180,7 @@
       "source": "commands/sdd.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "0f49210b280459afe3b99145b8ce9feac65ca279ae1babecbc9c248f3f839172",
+      "sha256": "3ca046dda78bebd30e95ab59dc2cfa6961f74287d14dcd2b842ad324eae503b2",
       "mode": "0644"
     },
     {
@@ -212,7 +212,7 @@
       "source": "commands/generate-agents.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "528e97741c8ccd8ec836e2e869646c90be15dc6b5845f75bf4b45df4cbdbdaf0",
+      "sha256": "04183a3d1cc8dcfdb188303a7794f8df129de0d4308a06d50bb1492009cc4547",
       "mode": "0644"
     },
     {
@@ -228,7 +228,7 @@
       "source": "commands/init.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "93bb127666828bc2172efce1c2b35914b04925d8f93ed31568bed7d28d9618ad",
+      "sha256": "77a54c9c8df028280e8be80540ee1bacbf3ae4e5b474d784046d62970e12a0e8",
       "mode": "0644"
     },
     {
@@ -380,7 +380,7 @@
       "source": "skills/spec-harness-install/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "2d79d52413c55da730c1dd7a6ae7cf3a10de93afabb0d7e1f28c7dcd0c199432",
+      "sha256": "b66be5232c8f44812da935751ec2f8feabd92311230ed2c779ed9c5873641c78",
       "mode": "0644"
     },
     {
@@ -532,7 +532,7 @@
       "source": "templates/project-skills/spec-harness-tech.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "d2c16e7a9cf2c3d1681d6b3c805ca5571c98c1e96fb624788221938a054a385d",
+      "sha256": "00d00d09d5868d3fbb08865d1df1c666569d74fc00a39a44458fab75b243559d",
       "mode": "0644"
     },
     {
