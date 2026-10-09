@@ -228,7 +228,7 @@
       "source": "commands/init.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "b4bc6dc5d906007bc3d7562658d2afaba4e317d91cf8b9d899dcceb9dd9a3565",
+      "sha256": "ce890733f79b2832f4077ad7b1a167a57694cb31130a9aef39f06cd605cbdfce",
       "mode": "0644"
     },
     {
@@ -380,7 +380,7 @@
       "source": "skills/spec-harness-install/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "0c37850ca1db4957b4a16638f052f18b56f855ca3f2ab4cdf2184f108bbb6ae1",
+      "sha256": "c5e9ff27f61052a5fe321f475b294c21138eb1435e94098d66983b9273e4221b",
       "mode": "0644"
     },
     {

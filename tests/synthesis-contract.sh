@@ -472,6 +472,16 @@ for raw, label in ((True, "true"), (2.0, "2.0"), ("2", "\"2\""), (3, "3")):
     assert "receipt format/schema_version must be spec-harness-synthesis/1" in negative.stdout, negative.stdout
     print(f"RED control observed (exit {negative.returncode}): schema_version {label} rejected")
 
+# A schema 1 receipt may not carry spec-harness-quality: it is a core name only in schema 2, so it
+# must fail as an extra project skill rather than being accepted as a technology skill.
+quality_row = next(row for row in five_rows if row["name"] == "spec-harness-quality")
+write(five_receipt_path, json.dumps(dict(receipt, schema_version=1, skills=skills + [quality_row]), indent=2) + "\n")
+schema1_quality = subprocess.run(["bash", str(bind), "--check", str(five_core_path)], text=True,
+                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+assert schema1_quality.returncode == 1, f"schema 1 with a quality row: expected exit 1, got {schema1_quality.returncode}: {schema1_quality.stdout}"
+assert "extra project skills must be named" in schema1_quality.stdout, schema1_quality.stdout
+print(f"RED control observed (exit {schema1_quality.returncode}): schema 1 receipt with a spec-harness-quality row rejected")
+
 # Guarded-refresh controls run only in a disposable initialized target. A source
 # citation edit goes RED; a raw inventory marker change then exercises every
 # receipt-owned marker consumer and preserves role bytes outside GEN.
