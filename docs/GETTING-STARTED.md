@@ -80,7 +80,7 @@ Use this when you want to read the source first, work offline, pin a version for
    If you would rather not change `PATH`, call it by its full path instead:
    `bash ~/tools/spec-harness-oss/bin/spec-harness help`.
 
-4. **Optional: run its own tests** before trusting it. They need `rg` (ripgrep) on your `PATH`.
+4. **Optional: run its own tests** before trusting it.
 
    ```sh
    cd ~/tools/spec-harness-oss
