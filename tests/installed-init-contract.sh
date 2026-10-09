@@ -14,7 +14,7 @@ TARGET="$TMP/target"
 mkdir -p "$TARGET"
 CLI="$CONSUMER/node_modules/.bin/spec-harness"
 "$CLI" install "$TARGET" integrate >"$TMP/init.log"
-for method in architecture performance packages; do
+for method in architecture performance packages quality conduct; do
   test -f "$TARGET/.claude/spec-harness/methods/spec-harness-$method.md"
   test ! -e "$TARGET/.claude/skills/spec-harness-$method/SKILL.md"
 done
@@ -29,7 +29,7 @@ done
 "$CONSUMER/node_modules/spec-harness/bin/sh-gen-agents.sh" "$TARGET" >"$TMP/workorder.log"
 for doc in init rules generate-agents; do test -f "$TARGET/.claude/commands/spec-harness/$doc.md"; done
 grep -Fq ".claude/spec-harness/methods/" "$TARGET/.claude/agents/.generate-agents.prompt.md"
-for method in architecture performance packages; do grep -Fq "spec-harness-$method" "$TARGET/.claude/agents/.generate-agents.prompt.md"; done
+for method in architecture performance packages quality conduct; do grep -Fq "spec-harness-$method" "$TARGET/.claude/agents/.generate-agents.prompt.md"; done
 grep -Fq 'spec-harness index <target>' "$TARGET/.claude/agents/.generate-agents.prompt.md"
 ! grep -Eq 'Read `commands/(init|rules|generate-agents)\.md`|source procedures' "$TARGET/.claude/agents/.generate-agents.prompt.md"
 # A custom reserved project-skill name is preserved and explicitly left pending.
@@ -60,4 +60,4 @@ if "$CLI" install "$LINK" integrate >"$TMP/link.log" 2>&1; then
 fi
 test -z "$(find "$OUTSIDE" -mindepth 1 -print -quit)"
 test ! -e "$LINK/AGENTS.md"
-printf 'PASS: packed installed init route, 3 method paths, no reserved generic skills, custom conflict preservation, method symlink preflight\n'
+printf 'PASS: packed installed init route, 5 method paths, no reserved generic skills, custom conflict preservation, method symlink preflight\n'

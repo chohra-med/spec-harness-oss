@@ -10,7 +10,7 @@ This source procedure is a generic scaffold. During initialization, create one p
 ## Select
 
 1. Read the inventory manifests and representative source. A technology qualifies when a manifest declares it and first-party source imports or configures it. A dependency that is declared but unused does not qualify.
-2. Pick the frameworks, platforms and state or data layers that shape how code is written in this project, at most five. Skip utilities and anything the architecture, performance or packages skills already cover.
+2. Pick the frameworks, platforms and state or data layers that shape how code is written in this project, at most five. Skip utilities and anything a core skill already covers.
 3. Record each selected technology with its evidence, and each skipped candidate with the reason.
 
 ## Derive
@@ -24,4 +24,4 @@ This source procedure is a generic scaffold. During initialization, create one p
 
 Each copy lives at `.claude/skills/spec-harness-tech-<technology>/SKILL.md`, names the package paths it covers, carries the inventory-hash source-bound marker and cites the lines that support it.
 
-Record its name, path, package paths, citations and hash in `.claude/agents/.init-synthesis.json` beside the three core skills. Run `bash <spec-harness>/bin/sh-gen-agents.sh --check <target>`; a passing structural check does not replace a fresh semantic review.
+Record its name, path, package paths, citations and hash in `.claude/agents/.init-synthesis.json` beside the core skills. Run `bash <spec-harness>/bin/sh-gen-agents.sh --check <target>`; a passing structural check does not replace a fresh semantic review.

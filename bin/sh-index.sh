@@ -43,11 +43,15 @@ GENERATED_IDENTITY_PATHS = {
     ".claude/skills/spec-harness-architecture/SKILL.md",
     ".claude/skills/spec-harness-performance/SKILL.md",
     ".claude/skills/spec-harness-packages/SKILL.md",
+    ".claude/skills/spec-harness-quality/SKILL.md",
+    ".claude/skills/spec-harness-conduct/SKILL.md",
 }
 GENERATED_IDENTITY_SKILL_DIRS = {
     ".claude/skills/spec-harness-architecture",
     ".claude/skills/spec-harness-performance",
     ".claude/skills/spec-harness-packages",
+    ".claude/skills/spec-harness-quality",
+    ".claude/skills/spec-harness-conduct",
 }
 
 SOURCE_SUFFIXES = {

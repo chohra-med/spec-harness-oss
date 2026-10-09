@@ -215,7 +215,7 @@ then writes:
 | Output | Where |
 |---|---|
 | Source-backed rules, each citing a file and line | `RULES.md`, `ai_rules/rules/frequent_rules.md` |
-| Three core skills: architecture, performance, packages | `.claude/skills/spec-harness-*/SKILL.md` |
+| Five core skills: architecture, performance, packages, quality, conduct | `.claude/skills/spec-harness-*/SKILL.md` |
 | One skill per major technology the code really uses, at most five | `.claude/skills/spec-harness-tech-<technology>/SKILL.md` |
 | Project rules inside each role | the `GEN:rules` block of `.claude/agents/sdd-*.md` |
 | The receipt | `.claude/agents/.init-synthesis.json` |

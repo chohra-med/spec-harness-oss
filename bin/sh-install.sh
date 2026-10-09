@@ -187,12 +187,12 @@ plan_copy .agents/skills/sdd/SKILL.md "$SYS_DIR/templates/install/agents-skill-s
 for method in ponytail grill-me package-finder skill-finder; do
   plan_copy ".agents/skills/spec-harness-$method/SKILL.md" "$SYS_DIR/skills/spec-harness-$method/SKILL.md"
 done
-for method in architecture performance packages tech; do
+for method in architecture performance packages quality conduct tech; do
   plan_copy ".claude/spec-harness/methods/spec-harness-${method}.md" "$SYS_DIR/templates/project-skills/spec-harness-${method}.md"
 done
 
 for skill_dir in "$SYS_DIR"/skills/spec-harness*; do
-  case "${skill_dir##*/}" in spec-harness-architecture|spec-harness-performance|spec-harness-packages) continue ;; esac
+  case "${skill_dir##*/}" in spec-harness-architecture|spec-harness-performance|spec-harness-packages|spec-harness-quality|spec-harness-conduct) continue ;; esac
   if [ -f "$skill_dir" ]; then
     plan_copy ".claude/skills/${skill_dir##*/}" "$skill_dir"
   elif [ -d "$skill_dir" ]; then
@@ -291,7 +291,7 @@ for ((i = 0; i < ${#PLAN_RELS[@]}; i++)); do
   fi
 done
 
-for skill in architecture performance packages; do
+for skill in architecture performance packages quality conduct; do
   rel=".claude/skills/spec-harness-${skill}/SKILL.md"
   if [ -e "$ABS/$rel" ] || [ -L "$ABS/$rel" ]; then
     PENDING+=("$rel (reserved project skill already exists; preserve and report CONFLICT/PENDING during init)")

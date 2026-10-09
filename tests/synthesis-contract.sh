@@ -423,6 +423,43 @@ print("RED control observed: " + next(line.strip() for line in stub.splitlines()
 frequent_path.write_bytes(frequent_preimage)
 assert "READY:" in run(["bash", str(bind), "--check", str(mixed)], 0, "final synthesis GREEN control")
 
+# Receipt schema versions: schema 1 keeps the three original core skills (the receipt above,
+# unchanged); schema 2 requires all five core skills. A schema 2 receipt without
+# spec-harness-quality must fail with the core-skill diagnostic.
+assert "READY: 3 packages, 3 skills" in run(["bash", str(bind), "--check", str(mixed)], 0, "schema 1 three-skill receipt still passes")
+print("PASS: schema 1 receipt with the three original core skills still passes")
+core_v2_names = ("spec-harness-architecture", "spec-harness-performance", "spec-harness-packages",
+                 "spec-harness-quality", "spec-harness-conduct")
+five_core_path = tmp / "five-core"
+shutil.copytree(mixed, five_core_path)
+five_rows = []
+for name in core_v2_names:
+    path = f".claude/skills/{name}/SKILL.md"
+    lines = [f"# {name}", "", "Package applicability: " + ", ".join(package_paths), "",
+             f"<!-- source-bound: inventory-sha256={inventory_hash} -->"]
+    lines += [f"Evidence: {c['path']}:{c['line_start']}-{c['line_end']}" for c in citations.values()]
+    file = five_core_path / path
+    write(file, "\n".join(lines) + "\n")
+    five_rows.append({
+        "name": name, "status": "READY", "path": path, "sha256": sha(file),
+        "package_paths": package_paths, "citations": list(citations.values()),
+    })
+five_receipt_path = five_core_path / ".claude/agents/.init-synthesis.json"
+def check_five(rows):
+    write(five_receipt_path, json.dumps(dict(receipt, schema_version=2, skills=rows), indent=2) + "\n")
+    return subprocess.run(["bash", str(bind), "--check", str(five_core_path)], text=True,
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+result = check_five(five_rows)
+assert result.returncode == 0, result.stdout
+assert "READY: 3 packages, 5 skills, 5 selected roles" in result.stdout, result.stdout
+print("PASS: schema 2 receipt with all five core skills is READY")
+without_quality = [row for row in five_rows if row["name"] != "spec-harness-quality"]
+result = check_five(without_quality)
+assert result.returncode == 1, f"expected exit 1, got {result.returncode}: {result.stdout}"
+assert "receipt must contain every core project skill for its schema version, once each" in result.stdout, result.stdout
+failure_line = next(line for line in result.stdout.splitlines() if "receipt must contain" in line)
+print(f"RED control observed (exit {result.returncode}): {failure_line.strip()}")
+
 # Guarded-refresh controls run only in a disposable initialized target. A source
 # citation edit goes RED; a raw inventory marker change then exercises every
 # receipt-owned marker consumer and preserves role bytes outside GEN.

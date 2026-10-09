@@ -524,7 +524,7 @@ def no_model_ids_outside_table(texts):
 
 TECH_WIRING = {
     "commands/init.md": "spec-harness-tech-<technology>", "commands/sdd.md": "a skill per major technology",
-    "bin/sh-gen-agents.sh": "spec-harness-tech-<technology>/SKILL.md", "bin/sh-install.sh": "architecture performance packages tech",
+    "bin/sh-gen-agents.sh": "spec-harness-tech-<technology>/SKILL.md", "bin/sh-install.sh": "architecture performance packages quality conduct tech",
     "templates/project-skills/spec-harness-tech.md": "## Derive",
     "README.md": "npx -y github:chohra-med/spec-harness-oss init . integrate",
     "docs/GETTING-STARTED.md": "3. Existing instruction files",

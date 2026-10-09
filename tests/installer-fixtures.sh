@@ -119,7 +119,7 @@ assert_contains "$NEW/goal.md" '{{FEATURE}}' 'fresh goal remains an unresolved s
 assert_contains "$NEW/.claude/agents/sdd-implementer.md" 'No project-specific rules generated yet' 'fresh role remains generic'
 assert_contains "$NEW/SPEC-HARNESS.md" '- Claude: `/sdd init` or `/sdd <ticket text or connected reference>` → `.claude/commands/sdd.md`.' 'shared ticket route is written literally'
 check_startup "$NEW" 'fresh install'
-for method in architecture performance packages; do
+for method in architecture performance packages quality conduct; do
   [ -f "$NEW/.claude/spec-harness/methods/spec-harness-$method.md" ] || fail "installed $method method is present"
   [ ! -e "$NEW/.claude/skills/spec-harness-$method/SKILL.md" ] || fail "generic $method method is not installed as a project skill"
 done
