@@ -196,6 +196,7 @@ your local run is the only gate, so report the exit lines and the failing log as
   for. Never commit to `main`. This package is marked private and is not on npm; the registry
   package with the same name is unrelated.
 - **Never run the installer with this repository as the target.**
+- Behavioural guidelines for code changes (think before coding, simplicity first, surgical changes, goal-driven execution): see the upstream rules at https://github.com/multica-ai/andrej-karpathy-skills. Apply them only where they do not conflict with this file.
 
 ## Quick answers
 
