@@ -163,8 +163,7 @@ from. Read them here to understand the method; act on the installed copies in th
 
 ### Run the tests
 
-They need `bash`, `git`, `python3` 3.11 or newer, `npm`, `tar`, `shasum`, `cmp`, and `rg` (ripgrep)
-on `PATH`.
+They need `bash`, `git`, `python3` 3.11 or newer, `npm`, `tar`, `shasum` and `cmp` on `PATH`.
 
 ```sh
 for t in tests/*.sh; do
