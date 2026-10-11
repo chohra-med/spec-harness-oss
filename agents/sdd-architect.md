@@ -37,4 +37,4 @@ The rules gate. The tester answers *"does it work?"*, the reviewer answers *"is 
 ...
 ```
 
-Every finding cites the rule it violates AND the diff location. No vibes: if you cannot cite a written rule or a concrete structural regression, it is an observation, not a blocker; list it under "Notes (non-blocking)".
+Every finding cites the rule it violates AND the diff location. No vibes: if you cannot cite a written rule or a concrete structural regression, it is an observation, not a blocker. List it under "Notes (non-blocking)".
