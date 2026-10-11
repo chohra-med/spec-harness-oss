@@ -487,6 +487,11 @@ def size_tier_contract(text):
     micro_rows = [l for l in text.splitlines() if l.startswith("| MICRO |")]
     return "### Size picks the tiers" in text and len(micro_rows) == 1 and micro_rows[0].endswith("| one fresh verifier on the fast tier |")
 
+def micro_stage_contract(text):
+    """The MICRO light route's Two stages bullet dispatches its one verifier on the fast tier."""
+    start, end = text.find("- **Two stages.**"), text.find("- **Still required.**")
+    return start >= 0 and end > start and "`sdd-verifier`, dispatched on the fast tier" in text[start:end]
+
 LIGHT_ROUTE = (
     "### MICRO light route", "specs/<feature>/ticket.md", "not record file or diff hashes",
     "No separate tester, reviewer, planner", "is not the implementer's",
@@ -559,6 +564,8 @@ require(all(x in d["sdd"] for x in ("specs/<feature>/input.md", "specs/<feature>
 require(tier_contract(d["sdd"], owns_table=True), "shared route owns the single model-tier table and its rules")
 require(size_tier_contract(d["sdd"]), "size table pins the tiers per class and MICRO acceptance on the fast tier")
 require(not size_tier_contract(d["sdd"].replace("| one fresh verifier on the fast tier |", "| one fresh verifier on the review tier |")), "RED control: MICRO verifier moved back to the review tier")
+require(micro_stage_contract(d["sdd"]), "MICRO light route dispatches its one verifier on the fast tier")
+require(not micro_stage_contract(d["sdd"].replace("`sdd-verifier`, dispatched on the fast tier", "`sdd-verifier`, dispatched on the review tier")), "RED control: Two stages bullet flipped back to the review tier")
 require(tier_contract(d["plan"]), "plan route asks for tiers and names no model")
 models = role_models(root)
 require(frontmatter_matches_table(d["sdd"], models), "role frontmatter matches the Claude column of the tier table")

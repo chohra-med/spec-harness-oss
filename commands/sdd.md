@@ -103,19 +103,20 @@ provider means filling one column. A `Model tiers` table in the target's own `AG
 | Tier | Roles | Claude | Codex/OpenAI |
 |---|---|---|---|
 | strong | planner, finisher, merger | `opus` | `gpt-6-sol` |
-| fast | implementer, tester, researcher, documenter | `sonnet`; `haiku` for the tester | `gpt-6-luna` |
-| review | verifier, reviewer, architect, learner, design and workflow testers | strong when budget allows, otherwise fast | same rule |
+| fast | implementer, tester, researcher, documenter | `sonnet`; `haiku` for the tester and the MICRO verifier | `gpt-6-luna` |
+| review | verifier (fast on MICRO, see `Size picks the tiers`), reviewer, architect, learner, design and workflow testers | strong when budget allows, otherwise fast | same rule |
 
 - **Plan strong, implement fast.** The plan carries the detail, so a cheaper model can execute it.
 - **Budget picks the review tier.** Review on the strong tier when the token budget allows. Drop to
-  the fast tier when the user says the budget is low or the client reports it.
+  the fast tier when the user says the budget is low or the client reports it. A MICRO ticket's
+  verifier is on the fast tier; see `Size picks the tiers`.
 - **Unavailable model: use the nearest available tier and say so.** Record the requested tier, the
   model that ran and the reason in that stage's gate file (`ticket.md` for MICRO). A missing model
   does not stop the run.
   Never carry one provider's model IDs to another provider.
 - **Independence never bends.** The implementer cannot write its own acceptance. Tester, verifier
   and reviewer are separate fresh contexts, on a different model from the implementer when one is
-  available. If a separate context cannot be had, that gate stays PENDING; separate manual contexts
+  available (MICRO's fast-tier verifier: see `Size picks the tiers` and the light route). If a separate context cannot be had, that gate stays PENDING; separate manual contexts
   count only when their independence is real.
 - For a provider without a column, add one naming its strongest model and its cheapest capable model.
 - The finisher is the orchestrator's own final strong-tier judgment, not a role file.
@@ -123,7 +124,7 @@ provider means filling one column. A `Model tiers` table in the target's own `AG
 ### Size picks the tiers
 
 Ticket class (section 3) decides which tier plans, implements and accepts. Easy work skips the strong
-tier; the gates never do.
+planner; the gates never do.
 
 | Class | Plans | Implements | Accepts |
 |---|---|---|---|
@@ -156,8 +157,11 @@ touched scope and risk:
   high-risk work. When uncertain, use FULL.
 
 Once the class is MICRO or LITE, an orchestrator running on the strong tier does not explore the code
-itself. It reads the ticket input and the files the ticket names, records the class, and dispatches.
-Broad reading is the implementer's job on the fast tier.
+itself. Its reading is the ticket input, the target's startup rules (its `CLAUDE.md` or `AGENTS.md` and
+any startup sequence it declares; required reading for both classes), and the files the ticket names.
+For MICRO it then writes `ticket.md`, which records the class, and dispatches; broad reading is the
+fast-tier implementer's job. For LITE it reads only what the inline plan needs and dispatches the
+planner only for material decisions.
 
 Record the class and reason in the packet. Every class retains exact input provenance, a literal
 goal, source identity, the applicable rules and independent acceptance. LITE and FULL also keep an
@@ -180,8 +184,10 @@ MICRO.
   not record file or diff hashes. The implementer never edits `ticket.md`. Only the orchestrator does.
 - **Two stages.** The fast-tier implementer makes the change with a test that fails first. Then one
   fresh `sdd-verifier`, dispatched on the fast tier, receives the goal checks and expected paths in its
-  dispatch, together with the `ticket.md` path. It is not the implementer's context, and it runs on a
-  different model from the implementer when the fast tier offers one. It runs the project's test command, checks every goal line and
+  dispatch, together with the `ticket.md` path. It is not the implementer's context. It runs on the
+  tester's model from the `Model tiers` table, which differs from the implementer's. Where the fast tier
+  has one model for every role, a fresh context on that model is accepted for MICRO, and the user can
+  ask for the review tier. It runs the project's test command, checks every goal line and
   reads the diff against the applicable rules. It returns FAIL when the goal checks in `ticket.md`
   differ from the dispatched ones, or when `git diff --name-only <starting HEAD>` on the working tree or
   `git status --porcelain --untracked-files=all` lists a path outside the expected ones and `ticket.md` itself. It returns `RESULT: PASS|FAIL` with its evidence, and the
@@ -191,7 +197,7 @@ MICRO.
   is not the implementer's, and explicit authority before any commit, push or merge. A merge
   decision uses the verifier's PASS in `ticket.md` as its gate set and records the grant there.
 - **Not required.** Rule hashes, Grill Me and Ponytail receipts, and a stage map beyond the two
-  models used. Apply Ponytail directly while implementing.
+  stages above. Apply Ponytail directly while implementing.
 - **Escalate to LITE** when the change grows past the stated files, touches a shared contract or
   security-sensitive code, or the verifier fails twice.
 
@@ -200,7 +206,7 @@ produce manifests or hashes of unchanged files, copies of reports, or receipts a
 
 ## 4. Ground and resolve the work
 
-Open relevant source, tests, package manifests and rules, then follow the installed Grill Me and
+For MICRO and LITE the orchestrator's own reading is limited as section 3's hand-off rule says. Open relevant source, tests, package manifests and rules, then follow the installed Grill Me and
 Ponytail method owners in `.claude/commands/spec-harness/` (source checkout fallback:
 `commands/`). Package Finder and Skill Finder apply when package or reusable-skill discovery is
 relevant. Record evidence, selected/excluded candidates and unavailable capabilities in the plan;
