@@ -41,20 +41,20 @@ Everything in Spec Harness is one of three things. The name is literal: **Spec**
 
 The harness has four moving parts that together make the system *converge* instead of drift:
 
-- **The ratchet** — `AGENTS.md` + `ai_rules/`. Reviewed rules only get added or sharpened; a failure does not become policy automatically.
-- **The verifier** — `sdd-verifier`, a fresh context that checks
+- **The ratchet**: `AGENTS.md` + `ai_rules/`. Reviewed rules only get added or sharpened; a failure does not become policy automatically.
+- **The verifier**: `sdd-verifier`, a fresh context that checks
   `specs/<feature>/goal.md` against current evidence and returns `RESULT: PASS|FAIL`. It works from
   the ticket goal and evidence, not the implementation conversation.
-- **The tester** — `sdd-workflow-tester`, the proactive complement to the verifier. It loads the
+- **The tester**: `sdd-workflow-tester`, the proactive complement to the verifier. It loads the
   `workflows/` bank (critical journeys, ranked P0→P2) and, per journey, a clean-context agent *runs
-  it end-to-end and adversarially tries to break it* — bad inputs, killed mid-flow, races, offline,
-  double-submits, boundary values — returning `BROKEN` + a concrete repro. The verifier checks *a
+  it end-to-end and adversarially tries to break it* (bad inputs, killed mid-flow, races, offline,
+  double-submits, boundary values), returning `BROKEN` + a concrete repro. The verifier checks *a
   change* against the goal; the tester checks *reality* against the critical journeys.
-- **The learning loop** (`learn`) — the verifier or tester records a failure; `learn` captures and
+- **The learning loop** (`learn`): the verifier or tester records a failure; `learn` captures and
   classifies it, then a reviewed durable correction can become a dated rule (a BROKEN workflow can
   also yield a recommended regression guard). The `sdd-learner` agent owns it: it also records
   decisions, promotes a cause that repeats, and corrects project skills as well as rules. Feedback never evaporates. The machine learns from its failures
-  (→ rules); the operator learns from its wins (→ `learning/` lessons). *This is the "loop" —
+  (→ rules); the operator learns from its wins (→ `learning/` lessons). *This is the "loop",
   reframed: not a cron schedule, a learning schedule.*
 
 ## What this is (and isn't)
@@ -139,7 +139,7 @@ matching, and the result of a first real-ticket run remain unverified for this r
 | [`spec`](./commands/spec.md) → [`plan`](./commands/plan.md) → [`tasks`](./commands/tasks.md) | Ticket input → checkable feature spec/goal → reuse-aware plan → atomic ordered units. |
 | [`build`](./commands/build.md) | Execute one task at a time with separate fresh tester, verifier and reviewer evidence tied to the feature goal and source revision. |
 | [`verify`](./commands/verify.md) | A separate fresh verifier checks `specs/<feature>/goal.md`. The shell CLI returns PENDING and does not run the check. |
-| [`tester`](./commands/tester.md) | Adversarially validate the critical `workflows/` — per journey, a clean-context agent **runs it + tries to break it** (bad inputs, kill mid-flow, races, offline, boundaries), reporting what's BROKEN, ranked P0 first. `--scan` derives candidate workflows from the app; every BROKEN feeds `learn`. The proactive complement to `verify`. |
+| [`tester`](./commands/tester.md) | Adversarially validate the critical `workflows/`: per journey, a clean-context agent **runs it + tries to break it** (bad inputs, kill mid-flow, races, offline, boundaries), reporting what's BROKEN, ranked P0 first. `--scan` derives candidate workflows from the app; every BROKEN feeds `learn`. The proactive complement to `verify`. |
 | [`document`](./commands/document.md) | Docs + comments to **the project technology's own standard** (Python docstrings, TS/JS TSDoc/JSDoc, GoDoc, rustdoc, Javadoc, …) + truthful README/ARCHITECTURE. Comments the WHY, never the WHAT. Behavior-locked (re-runs the suite to prove zero logic change). |
 | [`ship`](./commands/ship.md) | Records delivery evidence and applies explicit merger authority. Green gates do not authorize a commit, push, merge, deploy or release. |
 | [`teach`](./commands/teach.md) | Explain a system to a human as one self-contained interactive page: the idea, the flow, the structure, how to use it, evidence and limits. Never edits application source. |
@@ -162,8 +162,8 @@ the supported ticket entrypoint.
 ## Guardrails: current procedures and MCP examples
 
 The current package includes the SDD verifier and delivery-authority procedures described above.
-Three optional release-guardrail examples — `release-preflight`, `eas-env-sync`, and
-`backend-secrets-lock` — are historical references: their skill directories and check scripts are
+Three optional release-guardrail examples (`release-preflight`, `eas-env-sync`, and
+`backend-secrets-lock`) are historical references: their skill directories and check scripts are
 absent from the current source and package, so they are not executable from this distribution.
 
 The current procedure and authority map for verification, learning review, and delivery is in
@@ -173,13 +173,13 @@ documentation before connecting a tool.
 
 ## Read next
 
-1. [`docs/GETTING-STARTED.md`](./docs/GETTING-STARTED.md) — step by step: stage, initialise, review, first ticket, undo.
-1. [`ARCHITECTURE.md`](./ARCHITECTURE.md) — the diagrams: the 3 pillars, the SDD flow, the
+1. [`docs/GETTING-STARTED.md`](./docs/GETTING-STARTED.md). Step by step: stage, initialise, review, first ticket, undo.
+1. [`ARCHITECTURE.md`](./ARCHITECTURE.md). The diagrams: the 3 pillars, the SDD flow, the
    ratchet, and the verifier + learning loop wired in.
-2. [`docs/GUARDRAILS.md`](./docs/GUARDRAILS.md) — current procedures for evidence, reviewed learning, and delivery authority.
-3. [`docs/COMPANION-SKILLS.md`](./docs/COMPANION-SKILLS.md) — graphify, diagram-design and the methods that ship inside.
-4. [`docs/MCP-SERVERS.md`](./docs/MCP-SERVERS.md) — a dated illustrative MCP map; recheck vendor details before use.
-5. [`commands/init.md`](./commands/init.md) — start here to use it on a project.
+2. [`docs/GUARDRAILS.md`](./docs/GUARDRAILS.md). Current procedures for evidence, reviewed learning, and delivery authority.
+3. [`docs/COMPANION-SKILLS.md`](./docs/COMPANION-SKILLS.md): graphify, diagram-design and the methods that ship inside.
+4. [`docs/MCP-SERVERS.md`](./docs/MCP-SERVERS.md): a dated illustrative MCP map; recheck vendor details before use.
+5. [`commands/init.md`](./commands/init.md): start here to use it on a project.
 
 ## More from Code Meet AI
 
