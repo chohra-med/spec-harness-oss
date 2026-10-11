@@ -34,7 +34,7 @@ break the app", "which critical flows are broken") invokes the `sdd-workflow-tes
 4. **Route BROKEN evidence through the learning loop** (below) for capture and review.
 
 ## The adversarial playbook (what "try to break it" means)
-The agent doesn't just re-run the happy path, it attacks the invariant the workflow says must hold:
+The agent doesn't just re-run the happy path; it attacks the invariant the workflow says must hold:
 
 | Attack | Hunts for |
 |---|---|
@@ -49,7 +49,7 @@ The agent doesn't just re-run the happy path, it attacks the invariant the workf
 Budget by importance: a **P0** gets the hardest, widest attack; P1 a standard pass; P2 if time allows.
 
 ## `--scan`: derive candidate workflows from the app (like `rules --scan`)
-When the bank is thin or empty, don't invent journeys, **derive** them from the real app, then let a
+When the bank is thin or empty, don't invent journeys; **derive** them from the real app, then let a
 human confirm:
 1. **Read the app's surface**: routes/screens, entry points, key features, and (most telling) the
    **write paths** in the code (what persists, what charges, what mutates shared state). A journey that

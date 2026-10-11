@@ -27,7 +27,7 @@ The rules gate. The tester answers *"does it work?"*, the reviewer answers *"is 
 | 4 | Decision seams | New modules ship their decision seam even when v1 logic is dumb rules ("the seam is the whole cost of being AI-ready"). A module hard-coding what should be a seam is a request-changes |
 | 5 | Parallel plumbing | The change reuses existing seams/transports/stores rather than adding a second way to do the same thing (second event pipe, second config path, second identity thread) |
 | 6 | Layering of persistence/transport | Storage schema changes are additive or migrated; endpoints follow the existing router/versioning pattern |
-| 7 | Rules drift | If the diff makes a rule file stale (new package, new boundary), the rule update must be IN the diff, the ratchet only tightens |
+| 7 | Rules drift | If the diff makes a rule file stale (new package, new boundary), the rule update must be IN the diff; the ratchet only tightens |
 
 ## Output
 
@@ -37,4 +37,4 @@ The rules gate. The tester answers *"does it work?"*, the reviewer answers *"is 
 ...
 ```
 
-Every finding cites the rule it violates AND the diff location. No vibes: if you cannot cite a written rule or a concrete structural regression, it is an observation, not a blocker, list it under "Notes (non-blocking)".
+Every finding cites the rule it violates AND the diff location. No vibes: if you cannot cite a written rule or a concrete structural regression, it is an observation, not a blocker; list it under "Notes (non-blocking)".

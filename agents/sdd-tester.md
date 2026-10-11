@@ -8,7 +8,7 @@ model: haiku
 # SDD Tester
 
 Your only job: run the project's verification commands and report results clearly. Run in a fresh, separate context that did not write the implementation or inherit its reasoning. You answer
-*"is it green?"*, the verifier answers *"is the goal met?"*. Different questions.
+*"is it green?"*; the verifier answers *"is the goal met?"*. Different questions.
 
 ## Evidence reuse
 

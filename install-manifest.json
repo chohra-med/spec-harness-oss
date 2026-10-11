@@ -84,7 +84,7 @@
       "source": "agents/sdd-architect.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "f71c8b8a1a4dc69d3a2f4c195867271a85ebe15e586acd2cb8124afe89f27d76",
+      "sha256": "0ec05296d8618100a0b9dce6babce5491501fbd083c0bacc71cddfb431dc14e5",
       "mode": "0644"
     },
     {
@@ -92,7 +92,7 @@
       "source": "agents/sdd-design-verifier.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "e16b9c1c97a814a76a8842f60f94728e93e6e16af2238b9baac9c249fdeac573",
+      "sha256": "6b2285d50bba7377f6e6b738682609c2e725bb945e62ea03cd3b77e6b9033c3d",
       "mode": "0644"
     },
     {
@@ -100,7 +100,7 @@
       "source": "agents/sdd-documenter.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "12ea8656e71a5a1b9551b37ce3ecd36c928ebed8c259d00377151b669cfdd6ec",
+      "sha256": "59dd6bc167c627c2e5a6e0de2cd5844f38ca97f1b4a57702ac56432c316077cc",
       "mode": "0644"
     },
     {
@@ -156,7 +156,7 @@
       "source": "agents/sdd-tester.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "cebe8556f39af6a40dc6243ed0b6712e4a4053c7764871470197221dedb1352e",
+      "sha256": "78c160bd8d1c52cff1ca7055b4de39263d8eb7162898f50ca1454303d9baea57",
       "mode": "0644"
     },
     {
@@ -172,7 +172,7 @@
       "source": "agents/sdd-workflow-tester.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "5a4b0d9d0e884814488770428b98317372771f54dd13b625c2fffbdf6d26d51a",
+      "sha256": "44be2ca1acdf47542afe7f1014a134605afab80f1dbdbe1976369784e537a9ac",
       "mode": "0644"
     },
     {
@@ -188,7 +188,7 @@
       "source": "commands/audit.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "461807f561516a30ea790439e91517dff7466eead7482b6db0636291fddf3c42",
+      "sha256": "0fe0e026e43f3da1e47691def0568fcb3bd50570a6023001b7c573ae2c2940f3",
       "mode": "0644"
     },
     {
@@ -324,7 +324,7 @@
       "source": "commands/tester.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "36e43e3dfec03b6c36972c48f1eecf8ef59eab0cedba75f0d8fcf2e982724f52",
+      "sha256": "616140d142edffe6c144176f763552acbe63ad7c731f77d12ee84d92d25c095d",
       "mode": "0644"
     },
     {
@@ -642,7 +642,7 @@
       "tokens": [
         "{{PROJECT_NAME}}"
       ],
-      "sha256": "df161ba329e4850cc60c4f23048aeb36e542a65733901933f7415baa1678569b",
+      "sha256": "640a3266c43a099ecf1202b3dc558dceb965b3d1c3b05a8d4574d1261dacae36",
       "mode": "0644"
     },
     {
@@ -742,7 +742,7 @@
       "tokens": [
         "{{PROJECT_NAME}}"
       ],
-      "sha256": "3240dc3841d46dd14c6a601947efeb8ea68dfec822092e0d392ebb8153dc0009",
+      "sha256": "df52b50698edab5d9bc9bd8119ec0443be308eabed28347db31ed2659cfcc978",
       "mode": "0644"
     },
     {
@@ -750,7 +750,7 @@
       "source": "templates/goal.template.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "8d15b21bbece7df2aa06ebb8927ed639a875bd823730cd0f5bc8cd37bd525afa",
+      "sha256": "8cda27d2d0f92c017dff461d28aa723e9c3fc994e5731a38f522bf897e64fed4",
       "mode": "0644"
     },
     {
@@ -792,7 +792,7 @@
       "source": "templates/workflows/README.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "42689ed0657812eda840b7b3ffa735a7b0fc01ffa702ed0144d8b81bb4d3edd1",
+      "sha256": "5231cb124d6c6f39d1fe83580b1c3e92f42ceb18ac72f2552c8a82756f4620e3",
       "mode": "0644"
     }
   ],

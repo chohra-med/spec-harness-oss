@@ -252,8 +252,8 @@ covers the checks that actually ran; it does not certify every path in the appli
   approved change from the existing human or reviewer authority updates canonical policy.
 - The `workflows/` bank is a **peer of `specs/`**: a spec is one feature you're building; a workflow is
   one journey the project chooses to track or protect. `tester --scan` derives candidate workflows from the real app
-  surface (routes, entry points, write paths) the same way `rules --scan` derives rules, proposes,
-  human confirms.
+  surface (routes, entry points, write paths) the same way `rules --scan` derives rules, proposes;
+  a human confirms.
 - A **BROKEN** workflow is to the tester what a **FAIL** is to the verifier: preserve its repro and
   classify the cause. Rule changes wait for the `learn` review; a regression guard may be proposed.
 

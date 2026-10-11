@@ -1,7 +1,7 @@
 # /goal: {{FEATURE}}
 
 > The forcing function. A goal you can't phrase as true/false is a goal the verifier can't
-> check. Write the end-state FIRST. If you can't, stop, the rest of the loop depends on it.
+> check. Write the end-state FIRST. If you can't, stop; the rest of the loop depends on it.
 
 ## Goal
 Build {{FEATURE}}.

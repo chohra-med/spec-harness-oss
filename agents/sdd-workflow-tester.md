@@ -104,5 +104,5 @@ RESULT: PASS | BROKEN
 - **A named invariant beats a vibe.** Attack the workflow's stated invariants first; that's the
   contract. If the workflow names no invariant, say so (it's an untestable workflow) and attack the
   obvious ones (persistence, idempotency, partial-write).
-- **One workflow, clean context.** Don't carry findings between workflows, each run is isolated so a
+- **One workflow, clean context.** Don't carry findings between workflows; each run is isolated so a
   pass on one can't launder a fail on another.

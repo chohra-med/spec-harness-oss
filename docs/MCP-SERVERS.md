@@ -57,4 +57,4 @@ and their limits.
 
 *Maintained as part of [Spec Harness](https://github.com/chohra-med/spec-harness-oss) by
 [Malik Chohra](https://getwireai.com) · [Code Meet AI newsletter](https://codemeetai.substack.com).
-Illustrative list assembled July 2026, verify all vendor details against current official documentation before use.*
+Illustrative list assembled July 2026; verify all vendor details against current official documentation before use.*

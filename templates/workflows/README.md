@@ -67,7 +67,7 @@ importance: P0 | P1 | P2       # P0 = app is broken if this fails (test these fi
   returns 200". The invariant is the assertion; the steps are the journey around it.
 - **Name the invariant that can break under stress.** Idempotency, no-partial-write, survives-kill,
   no-double-charge. That line is what the tester attacks.
-- **Give a runnable `how_to_run`.** A workflow with no way to execute it can't be tested, prefer an
+- **Give a runnable `how_to_run`.** A workflow with no way to execute it can't be tested; prefer an
   e2e command or API sequence; fall back to an agent-driven-UI recipe only when nothing else exists.
 - **Stack-agnostic.** The same format holds for an RN app (e2e / agent-driven UI), a FastAPI backend
   (curl / httpx sequence), or a web app (Playwright / agent-browser). Put the stack specifics in

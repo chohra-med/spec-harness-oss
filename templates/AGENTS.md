@@ -27,7 +27,7 @@ or acceptance work remains.
 
 - A ticket task is done only when a fresh verifier returns PASS against that ticket's
   `specs/<feature>/goal.md`; do not substitute the unrelated root `goal.md`.
-- "It ran without erroring" is **NOT** done. "Tests pass" is necessary, not sufficient, the
+- "It ran without erroring" is **NOT** done. "Tests pass" is necessary, not sufficient; the
   goal end-state is the bar.
 
 ## On failure (the ratchet in motion)
