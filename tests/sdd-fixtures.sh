@@ -387,6 +387,11 @@ def role_contracts(d):
         "implementer optional selected evidence": "when present or selected" in implementer,
         "reviewer reads feature goal, plan, task, diff, rules and gates": all(x in reviewer for x in ("`specs/<feature>/spec.md`, `goal.md` and `plan.md`", "assigned task's acceptance criteria", "Current diff and source revision", "Applicable `AGENTS.md`", "gate evidence")),
         "reviewer optional selected evidence": "when present or selected" in reviewer,
+        "reviewer labels findings NEEDED and ADDITION": all(x in reviewer for x in ("`NEEDED` when:", "`ADDITION` when")),
+        "reviewer worked cases keep their labels": all(x in reviewer for x in ("| 1 | A security, privacy or data-loss flaw in the changed work that no criterion mentions | `NEEDED` |", "| 2 | An unhandled failure that normal use or hostile input reaches | `NEEDED` |", "| 3 | A failure reachable only through a fault outside normal use, such as a corrupted disk, that is not a security, privacy or data-loss problem | `ADDITION` |", "| 4 | A required behaviour with no test or check | `NEEDED` |", "| 5 | A cleaner structure for work that is correct | `ADDITION` |", "| 6 | Something the plan excluded, built anyway, even if it works | `NEEDED` |", "| 7 | Something nobody asked for, not excluded by the plan, and working | `ADDITION` |")),
+        "reviewer must read the code before calling a finding an addition": "only after you have read the changed code path it concerns" in reviewer,
+        "reviewer NEEDED covers security and trust-boundary defects": "security, privacy, trust-boundary, input-validation or data-loss problem" in reviewer,
+        "reviewer only NEEDED can request changes": "Only `NEEDED` findings can produce `REQUEST-CHANGES`" in reviewer,
         "researcher works from spec goal rules source and inventory": all(x in researcher for x in ("`specs/<feature>/spec.md` and `goal.md`", "applicable `RULES.md`", "Relevant source, tests, manifests and inventory / context map")),
         "researcher optional design": "when present or selected" in researcher,
     }

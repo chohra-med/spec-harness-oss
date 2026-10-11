@@ -144,7 +144,7 @@ matching, and the result of a first real-ticket run remain unverified for this r
 | [`ship`](./commands/ship.md) | Records delivery evidence and applies explicit merger authority. Green gates do not authorize a commit, push, merge, deploy or release. |
 | [`teach`](./commands/teach.md) | Explain a system to a human as one self-contained interactive page: the idea, the flow, the structure, how to use it, evidence and limits. Never edits application source. |
 | [`learn`](./commands/learn.md) | Classify feedback/corrections and add durable rules only after review (+ optional human lesson). |
-| [`audit`](./commands/audit.md) | Health-check the bank, rules, and index. Flag stale/contradictory/redundant. |
+| [`audit`](./commands/audit.md) | Health-check the bank, rules, and index. Flag stale or contradictory entries. |
 
 The source exposes the native Claude `/sdd` command and a thin Codex project-skill adapter at
 `.agents/skills/sdd/SKILL.md`; native discovery and delegation must be measured in the actual client.

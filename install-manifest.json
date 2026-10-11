@@ -148,7 +148,7 @@
       "source": "agents/sdd-reviewer.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "bf7370ffc650a8c3ffdde3ffb0146da3886b8eb3d40803f2db5196f6c554d2d3",
+      "sha256": "4b2314253982de642438b86622124777422bbc0bef38a8ffb380f6c433191b9e",
       "mode": "0644"
     },
     {
@@ -180,7 +180,7 @@
       "source": "commands/sdd.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "3ca046dda78bebd30e95ab59dc2cfa6961f74287d14dcd2b842ad324eae503b2",
+      "sha256": "1053ce98c5667b19150e16e4fe4b70f564a100434177367b4ecfe67a02b86b6d",
       "mode": "0644"
     },
     {
@@ -188,7 +188,7 @@
       "source": "commands/audit.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "57726a4cc4067fd434eda84fe22cc5c84915edfc69fa0ffd98b7bde30d479e03",
+      "sha256": "88023d8aded0c0e61e72034c2ab267c6e2524c27a32223298b4705c35cb38db9",
       "mode": "0644"
     },
     {
@@ -196,7 +196,7 @@
       "source": "commands/build.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "df6daba614501a53e144591d1305d7798b5bcd6650f9790b98f695d3848ee826",
+      "sha256": "4c2c7eb004fb8b2b2be430b2cac1e6a3d721c6dc05cc88e8523a5f464ab1cafd",
       "mode": "0644"
     },
     {
@@ -348,7 +348,7 @@
       "source": "skills/spec-harness-audit/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "c3fecd9340404e4306e17cb42842f8afcc67c83c305cb93c79efe2118d2b607f",
+      "sha256": "20a019c4bff8da3ffd0bb454b744a2f7d5458e7459855eabba03c0d28152e66c",
       "mode": "0644"
     },
     {
