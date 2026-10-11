@@ -35,17 +35,17 @@ Reuse prior review evidence only when exact source identity, accepted goal hash,
 - Report actionable findings with file and line references. Do not modify files or turn suggestions into requirements.
 - Read the Ponytail owner at `.claude/commands/spec-harness/ponytail.md` (source checkout fallback: `commands/ponytail.md`) and the Ponytail receipt in `specs/<feature>/plan.md` (the highest rung reached, what was reused, what was excluded). If the plan has no Ponytail receipt, say so in one line and apply only the accepted scope.
 - Label every finding `NEEDED` or `ADDITION`. Only `NEEDED` findings can produce `REQUEST-CHANGES`; list `ADDITION` findings separately for the human, and they do not start a correction round.
-  - `NEEDED` when: a literal feature-goal criterion is not met; a target rule is broken; the changed work has a defect (wrong behaviour; a security, trust-boundary, input-validation or data-loss problem; a failure a normal use can reach that is not handled), whether or not the goal or plan mentions it; a behaviour that the goal, the accepted plan or the assigned task's acceptance criteria requires has no evidence that it works; or something the plan's scope or Ponytail receipt excluded was built anyway.
+  - `NEEDED` when: a literal feature-goal criterion is not met; a target rule is broken; the changed work has a defect (wrong behaviour; a security, privacy, trust-boundary, input-validation or data-loss problem; a failure a normal use can reach that is not handled), whether or not the goal or plan mentions it; a behaviour that the goal, the accepted plan or the assigned task's acceptance criteria requires has no evidence that it works; or something the plan's scope or Ponytail receipt excluded was built anyway.
   - `ADDITION` when the work is correct and safe and the finding would only make it better (structure, naming, style, an extra feature the plan did not exclude, more tests than required). Something merely larger than it had to be, which the plan did not exclude, is `ADDITION`.
-  - The test between them: to label `NEEDED`, name the criterion, the rule, or a concrete input or situation, reached by normal use or by hostile input, where the result is wrong or unsafe. If none can be named, the finding is `ADDITION` only after you have read the changed code path it concerns and tried the input that would reach it. A finding that is both beyond the goal and a defect is `NEEDED`.
+  - The test between them: to label `NEEDED`, name the criterion, the rule, or a concrete input or situation, reached by normal use or by hostile input, where the result is wrong or unsafe. A security, privacy or data-loss problem needs no reach: it is `NEEDED`. If none can be named, the finding is `ADDITION` only after you have read the changed code path it concerns and tried the input that would reach it. A finding that is both beyond the goal and a defect is `NEEDED`.
   - Missing or stale gate records are `PENDING`, not findings. A required behaviour that the diff and the gate records that exist show to be untested is `NEEDED`.
   - Worked cases decide a doubtful label:
 
     | # | Finding | Label |
     |---|---|---|
-    | 1 | A security or data-loss flaw in the changed work that no criterion mentions | `NEEDED` |
+    | 1 | A security, privacy or data-loss flaw in the changed work that no criterion mentions | `NEEDED` |
     | 2 | An unhandled failure that normal use or hostile input reaches | `NEEDED` |
-    | 3 | A failure reachable only through a fault outside normal use, such as a corrupted disk | `ADDITION` |
+    | 3 | A failure reachable only through a fault outside normal use, such as a corrupted disk, that is not a security, privacy or data-loss problem | `ADDITION` |
     | 4 | A required behaviour with no test or check | `NEEDED` |
     | 5 | A cleaner structure for work that is correct | `ADDITION` |
     | 6 | Something the plan excluded, built anyway, even if it works | `NEEDED` |
