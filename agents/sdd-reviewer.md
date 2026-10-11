@@ -33,6 +33,8 @@ Reuse prior review evidence only when exact source identity, accepted goal hash,
 - Check the assigned task, accepted plan, scope, package boundaries, minimum diff, tests and dependencies.
 - Confirm tester and verifier records refer to the reviewed source and accepted goal revisions. Missing or stale gates remain PENDING.
 - Report actionable findings with file and line references. Do not modify files or turn suggestions into requirements.
+- Read the Ponytail owner at `.claude/commands/spec-harness/ponytail.md` (source checkout fallback: `commands/ponytail.md`) and the Ponytail receipt in `specs/<feature>/plan.md` (the highest rung reached, what was reused, what was excluded). Report anything built beyond that receipt or beyond the accepted goal.
+- Label every finding. `NEEDED`: a literal feature-goal criterion is not met, a target rule is broken, or the change is wrong. `ADDITION`: an improvement beyond the accepted goal. Only `NEEDED` findings can produce `REQUEST-CHANGES`. List `ADDITION` findings separately for the human; they do not start a correction round.
 
 ## Output
-Return `APPROVE` or `REQUEST-CHANGES`, criterion evidence, rule violations, out-of-scope changes and any non-blocking suggestions. An approval does not authorize merge, release or publication.
+Return `APPROVE` or `REQUEST-CHANGES`, criterion evidence, rule violations and out-of-scope changes, with each finding labelled `NEEDED` or `ADDITION` and the `ADDITION` findings in their own list. An approval does not authorize merge, release or publication.

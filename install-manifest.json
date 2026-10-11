@@ -148,7 +148,7 @@
       "source": "agents/sdd-reviewer.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "bf7370ffc650a8c3ffdde3ffb0146da3886b8eb3d40803f2db5196f6c554d2d3",
+      "sha256": "f619843eb2a832689c3de633cd98a31c696feaaf1f1a85f4259ee5252fa05e62",
       "mode": "0644"
     },
     {
@@ -180,7 +180,7 @@
       "source": "commands/sdd.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "3ca046dda78bebd30e95ab59dc2cfa6961f74287d14dcd2b842ad324eae503b2",
+      "sha256": "3aa3f8a744a5f6f8ad77009497f7fdf23dd8c0804882cc95c61fd01656d8ad21",
       "mode": "0644"
     },
     {
@@ -188,7 +188,7 @@
       "source": "commands/audit.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "57726a4cc4067fd434eda84fe22cc5c84915edfc69fa0ffd98b7bde30d479e03",
+      "sha256": "88023d8aded0c0e61e72034c2ab267c6e2524c27a32223298b4705c35cb38db9",
       "mode": "0644"
     },
     {

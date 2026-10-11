@@ -239,6 +239,8 @@ section 3. For LITE and FULL the minimum order is:
 5. A third fresh bound reviewer checks the changed files against the accepted spec, rules, scope,
    and test evidence; record findings and revision identity in `gates/reviewer.md`.
 
+The reviewer also applies Ponytail to LITE and FULL tickets: it checks the plan's Ponytail receipt and labels each finding `NEEDED` (a feature-goal criterion, a target rule or correctness) or `ADDITION` (beyond the accepted goal), and only `NEEDED` findings can request changes.
+
 The implementer cannot write its own acceptance result. A fresh `sdd-verifier` remains mandatory for
 MICRO, LITE and FULL and checks every literal criterion in the accepted feature goal. Tester, verifier
 and reviewer answer distinct questions. Reuse a prior manual gate receipt only when its recorded exact
