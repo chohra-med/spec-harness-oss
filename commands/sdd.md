@@ -185,9 +185,10 @@ MICRO.
 - **Two stages.** The fast-tier implementer makes the change with a test that fails first. Then one
   fresh `sdd-verifier`, dispatched on the fast tier, receives the goal checks and expected paths in its
   dispatch, together with the `ticket.md` path. It is not the implementer's context. It runs on the
-  tester's model from the `Model tiers` table, which differs from the implementer's. Where the fast tier
-  has one model for every role, a fresh context on that model is accepted for MICRO, and the user can
-  ask for the review tier. It runs the project's test command, checks every goal line and
+  tester's model from the `Model tiers` table: where that table gives the fast tier a separate tester
+  model, the verifier's model differs from the implementer's, and where the fast tier has one model for
+  every role, a fresh context on that model is accepted for MICRO and the user can ask for the review
+  tier. It runs the project's test command, checks every goal line and
   reads the diff against the applicable rules. It returns FAIL when the goal checks in `ticket.md`
   differ from the dispatched ones, or when `git diff --name-only <starting HEAD>` on the working tree or
   `git status --porcelain --untracked-files=all` lists a path outside the expected ones and `ticket.md` itself. It returns `RESULT: PASS|FAIL` with its evidence, and the
