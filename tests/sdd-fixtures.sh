@@ -387,6 +387,9 @@ def role_contracts(d):
         "implementer optional selected evidence": "when present or selected" in implementer,
         "reviewer reads feature goal, plan, task, diff, rules and gates": all(x in reviewer for x in ("`specs/<feature>/spec.md`, `goal.md` and `plan.md`", "assigned task's acceptance criteria", "Current diff and source revision", "Applicable `AGENTS.md`", "gate evidence")),
         "reviewer optional selected evidence": "when present or selected" in reviewer,
+        "reviewer labels findings NEEDED and ADDITION": all(x in reviewer for x in ("`NEEDED`", "`ADDITION`")),
+        "reviewer NEEDED covers security and trust-boundary defects": "security, trust-boundary, input-validation or data-loss problem" in reviewer,
+        "reviewer only NEEDED can request changes": "Only `NEEDED` findings can produce `REQUEST-CHANGES`" in reviewer,
         "researcher works from spec goal rules source and inventory": all(x in researcher for x in ("`specs/<feature>/spec.md` and `goal.md`", "applicable `RULES.md`", "Relevant source, tests, manifests and inventory / context map")),
         "researcher optional design": "when present or selected" in researcher,
     }
