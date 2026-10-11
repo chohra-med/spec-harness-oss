@@ -29,6 +29,9 @@
     "learning_human.html",
     "ARCHITECTURE.md"
   ],
+  "scripts": {
+    "test": "bash tests/run-all.sh"
+  },
   "keywords": [
     "spec-driven-development",
     "sdd",
