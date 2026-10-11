@@ -19,7 +19,7 @@ Review in a fresh context, separate from implementation, testing and verificatio
 
 Resolve nearest per-directory rules for changed files and apply their Reviewing, Coding and other relevant sections. The feature goal is the acceptance target; never substitute root `goal.md`.
 
-## Project rules — Reviewing + Coding (generated; generic until `generate-agents` runs)
+## Project rules: Reviewing + Coding (generated; generic until `generate-agents` runs)
 Filled by `spec-harness generate-agents` from this project's real review bar. Apply it with the current target rules.
 
 <!-- GEN:rules START -->

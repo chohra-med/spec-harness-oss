@@ -1,4 +1,4 @@
-# Command: `plan` — accepted spec → bounded design
+# Command: `plan`, accepted spec → bounded design
 
 > The shared SDD procedure owns the run. This stage describes the smallest justified way to meet
 > the feature goal.

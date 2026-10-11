@@ -1,4 +1,4 @@
-# Command: `init` — source-grounded project initialization
+# Command: `init`, source-grounded project initialization
 
 > Initialization stages the harness, then uses an available capable model to derive project-scoped rules, skills and SDD role bindings from the selected project's inventory, existing policies and actual representative code. Shell scaffolding alone stays PENDING.
 
