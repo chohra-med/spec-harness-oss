@@ -5,9 +5,9 @@
 ## Invocation
 
 ```text
-spec-harness install <path> [new|integrate] [name]
-spec-harness init <path> [new|integrate] [name]
-spec-harness index <path> [--source <repo-relative-path> ...]
+spec-harness install <path> [new|integrate] [name]   # with no install: npx -y github:chohra-med/spec-harness-oss install <path> [new|integrate] [name]
+spec-harness init <path> [new|integrate] [name]   # with no install: npx -y github:chohra-med/spec-harness-oss init <path> [new|integrate] [name]
+spec-harness index <path> [--source <repo-relative-path> ...]   # with no install: npx -y github:chohra-med/spec-harness-oss index <path> [--source <repo-relative-path> ...]
 ```
 
 The installer stages files and reports `PENDING`. The synthesis receipt and `spec-harness generate-agents --check <target>` (from a checkout, `bash <spec-harness>/bin/sh-gen-agents.sh --check <target>`; with no install, `npx -y github:chohra-med/spec-harness-oss generate-agents --check <target>`) establish structural and provenance readiness only. Declare overall initialization `READY` only after a separate fresh reviewer checks that cited source lines support the rules and role bindings, package boundaries are respected, and no unresolved policy conflict remains. Keep overall status `PENDING` if an independent review context is unavailable. This is separate from the first feature's goal, tests and release gates.

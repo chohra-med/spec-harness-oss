@@ -47,7 +47,7 @@ State uncertainty or a conflict instead of smoothing it into a rule. A project-s
 `generate-agents` consumes the completed rules and binds applicable roles. Then run:
 
 ```bash
-bash <spec-harness>/bin/sh-gen-agents.sh --check <target>
+bash <spec-harness>/bin/sh-gen-agents.sh --check <target>  # from a checkout
 npx -y github:chohra-med/spec-harness-oss generate-agents --check <target>   # no checkout
 ```
 

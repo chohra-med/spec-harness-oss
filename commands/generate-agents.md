@@ -5,8 +5,8 @@
 ## Invocation
 
 ```text
-bash <spec-harness>/bin/sh-gen-agents.sh <target>
-bash <spec-harness>/bin/sh-gen-agents.sh --check <target>
+bash <spec-harness>/bin/sh-gen-agents.sh <target>  # from a checkout
+bash <spec-harness>/bin/sh-gen-agents.sh --check <target>  # from a checkout
 npx -y github:chohra-med/spec-harness-oss generate-agents <target>        # no checkout
 npx -y github:chohra-med/spec-harness-oss generate-agents --check <target>  # no checkout
 ```
