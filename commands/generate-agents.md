@@ -7,7 +7,11 @@
 ```text
 bash <spec-harness>/bin/sh-gen-agents.sh <target>
 bash <spec-harness>/bin/sh-gen-agents.sh --check <target>
+npx -y github:chohra-med/spec-harness-oss generate-agents <target>        # no checkout
+npx -y github:chohra-med/spec-harness-oss generate-agents --check <target>  # no checkout
 ```
+
+The `npx` lines run the same subcommand through the package's `spec-harness` CLI, which routes `generate-agents` to `bin/sh-gen-agents.sh`. Use them when no harness checkout is on the machine.
 
 The first command writes `.claude/agents/.generate-agents.prompt.md`. In an installed consumer, the stage documents are under `.claude/commands/spec-harness/`; use the source-tree `commands/` paths only when working in the source checkout. The model follows that work order and writes `.claude/agents/.init-synthesis.json`. The second command validates the receipt, inventory identity, outputs, role markers and cited source paths/hashes. Each generated project skill carries `<!-- source-bound: inventory-sha256=<raw inventory file hash> -->` so source changes are detectable. It cannot decide whether a citation semantically supports a claim; that needs a fresh reviewer.
 
