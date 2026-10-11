@@ -482,6 +482,11 @@ def tier_contract(text, owns_table=False):
         )
     return result
 
+def size_tier_contract(text):
+    """The size table names each class's tiers; the MICRO acceptance verifier runs on the fast tier."""
+    micro_rows = [l for l in text.splitlines() if l.startswith("| MICRO |")]
+    return "### Size picks the tiers" in text and len(micro_rows) == 1 and micro_rows[0].endswith("| one fresh verifier on the fast tier |")
+
 LIGHT_ROUTE = (
     "### MICRO light route", "specs/<feature>/ticket.md", "not record file or diff hashes",
     "No separate tester, reviewer, planner", "is not the implementer's",
@@ -552,6 +557,8 @@ for label, result in checks.items():
     require(result, label)
 require(all(x in d["sdd"] for x in ("specs/<feature>/input.md", "specs/<feature>/goal.md", "specs/<feature>/plan.md", "specs/<feature>/tasks.md")), "shared route aligns with ticket packet")
 require(tier_contract(d["sdd"], owns_table=True), "shared route owns the single model-tier table and its rules")
+require(size_tier_contract(d["sdd"]), "size table pins the tiers per class and MICRO acceptance on the fast tier")
+require(not size_tier_contract(d["sdd"].replace("| one fresh verifier on the fast tier |", "| one fresh verifier on the review tier |")), "RED control: MICRO verifier moved back to the review tier")
 require(tier_contract(d["plan"]), "plan route asks for tiers and names no model")
 models = role_models(root)
 require(frontmatter_matches_table(d["sdd"], models), "role frontmatter matches the Claude column of the tier table")

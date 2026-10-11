@@ -120,6 +120,21 @@ provider means filling one column. A `Model tiers` table in the target's own `AG
 - For a provider without a column, add one naming its strongest model and its cheapest capable model.
 - The finisher is the orchestrator's own final strong-tier judgment, not a role file.
 
+### Size picks the tiers
+
+Ticket class (section 3) decides which tier plans, implements and accepts. Easy work skips the strong
+tier; the gates never do.
+
+| Class | Plans | Implements | Accepts |
+|---|---|---|---|
+| MICRO | no planner; the orchestrator writes `ticket.md` | fast | one fresh verifier on the fast tier |
+| LITE | the orchestrator, inline; a delegated strong planner only for material architecture or reuse decisions | fast | fresh tester on the fast tier; verifier and reviewer on the review tier |
+| FULL | strong planner | fast | tester on the fast tier; verifier and reviewer on the review tier; strong finisher |
+
+- **Risk beats size.** Security-sensitive, shared-contract or externally consequential work is FULL
+  whatever its size, as section 3 says.
+- **The user may ask for a stronger tier on any stage.** Record that choice like any other tier choice.
+
 ## 2. Resolve the ticket input
 
 Accept either exact inline ticket text or a reference whose body is retrieved through an actually
@@ -139,6 +154,10 @@ touched scope and risk:
 - **LITE:** a small multi-file change or one contained behavior change with declared local dependencies.
 - **FULL:** multi-repository, shared-interface, security-sensitive, externally consequential, or otherwise
   high-risk work. When uncertain, use FULL.
+
+Once the class is MICRO or LITE, an orchestrator running on the strong tier does not explore the code
+itself. It reads the ticket input and the files the ticket names, records the class, and dispatches.
+Broad reading is the implementer's job on the fast tier.
 
 Record the class and reason in the packet. Every class retains exact input provenance, a literal
 goal, source identity, the applicable rules and independent acceptance. LITE and FULL also keep an
@@ -160,8 +179,9 @@ MICRO.
   expected to change. Do not create `spec.md`, `goal.md`, `plan.md`, `tasks.md` or `gates/`, and do
   not record file or diff hashes. The implementer never edits `ticket.md`. Only the orchestrator does.
 - **Two stages.** The fast-tier implementer makes the change with a test that fails first. Then one
-  fresh review-tier `sdd-verifier` receives the goal checks and expected paths in its dispatch,
-  together with the `ticket.md` path. It runs the project's test command, checks every goal line and
+  fresh `sdd-verifier`, dispatched on the fast tier, receives the goal checks and expected paths in its
+  dispatch, together with the `ticket.md` path. It is not the implementer's context, and it runs on a
+  different model from the implementer when the fast tier offers one. It runs the project's test command, checks every goal line and
   reads the diff against the applicable rules. It returns FAIL when the goal checks in `ticket.md`
   differ from the dispatched ones, or when `git diff --name-only <starting HEAD>` on the working tree or
   `git status --porcelain --untracked-files=all` lists a path outside the expected ones and `ticket.md` itself. It returns `RESULT: PASS|FAIL` with its evidence, and the

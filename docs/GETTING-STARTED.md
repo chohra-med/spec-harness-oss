@@ -281,7 +281,7 @@ A small fix is classed **MICRO** and takes the light route:
 1. The orchestrator writes one file, `specs/<feature>/ticket.md`, with the goal checks and the
    paths expected to change.
 2. A fast-tier **implementer** writes a failing test, then the fix.
-3. One **fresh verifier** on the review tier runs the tests, checks each goal line, reads the diff
+3. One **fresh verifier** on the fast tier runs the tests, checks each goal line, reads the diff
    and returns `RESULT: PASS` or `FAIL`.
 
 Nothing is committed, pushed or merged for you. Review the diff and commit it yourself, or say so
