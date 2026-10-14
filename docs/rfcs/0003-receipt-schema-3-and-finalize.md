@@ -110,20 +110,26 @@ The conflict message has one of two forms, depending on the path that kept the f
 
 **Lock rule** (after the H5 change at `c0daa34`):
 
-- `--apply` takes the lock before it writes its journal (`:440`). A busy lock refuses at `:233` and
-  leaves the lock file alone. The refusal does not create a journal, but it does leave an empty
-  `--evidence-dir` behind (`:439` creates the directory before the lock is taken). A retry needs a new
+- `--apply` installs its signal handlers (`:468`) before it takes the lock (`:470`, `take_lock` at
+  `:253`), and takes the lock before it writes its journal. The handlers are therefore in place before
+  the first lock call: an interrupt during lock acquisition is an `Interrupted`, not a bare
+  `KeyboardInterrupt` that skips the cleanup.
+- While the lock is taken, SIGINT and SIGTERM are held back (`take_lock`, `:253-274`). If a signal lands
+  after this run created the lock, the lock is removed before the interrupt propagates, and the process
+  exits 130 with no write made. A busy lock refuses at `:233` and leaves the lock file alone (a refusal
+  this run did not create is never removed). The refusal does not create a journal, but it does leave an
+  empty `--evidence-dir` behind (`:463` creates the directory before the lock is taken). A retry needs a new
   directory. This was run: the refusal exits 1, the lock file was unchanged and the empty directory
   remained.
 - At the end of an apply the lock is released when the status is `PENDING`, `ROLLED_BACK` or
-  `STRUCTURAL_READY` (`:507-511`).
-- The lock is kept when the status is `RECOVERY_CONFLICT` or `RECOVERY_FAILED` (`:495`, `:497`). A target
+  `STRUCTURAL_READY` (`:537-539`).
+- The lock is kept when the status is `RECOVERY_CONFLICT` or `RECOVERY_FAILED` (`:525`, `:526`). A target
   may then hold a half-written file, so `--recover` must adopt the lock.
-- The first SIGINT or SIGTERM installs an ignore for both signals (`:425-432`, `:482-483`), so a second
+- The first SIGINT or SIGTERM installs an ignore for both signals (`:449-457`, `:512-513`), so a second
   signal cannot interrupt the rollback.
-- `--recover` adopts a lock only when the PID recorded in it is not alive (`:584-606`). A live PID
-  refuses (`:605`). It releases the lock only when the recovery succeeded or the lock was its own
-  (`:580-581`).
+- `--recover` adopts a lock only when the PID recorded in it is not alive (`:618-639`). A live PID
+  refuses (`:639`). It releases the lock only when the recovery succeeded or the lock was its own
+  (`:614-615`).
 
 ### 4. `doctor` report (`bin/sh-doctor.py`)
 
@@ -154,7 +160,7 @@ client session decides the second (`:5-8`).
 - `doctor` does not check the semantic or the client field. Both stay `NOT_ASSESSED` by design
   (`:150`, `:152`).
 - `--recover` installs no signal handler. `install_signal_handlers` is called only from `--apply`
-  (`:443`), so an interrupt during `--recover` is not covered by the 130 path. This is a known gap,
+  (`:468`), so an interrupt during `--recover` is not covered by the 130 path. This is a known gap,
   not a designed behaviour.
 
 ## Exit codes

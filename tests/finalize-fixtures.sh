@@ -110,6 +110,13 @@ if mode == "edit-before-rename":
                     handle.write(b"\n")
         return original_read(root, path)
     module.read_target = read_with_edit
+if mode == "sigint-after-lock":
+    # The lock window: a SIGINT lands right after the lock file exists (the old code had no handler yet).
+    original_acquire = module.acquire_lock
+    def acquire_then_sigint(root):
+        original_acquire(root)
+        os.kill(os.getpid(), signal.SIGINT)
+    module.acquire_lock = acquire_then_sigint
 if mode == "slow":
     original_plan = module.plan
     def slow_plan(*args, **kwargs):
@@ -121,6 +128,10 @@ try:
 except module.Refused as error:
     print("PENDING: " + str(error), file=sys.stderr)
     sys.exit(1)
+except module.Interrupted as error:
+    # Mirrors the finalizer's __main__: an interrupt that unwinds out of apply() exits 130.
+    print("PENDING: interrupted by " + str(error), file=sys.stderr)
+    sys.exit(130)
 '''
 
 
@@ -271,6 +282,19 @@ for attempt in range(20):
     shutil.rmtree(target)
 assert not red, f"{len(red)} of 20 runs let a second SIGINT escape the rollback handler; last output:\n{out}"
 print("PASS: twenty double-SIGINT runs ignore the second signal, roll back every write and release the lock")
+
+# 6f. A SIGINT that lands right after this run creates the lock must not leave that lock behind,
+# and must roll back and exit 130 like any other interrupt (the handler is installed before the lock).
+target = tmp / "lock-window"
+shutil.copytree(start, target)
+evidence = tmp / "lock-window-ev"
+proc = subprocess.run([sys.executable, "-I", "-B", "-c", HOOK, FINALIZE, str(target), str(evidence), "sigint-after-lock", "0"],
+                      capture_output=True, text=True)
+out = proc.stdout + proc.stderr
+assert not (target / LOCK).exists(), f"a SIGINT in the lock window left {LOCK} behind:\n{out}"
+assert proc.returncode == 130 and "interrupted by SIGINT" in out, f"expected exit 130 via the handler, got {proc.returncode}:\n{out}"
+assert fx.snapshot(target) == initial, "a SIGINT in the lock window changed the target"
+print("PASS: a SIGINT right after the lock is created leaves no lock, changes no byte and exits 130")
 
 # 7. Two finalizers at once: exactly one gets the lock.
 target = tmp / "concurrent"

@@ -250,6 +250,30 @@ def release_lock(root):
             os.close(fd)
 
 
+def take_lock(root):
+    """Take the lock with SIGINT and SIGTERM held back until the lock is recorded.
+
+    A held-back signal is delivered as Interrupted when the mask is restored. If it lands after this
+    run created the lock, the lock is removed again before Interrupted propagates, so an interrupt
+    cannot leave a lock this run created. A busy lock (Refused) is left alone: this run did not create it.
+    """
+    created = False
+    held = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT, signal.SIGTERM})
+    try:
+        try:
+            acquire_lock(root)
+            created = True
+        finally:
+            signal.pthread_sigmask(signal.SIG_SETMASK, held)
+    except BaseException:
+        if created:
+            try:
+                release_lock(root)
+            except (Refused, OSError):
+                pass
+        raise
+
+
 # --- plan -----------------------------------------------------------------------------------------
 
 def run_tool(command, journal=None, evidence=None):
@@ -437,10 +461,16 @@ def apply(root, evidence, sources):
     if os.path.lexists(evidence):
         raise Refused("use a fresh --evidence-dir; --recover handles a previous run")
     os.makedirs(evidence, mode=0o700)
-    acquire_lock(root)
     journal = {"format": JOURNAL_FORMAT, "schema_version": 1, "target": root, "status": "PENDING",
                "files": {}, "commands": [], "receipt_sha256": None}
+    # The handlers go in before the lock and before any write, so an interrupt from here on is an
+    # Interrupted that reaches the cleanup below, never a bare KeyboardInterrupt.
     previous = install_signal_handlers()
+    try:
+        take_lock(root)
+    except BaseException:
+        restore_signal_handlers(previous)
+        raise
     try:
         store_journal(evidence, journal)
         receipt, write_set, inputs, before, rewritten, new_hash = plan(root, sources, journal, evidence)
@@ -509,8 +539,12 @@ def apply(root, evidence, sources):
                 release_lock(root)
             except (Refused, OSError):
                 pass
-        for sig, handler in previous.items():
-            signal.signal(sig, handler)
+        restore_signal_handlers(previous)
+
+
+def restore_signal_handlers(previous):
+    for sig, handler in previous.items():
+        signal.signal(sig, handler)
 
 
 def load_journal(evidence):
