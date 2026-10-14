@@ -13,7 +13,7 @@ TMP="$(mktemp -d "${TMPDIR:-/tmp}/sh-finalize.XXXXXX")" || exit 1
 trap 'rm -rf "$TMP"' EXIT
 
 python3 -u -I -B - "$ROOT" "$TMP" <<'PY'
-import base64, json, os, shutil, signal, subprocess, sys, time
+import base64, json, os, re, shutil, signal, subprocess, sys, time
 from pathlib import Path
 
 harness, tmp = Path(sys.argv[1]), Path(sys.argv[2])
@@ -38,7 +38,7 @@ def finalize(target, *extra, expected=0, label="finalize", cwd=None):
 
 # A hook runner: loads the finalizer as a module, patches one function, then runs main().
 HOOK = r'''
-import importlib.util, os, signal, sys, time
+import importlib.util, os, signal, subprocess, sys, time
 spec = importlib.util.spec_from_file_location("finalizer", sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
@@ -138,9 +138,18 @@ if mode == "release-sigint":
         return original_release(root)
     module.release_lock = release_with_sigint
 if mode == "slow-tool":
-    # A tool step that outlives the timeout: the check sleeps 150 s against a two-second limit.
-    module.TOOL_TIMEOUT = 2
+    # A tool step that outlives its limit: the check sleeps 150 s. The limit is the timeout argument run_tool
+    # passes to subprocess.run, which this hook records. The module constant is NOT overwritten, so a changed
+    # constant or call argument reaches the test. The documented 600 s is shortened to 2 s here only so the
+    # test is fast; any other argument (a day, None) passes through unchanged, and the test's 60 s bound fires.
     module.check_command = lambda root: [sys.executable, "-c", "import time; time.sleep(150)"]
+    real_run = subprocess.run
+    def bounded_run(command, *args, **kwargs):
+        print("PROBE run-timeout=" + repr(kwargs.get("timeout")), file=sys.stderr, flush=True)
+        if kwargs.get("timeout") == 600:
+            kwargs["timeout"] = 2
+        return real_run(command, *args, **kwargs)
+    subprocess.run = bounded_run
 if mode == "slow":
     original_plan = module.plan
     def slow_plan(*args, **kwargs):
@@ -333,8 +342,12 @@ with open(log_path, "w") as log:
     except subprocess.TimeoutExpired:
         timed_exit = "hung (no result within 60 s)"
 out = log_path.read_text()
-assert timed_exit == 1 and "step 'generate-agents --check' timed out after 2 s: its direct child was stopped, but a child process it started may keep running" in out and "every write was rolled back" in out, \
-    f"expected a named timeout refusal, got {timed_exit}:\n{out}"
+# The limit the code passed to subprocess.run (recorded by the hook) must be the documented 600 s, and the
+# refusal must name that same value. A day in the call or in the constant reaches the 60 s bound instead.
+probe = re.search(r"PROBE run-timeout=(\S+)", out)
+passed = probe.group(1) if probe else "no PROBE line"
+assert timed_exit == 1 and passed == "600" and "step 'generate-agents --check' timed out after 600 s: its direct child was stopped, but a child process it started may keep running" in out and "every write was rolled back" in out, \
+    f"expected a named timeout refusal for the documented 600 s limit, got {timed_exit} with passed timeout {passed}:\n{out}"
 assert fx.snapshot(target) == initial and not (target / LOCK).exists(), "a timed-out run changed the target or kept its lock"
 assert json.loads((evidence / "journal.json").read_text())["status"] == "ROLLED_BACK"
 print("PASS: a tool step past its timeout fails the run with the step and command named, and rolls back")
