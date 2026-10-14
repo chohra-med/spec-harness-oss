@@ -224,6 +224,18 @@ if mode == "slow-tool":
             kwargs["timeout"] = 2
         return real_run(command, *args, **kwargs)
     subprocess.run = bounded_run
+if mode == "busy-take-sigint":
+    # A stale lock that records this process's PID is present before the run. The first take (apply's) sees it busy
+    # and a SIGINT lands inside that busy take; the rollback then takes the lock again and must not remove it.
+    original_acquire_busy = module.acquire_lock
+    def acquire_busy_with_stale_lock(root):
+        path = os.path.join(root, ".claude/agents/.sh-finalize.lock")
+        if not os.path.exists(path):
+            with open(path, "w") as handle:
+                handle.write(f"{os.getpid()}\n")
+        os.kill(os.getpid(), signal.SIGINT)
+        return original_acquire_busy(root)
+    module.acquire_lock = acquire_busy_with_stale_lock
 if mode == "slow":
     original_plan = module.plan
     def slow_plan(*args, **kwargs):
@@ -514,6 +526,16 @@ other_log = (tmp / "race-ev-other.log").read_text()
 assert "STRUCTURAL_READY" in other_log and "Traceback" not in other_log, other_log
 assert content(target) == completed, "the other run changed the completed target"
 print("PASS: a rollback that finds the lock busy after the commit point refuses, writes nothing and leaves the other run's lock")
+
+# 6m. N6: a stale lock that records this process's PID is not this run's. A SIGINT that lands in the busy take
+# must not make the rollback remove it: the run refuses (exit 1) and the lock file stays.
+target = tmp / "stale-lock-busy"
+shutil.copytree(start, target)
+evidence = tmp / "stale-lock-busy-ev"
+out = hooked(target, evidence, "busy-take-sigint", 0, 1, "busy take with a stale lock and SIGINT")
+assert (target / LOCK).exists(), f"a busy take with SIGINT removed a lock this run did not create:\n{out}"
+assert "another finalize-init holds" in out and "interrupted by SIGINT" in out, out
+print("PASS: a SIGINT inside a busy lock take refuses the rollback and leaves a lock this run did not create")
 
 # 7. Two finalizers at once: exactly one gets the lock.
 target = tmp / "concurrent"

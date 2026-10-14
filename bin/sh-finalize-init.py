@@ -56,6 +56,9 @@ class Interrupted(BaseException):
 
 # The run record: apply() fills it before it takes the lock; interrupted_exit() rolls the run back from it.
 RUN = {}
+# True only while this process holds a lock it created: take_lock sets it, release_lock clears it. A lock file that
+# predates this run, or that another run wrote, never sets it, so a stale lock is never this run's to remove.
+LOCK_CREATED = False
 
 
 def sha(data):
@@ -261,6 +264,7 @@ def acquire_lock(root):
 
 
 def release_lock(root):
+    global LOCK_CREATED
     descriptors = open_parent(root, LOCK)
     try:
         os.unlink(LOCK.split("/")[-1], dir_fd=descriptors[-1])
@@ -269,6 +273,7 @@ def release_lock(root):
     finally:
         for fd in reversed(descriptors):
             os.close(fd)
+    LOCK_CREATED = False
 
 
 def take_lock(root):
@@ -278,6 +283,7 @@ def take_lock(root):
     run created the lock, the lock is removed again before Interrupted propagates, so an interrupt
     cannot leave a lock this run created. A busy lock (Refused) is left alone: this run did not create it.
     """
+    global LOCK_CREATED
     created = False
     # Assumption: pthread_sigmask changes the mask of the calling thread only. Holding SIGINT and SIGTERM
     # back is therefore correct only in a single-threaded process, and this finalizer creates no threads.
@@ -286,6 +292,7 @@ def take_lock(root):
         try:
             acquire_lock(root)
             created = True
+            LOCK_CREATED = True
         finally:
             signal.pthread_sigmask(signal.SIG_SETMASK, held)
     except BaseException:
@@ -510,11 +517,12 @@ def hold_lock_for_rollback(root):
 
     A commit releases the lock, so after it the lock may be absent (take it again, with take_lock's protections),
     held by another run (refuse with the usual lock message, write nothing) or still this run's (keep it).
+    Only a lock this run created (LOCK_CREATED) that still records this process counts as this run's.
     """
     try:
         take_lock(root)
     except Refused:
-        if lock_holder(root) != os.getpid():
+        if not (LOCK_CREATED and lock_holder(root) == os.getpid()):
             raise
 
 
@@ -548,7 +556,7 @@ def roll_back(failure):
         journal["status"] = "RECOVERY_FAILED"
         save_journal_quietly(evidence, journal)
         raise Refused(f"{failure}; rollback failed: {recovery_error}; lock kept; run --recover") from None
-    if not conflicts:
+    if not conflicts and LOCK_CREATED:
         try:
             release_lock(root)
         except (Refused, OSError):
