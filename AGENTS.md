@@ -173,8 +173,9 @@ done
 ```
 
 Every line must say `exit 0`. For any other code, read that script's log in the temp directory.
-Run them before you change anything, so you know the baseline, and again after. There is no CI:
-your local run is the only gate, so report the exit lines and the failing log as they are.
+Run them before you change anything, so you know the baseline, and again after. CI runs `npm test`
+on pull requests and on `main` (`.github/workflows/test.yml`, Linux and macOS, strict skips); run the
+suite locally before you push, and report the exit lines and the failing log as they are.
 
 ### Rules for changing this repository
 
