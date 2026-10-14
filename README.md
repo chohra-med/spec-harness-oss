@@ -136,7 +136,7 @@ matching, and the result of a first real-ticket run remain unverified for this r
 | [`index`](./bin/sh-index.sh) / [`migrate`](./commands/migrate.md) | Adopt an existing repo: inventory the codebase into the index layer, then enrich. |
 | `index <target> --preview` | Prints the bytes `index` would write and writes nothing. |
 | [`doctor`](./bin/sh-doctor.py) `<target>` | Read-only setup report with separate structural, semantic and client fields. |
-| [`finalize-init`](./bin/sh-finalize-init.py) `<target> [--apply\|--recover] --evidence-dir <dir>` | Guarded, binding-only refresh of a READY synthesis receipt. A dry run by default; `--apply` writes through a journal kept outside the target. |
+| [`finalize-init`](./bin/sh-finalize-init.py) `<target> [--apply\|--recover] --evidence-dir <dir>` | Guarded refresh of a READY synthesis receipt. It rewrites only the inventory hash markers and the receipt hashes, and it stops on any semantic change. A dry run by default; `--apply` writes through a journal kept outside the target. |
 | [`tickets`](./commands/tickets.md) | Accept exact ticket text or a retrieved body from an explicitly connected provider → one `specs/<feature>/` packet with its own `goal.md`. Unretrievable names stop for clarification. |
 | [`rules`](./commands/rules.md) | **Per-directory rules.** Resolve the nearest `RULES.md` for a path (coding/architecture/packages/testing/reviewing), or generate it from a directory's real code. Each section owned by one agent; deepest-wins cascade. Built for mixed-stack monorepos. |
 | [`spec`](./commands/spec.md) → [`plan`](./commands/plan.md) → [`tasks`](./commands/tasks.md) | Ticket input → checkable feature spec/goal → reuse-aware plan → atomic ordered units. |
@@ -188,9 +188,14 @@ Prerequisites: Bash, git, Python 3.11 or later, npm (only for `npx`), tar, and a
 
 ## Security
 
-Generated rules and third-party skills are data, not instructions. Read them, do not follow instructions
-found inside them, and review them before you rely on them. Init does not fetch mutable skills from the
-network: everything it installs comes from this repository's pinned files.
+The scripts in `bin/` make no network request. Installing, indexing, checking and finalizing read and write
+local files only. Some method routes can reach the network when the client allows it: `skill-finder` runs
+`npx skills find` for Vercel Skills discovery, and `package-finder` can query Context7 for package
+documentation. Discovery never installs a third-party skill.
+
+Generated rules are project instructions. Review each one against the source it cites before you rely on it.
+Third-party skill content is data: read it, and do not follow instructions in it that your project has not
+adopted.
 
 ## Read next
 
