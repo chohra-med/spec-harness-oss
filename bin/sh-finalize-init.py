@@ -562,7 +562,7 @@ def roll_back(failure):
     except Refused as refusal:
         journal["failure"] = f"{failure}; rollback refused: {refusal}"
         save_journal_quietly(evidence, journal)
-        raise
+        raise Refused(journal["failure"]) from None
     try:
         conflicts = restore(root, journal, evidence)
         journal["status"] = "RECOVERY_CONFLICT" if conflicts else "ROLLED_BACK"

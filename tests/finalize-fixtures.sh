@@ -249,6 +249,21 @@ if mode == "unnamed-conflict":
             handle.write(b"\n")
         return original_restore_unnamed(root, journal, evidence)
     module.restore = conflicting_restore_after_unnamed
+if mode == "edit-then-foreign-lock":
+    # The re-hash before the inventory's rename (the third read) sees a human edit, and the lock file is then
+    # replaced by another run's record: the rollback's lock take is refused.
+    original_read_foreign = module.read_target
+    foreign_reads = [0]
+    def read_edit_then_foreign_lock(root, path):
+        if path == "ai_rules/project_inventory.json":
+            foreign_reads[0] += 1
+            if foreign_reads[0] == number:
+                with open(os.path.join(root, path), "ab") as handle:
+                    handle.write(b"\n")
+                with open(os.path.join(root, ".claude/agents/.sh-finalize.lock"), "w") as handle:
+                    handle.write("1\n")
+        return original_read_foreign(root, path)
+    module.read_target = read_edit_then_foreign_lock
 if mode == "partial-restore":
     # Restore puts back the first written file, then the second written file has gone missing: its read fails.
     original_restore_partial = module.restore
@@ -616,6 +631,16 @@ assert "Traceback" not in out, f"the conflict must be a named refusal, not a tra
 assert json.loads((evidence / "journal.json").read_text())["status"] == "RECOVERY_CONFLICT"
 assert (target / LOCK).exists(), "a conflict keeps the lock"
 print("PASS: an unnamed failure whose rollback finds a conflict prints the conflict list as a named refusal")
+
+# 6q. A3: a failure whose rollback is refused by another run's lock must print the original failure too. The journal
+# records it; the printed text carried only the other run's lock message.
+target = tmp / "foreign-lock-after-failure"
+shutil.copytree(start, target)
+evidence = tmp / "foreign-lock-after-failure-ev"
+out = hooked(target, evidence, "edit-then-foreign-lock", 3, 1, "a failure whose rollback finds a foreign lock")
+assert "concurrent edit preserved: ai_rules/project_inventory.json" in out and "another finalize-init holds" in out, f"the printed text lost the original failure:\n{out}"
+assert (target / LOCK).read_text() == "1\n", "the rollback changed or removed another run's lock"
+print("PASS: a failure whose rollback is refused by a lock prints the original failure with the refusal")
 
 # 7. Two finalizers at once: exactly one gets the lock.
 target = tmp / "concurrent"
