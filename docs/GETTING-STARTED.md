@@ -343,8 +343,9 @@ files there. In a monorepo, remove each generated `<package>/RULES.md` as well. 
 | Code | Meaning |
 |---|---|
 | `0` | The shell step finished. The status may still be PENDING. |
-| `1` | A check failed and printed what is missing or stale, or `index` refused an argument. |
-| `2` | A missing target or unknown command, or a command that only prints a procedure for a model to follow. |
+| `1` | A check failed and printed what is missing or stale. `index` or `finalize-init` refused an argument, a precondition or a busy lock. `doctor` reports structural PENDING. A `finalize-init` rollback that could not finish keeps the lock. |
+| `2` | A missing target or unknown command, a bad argument, or a command that only prints a procedure for a model to follow. `doctor`, `index` and `finalize-init` also exit 2 on Python older than 3.11. |
+| `130` | `finalize-init` was interrupted by Ctrl-C or SIGTERM during `--apply`; every write was rolled back and the lock was released. |
 
 ## When something looks wrong
 

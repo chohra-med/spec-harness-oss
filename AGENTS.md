@@ -207,7 +207,7 @@ suite locally before you push, and report the exit lines and the failing log as 
 |---|---|
 | How do I install it? | Job 1 above, or `docs/GETTING-STARTED.md` |
 | Does it need Node? | Only for `npx`. A checkout needs `bash`, `git` and `python3` 3.11+ |
-| What do the exit codes mean? | `0`: the shell step finished (status may still be PENDING). `1`: a check failed and said what is missing, or `index` refused an argument or its target. `2`: no target given, an unknown command, a missing target for `init`, or a subcommand that only prints a procedure for a model to follow |
+| What do the exit codes mean? | The owner is [`docs/GETTING-STARTED.md` § Exit codes](./docs/GETTING-STARTED.md#exit-codes). Same codes: `0` the shell step finished (status may still be PENDING). `1` a check failed and said what is missing, or `index`/`finalize-init` refused an argument, precondition or busy lock. `2` no target given, an unknown command, a bad argument, or a subcommand that only prints a procedure for a model to follow. `130` `finalize-init` interrupted by Ctrl-C or SIGTERM during `--apply`, rolled back |
 | What does `PENDING` mean? | Files are staged; a model or reviewer has not done its part yet |
 | How do I undo an install? | The "Undo" section of `docs/GETTING-STARTED.md` |
 | Which model should plan? | The strongest available. Implement on a fast cheap one. Review on what the budget allows. See `Model tiers` |
