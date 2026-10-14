@@ -123,8 +123,10 @@ The conflict message has one of two forms, depending on the path that kept the f
   create a journal, but it does leave an empty `--evidence-dir` behind (`:583` creates the directory before the
   lock is taken). A retry needs a new directory. This was run before correction 19; that path is unchanged.
   The refusal exits 1, the lock file was unchanged and the empty directory remained.
-- **The commit point.** The lock is released at `:625`, after the STRUCTURAL_READY write (`:619`) and before the
-  success print (`:627`) and `return 0` (`:629`). From there the run is committed and the lock no longer guards it.
+- **The commit point.** The lock is released at `:663`, after the STRUCTURAL_READY write (`:657`) and before the
+  success print (`:683`) and `return 0` (`:688`). From there the run is committed and the lock no longer guards it.
+  The success print sits after the rollback handlers, in its own `try` that ignores `OSError` and `ValueError`, so a
+  failed print (a closed stdout) cannot roll the committed run back (fixture 6s). It exits 0.
 - **Rollback from the top level.** After the handler is installed, a SIGINT or SIGTERM raises `Interrupted`
   (`:481-483`) on whatever line it lands, which covers the release call, the STRUCTURAL_READY write, the
   `return 0` and everything before them. `apply` does not catch it. It reaches `__main__` (`:777-785`), which
