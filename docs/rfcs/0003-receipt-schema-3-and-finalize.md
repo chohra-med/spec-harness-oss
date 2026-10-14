@@ -224,10 +224,13 @@ the dispatcher check in `bin/spec-harness:35-41`.
 | `index` | 2 | no target argument, or Python older than 3.11 | `bin/sh-index.sh:7-8`, `:14`, `:21` |
 
 An uncaught Python exception in `finalize-init` or `doctor` also exits 1 with a traceback. Neither `main` nor
-`__main__` catches it, so it is not a documented status. An unnamed failure inside `apply` (`:637-640`) rolls
-back first and then re-raises, so the traceback is the only difference from a named refusal. An interrupt that
-reaches `__main__` (`:783-785`) is always handled by `interrupted_exit`. The one interrupt it cannot handle is one
-that lands in the interpreter's own exit (section 3).
+`__main__` catches it, so it is not a documented status. An unnamed failure inside `apply` (`:672-679`) rolls
+back first. With no conflict it re-raises, so the traceback is the only difference from a named refusal. With a
+conflict it prints the conflict message with its file list as a named refusal (`:678`; fixture 6p). An interrupt
+that reaches `__main__` (`:831-833`) goes to `interrupted_exit` (`:585`). `roll_back` catches only `Refused`,
+`OSError` and `ValueError` during restore (`:573`), so an unnamed exception inside the rollback itself still escapes
+as a traceback (not measured). The one interrupt `interrupted_exit` cannot handle is one that lands in the
+interpreter's own exit (section 3).
 
 ## Test to add when accepted
 
