@@ -137,6 +137,40 @@ if mode == "release-sigint":
         os.kill(os.getpid(), signal.SIGINT)
         return original_release(root)
     module.release_lock = release_with_sigint
+if mode == "release-after":
+    # A SIGINT lands after the release call has removed the lock file (the commit point).
+    original_release_after = module.release_lock
+    def release_then_sigint(root):
+        original_release_after(root)
+        os.kill(os.getpid(), signal.SIGINT)
+    module.release_lock = release_then_sigint
+if mode == "status-sigint":
+    # A SIGINT lands at the STRUCTURAL_READY write: number 0 before the journal write, number 1 after it.
+    original_store = module.store_journal
+    def store_with_sigint(evidence, journal):
+        ready = journal.get("status") == "STRUCTURAL_READY"
+        if ready and number == 0:
+            os.kill(os.getpid(), signal.SIGINT)
+        original_store(evidence, journal)
+        if ready and number == 1:
+            os.kill(os.getpid(), signal.SIGINT)
+    module.store_journal = store_with_sigint
+if mode == "return-sigint":
+    # A SIGINT lands on the line that returns 0 after the success message (traced by line number).
+    lines = open(sys.argv[1]).read().splitlines()
+    marker = next(i for i, text in enumerate(lines, 1) if "STRUCTURAL_READY: binding refresh" in text)
+    return_line = next(i for i in range(marker, len(lines) + 1) if lines[i - 1].strip() == "return 0")
+    fired = [False]
+    def tracer(frame, event, arg):
+        if frame.f_code.co_name != "apply":
+            return None
+        def local(frame, event, arg):
+            if event == "line" and frame.f_lineno == return_line and not fired[0]:
+                fired[0] = True
+                os.kill(os.getpid(), signal.SIGINT)
+            return local
+        return local
+    sys.settrace(tracer)
 if mode == "slow-tool":
     # A tool step that outlives its limit: the check sleeps 150 s. The limit is the timeout argument run_tool
     # passes to subprocess.run, which this hook records. The module constant is NOT overwritten, so a changed
@@ -368,14 +402,36 @@ assert not (target / LOCK).exists(), f"a SIGINT with a failed lock fsync left {L
 assert "interrupted by SIGINT" in out and fx.snapshot(target) == initial, out
 print("PASS: a SIGINT with a failed lock fsync leaves no lock, changes no byte and exits 130")
 
-# 6j. NEEDED-2: a SIGINT after STRUCTURAL_READY is recorded, at the release call, must not skip the release.
-target = tmp / "release-sigint"
+# 6j. Ruling (2026-10-15): a SIGINT at ANY point after the first target write, before the run returns, rolls the
+# run back: exit 130, status ROLLED_BACK, every byte restored to the start snapshot, no lock file. A completed
+# run is never kept when it is interrupted. Points: the release call (lock still present), the STRUCTURAL_READY
+# write (before and after the journal write), and the line that returns 0 after the success message.
+for label, mode, number in (("the release call", "release-sigint", 0),
+                            ("the STRUCTURAL_READY write, before it", "status-sigint", 0),
+                            ("the STRUCTURAL_READY write, after it", "status-sigint", 1),
+                            ("the line before return 0", "return-sigint", 0)):
+    target = tmp / f"6j-{mode}-{number}"
+    shutil.copytree(start, target)
+    evidence = tmp / f"6j-{mode}-{number}-ev"
+    out = hooked(target, evidence, mode, number, 130, f"SIGINT at {label}")
+    status = json.loads((evidence / "journal.json").read_text())["status"]
+    assert status == "ROLLED_BACK", f"SIGINT at {label}: status {status}, expected ROLLED_BACK:\n{out}"
+    assert not (target / LOCK).exists(), f"SIGINT at {label} left {LOCK} behind:\n{out}"
+    assert fx.snapshot(target) == initial, f"SIGINT at {label} did not restore every byte:\n{out}"
+    assert "every write was rolled back" in out, f"SIGINT at {label}: {out}"
+print("PASS: a SIGINT at the release call, the STRUCTURAL_READY write or the line before return 0 rolls back, releases the lock and exits 130")
+
+# 6k. Ruling (2026-10-15): a SIGINT that lands after the release call has already removed the lock file (the
+# commit point) still rolls the run back, leaves no lock, restores every byte and exits 130.
+target = tmp / "6k-release-after"
 shutil.copytree(start, target)
-evidence = tmp / "release-sigint-ev"
-out = hooked(target, evidence, "release-sigint", 0, 0, "SIGINT at the release call")
-assert not (target / LOCK).exists(), f"a SIGINT at the release call left {LOCK} behind:\n{out}"
-assert json.loads((evidence / "journal.json").read_text())["status"] == "STRUCTURAL_READY" and "STRUCTURAL_READY" in out, out
-print("PASS: a SIGINT after STRUCTURAL_READY releases the lock and the run still exits 0")
+evidence = tmp / "6k-release-after-ev"
+out = hooked(target, evidence, "release-after", 0, 130, "SIGINT after the release call")
+assert not (target / LOCK).exists(), f"a SIGINT after the release call left {LOCK} behind:\n{out}"
+assert json.loads((evidence / "journal.json").read_text())["status"] == "ROLLED_BACK", out
+assert fx.snapshot(target) == initial, f"a SIGINT after the release call did not restore every byte:\n{out}"
+assert "interrupted by SIGINT" in out, out
+print("PASS: a SIGINT after the release call has removed the lock still rolls back, leaves no lock and exits 130")
 
 # 7. Two finalizers at once: exactly one gets the lock.
 target = tmp / "concurrent"
