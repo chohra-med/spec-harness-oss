@@ -160,7 +160,7 @@ for path in AGENTS.md RULES.md CONTRIBUTING.md ai_rules/globalRules.md ai_rules/
 done
 grep -Fq 'Open the actual representative source files' "$prompt"
 grep -Fq 'After steps 1-2, apply relevant reusable methods' "$prompt"
-python3 - "$prompt" <<'PY'
+python3 - "$prompt" "$ROOT" <<'PY'
 from pathlib import Path
 import re, sys
 text=Path(sys.argv[1]).read_text()
@@ -171,6 +171,11 @@ assert "ai_rules/globalRules.md" in steps[1][1]
 assert "AGENTS.md" in steps[1][1] and ".memory/" in steps[1][1] and ".Codex/" in steps[1][1]
 assert "actual representative source files" in steps[2][1]
 assert "After steps 1-2, apply relevant reusable methods" in steps[3][1]
+# Every method owner step 3 names must ship on this branch: a work order that names a missing file
+# sends the agent to a file that is not there.
+owners = re.findall(r"`([A-Za-z0-9_.-]+\.md)`", steps[3][1])
+missing = [name for name in owners if not (Path(sys.argv[2]) / "commands" / name).is_file()]
+assert owners and not missing, f"work-order step 3 names owner files absent from commands/: {missing}"
 PY
 
 custom="$TMP/custom"
