@@ -19,4 +19,4 @@ This source procedure is a generic scaffold. During initialization, create a pro
 
 The project copy names the package paths it covers, separates `OBSERVED` rules from `RECOMMENDATION` and `REVIEW HEURISTIC` entries, and cites every observed rule. A linter or formatter configuration is cited as a configuration fact, not as proof of code quality. Unsupported or unreadable packages are listed and remain PENDING.
 
-Record output path, citations and source hashes in `.claude/agents/.init-synthesis.json`. After changing a cited source or rule, refresh only affected bindings. Run `bash <spec-harness>/bin/sh-gen-agents.sh --check <target>`; a passing structural check does not replace a fresh semantic review.
+Record output path, citations and source hashes in `.claude/agents/.init-synthesis.json`. After changing a cited source or rule, refresh only affected bindings. Run `spec-harness generate-agents --check <target>` (with no install: `npx -y github:chohra-med/spec-harness-oss generate-agents --check <target>`); a passing structural check does not replace a fresh semantic review.

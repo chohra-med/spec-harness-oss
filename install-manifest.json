@@ -148,7 +148,7 @@
       "source": "agents/sdd-reviewer.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "4e61037d4bfdfc23826e3bf0c37b0c3bdf79546d7f2044083993f582dd22bd53",
+      "sha256": "94fdcdd418e2c106694ab15b47adb27687bde8e259618efd06ab7edb74c51b5a",
       "mode": "0644"
     },
     {
@@ -180,7 +180,7 @@
       "source": "commands/sdd.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "c20b1d1c8db36c445fb8a981c8d8cbff7d4ab9ae2a04a7e3dfecb6e7bda2ce69",
+      "sha256": "baf398b6b735c7fe905ad0f42fd1de0e42b7322f2bdf47fcbe87c42f6f9d70c9",
       "mode": "0644"
     },
     {
@@ -196,7 +196,7 @@
       "source": "commands/build.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "c52aa2a430afa3cc2e7f641d7dbdd747bf3955b7f42b331bef7f151ba14d46d3",
+      "sha256": "539cb8480c99ccda3a69e148eca2972b8368b29a57b3fc207ac54dd5d10067f9",
       "mode": "0644"
     },
     {
@@ -212,7 +212,7 @@
       "source": "commands/generate-agents.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "f101ded19b8ef65e13fff3bddeaae08fb3602ec399d6a898c9693f636c96fa3b",
+      "sha256": "26305dce4f9bdb447bbfade55b45ab8f562e86a9bf21d4fcb14a8ef3828a1ff3",
       "mode": "0644"
     },
     {
@@ -228,7 +228,7 @@
       "source": "commands/init.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "6341d986d9d3fc7ccf2454be87adfbe13682516cde361f4843da787967fca01f",
+      "sha256": "4cf8907214bbe2cfa65bd7c0500ff101522aeb61d0628fe07c7995f2731459ea",
       "mode": "0644"
     },
     {
@@ -244,7 +244,7 @@
       "source": "commands/migrate.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "fd97ac48cda69c25d0257fa52e61519db274f2a196dbc7999add890195ccb69c",
+      "sha256": "88767b7190e7c3629da4d0ac53f2279ec9c0e9983a36e66572c026304de3cc96",
       "mode": "0644"
     },
     {
@@ -276,7 +276,7 @@
       "source": "commands/rules.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "890aef45fa6dcf0b95a982c50d01224f044cc35b9c529563d30324a4aacf7bf6",
+      "sha256": "eb8fe74c1dc619732d0bee5c680f8adebbe8e0bdfa580ce4c85ebfc5db659a7f",
       "mode": "0644"
     },
     {
@@ -332,7 +332,7 @@
       "source": "commands/tickets.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "34868b2b5ecdc72a6fe04592448fff98005d7cfaeae6ee4d866f102ba01e79b3",
+      "sha256": "c0d66f9f108590c808066c24064bd95bc48d20ce6aed4fcd6ab0bf8073544b5f",
       "mode": "0644"
     },
     {
@@ -348,7 +348,7 @@
       "source": "skills/spec-harness-audit/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "c3fecd9340404e4306e17cb42842f8afcc67c83c305cb93c79efe2118d2b607f",
+      "sha256": "20a019c4bff8da3ffd0bb454b744a2f7d5458e7459855eabba03c0d28152e66c",
       "mode": "0644"
     },
     {
@@ -364,7 +364,7 @@
       "source": "skills/spec-harness-generate-agents/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "ddaaa2941313d73c7100d4e67be7fe2afb0e85f154a30efcd18a2cfb5e02441c",
+      "sha256": "6e3d48866e940ad2f398a1cfa0a705a17219db55ed84ebbeb919617319b2d85e",
       "mode": "0644"
     },
     {
@@ -492,7 +492,7 @@
       "source": "templates/project-skills/spec-harness-architecture.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "6467c6118ef1b940f2ed316bc1e7112cf4698ea9ea339de47820f2eac9a4a05b",
+      "sha256": "b02d5d23f714df58621afba575cf9de5b6924a19c0cd9a2aece98e2855d8e79e",
       "mode": "0644"
     },
     {
@@ -500,7 +500,7 @@
       "source": "templates/project-skills/spec-harness-conduct.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "75c95384190c617390ebc5b88dcbc2fb5e0ef7dcd16ca6ea8d279c6f79d9ff45",
+      "sha256": "8b78ad564d28ab6de4fb3568714394b2e5962f99a6a58001e0e80a8f5bbc86fb",
       "mode": "0644"
     },
     {
@@ -508,7 +508,7 @@
       "source": "templates/project-skills/spec-harness-packages.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "db12b8aa54af35eae9c6fa6b707b1367392123f61196760c10968fdfab846143",
+      "sha256": "27f107b07a7c79f95a9a616c9cbbbbc86753c249c93593516ef7881d2621b110",
       "mode": "0644"
     },
     {
@@ -516,7 +516,7 @@
       "source": "templates/project-skills/spec-harness-performance.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "f0c5ade9565cf43f717b002b86da4ca5bbc3e48e01bc48d39a036f5c0386d7e3",
+      "sha256": "6a8f5e5aa2448f4b06f2e0ddf1fc915d985434e0f808c155701b1a83b66f90c6",
       "mode": "0644"
     },
     {
@@ -524,7 +524,7 @@
       "source": "templates/project-skills/spec-harness-quality.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "b16c25f645576e91323711936d68a591e5b187d4ed4d62f205b122022108ca11",
+      "sha256": "3410367eb1889cedbd7f4e9da3ce26ec216363c0181b9c2afa055529bf5b8f9c",
       "mode": "0644"
     },
     {
@@ -532,7 +532,7 @@
       "source": "templates/project-skills/spec-harness-tech.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "00d00d09d5868d3fbb08865d1df1c666569d74fc00a39a44458fab75b243559d",
+      "sha256": "ed560edca6a3196d9f4b8b8264a5e022270914534f49c43a82613cc454445bac",
       "mode": "0644"
     },
     {
@@ -672,7 +672,7 @@
       "tokens": [
         "{{PROJECT_NAME}}"
       ],
-      "sha256": "1a61b2e10c4563cd6e7e38ba8c5c3eee137d95af8860382d42acebf753c85abd",
+      "sha256": "2efa853ae1bfab2b9afd0956facd1d09fe3b23909699f906dbdc754c97ea5d1f",
       "mode": "0644"
     },
     {

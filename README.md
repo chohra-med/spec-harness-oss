@@ -144,7 +144,7 @@ matching, and the result of a first real-ticket run remain unverified for this r
 | [`ship`](./commands/ship.md) | Records delivery evidence and applies explicit merger authority. Green gates do not authorize a commit, push, merge, deploy or release. |
 | [`teach`](./commands/teach.md) | Explain a system to a human as one self-contained interactive page: the idea, the flow, the structure, how to use it, evidence and limits. Never edits application source. |
 | [`learn`](./commands/learn.md) | Classify feedback/corrections and add durable rules only after review (+ optional human lesson). |
-| [`audit`](./commands/audit.md) | Health-check the bank, rules, and index. Flag stale/contradictory/redundant. |
+| [`audit`](./commands/audit.md) | Health-check the bank, rules, and index. Flag stale or contradictory entries. |
 
 The source exposes the native Claude `/sdd` command and a thin Codex project-skill adapter at
 `.agents/skills/sdd/SKILL.md`; native discovery and delegation must be measured in the actual client.
@@ -174,12 +174,12 @@ documentation before connecting a tool.
 ## Read next
 
 1. [`docs/GETTING-STARTED.md`](./docs/GETTING-STARTED.md). Step by step: stage, initialise, review, first ticket, undo.
-1. [`ARCHITECTURE.md`](./ARCHITECTURE.md). The diagrams: the 3 pillars, the SDD flow, the
+2. [`ARCHITECTURE.md`](./ARCHITECTURE.md). The diagrams: the 3 pillars, the SDD flow, the
    ratchet, and the verifier + learning loop wired in.
-2. [`docs/GUARDRAILS.md`](./docs/GUARDRAILS.md). Current procedures for evidence, reviewed learning, and delivery authority.
-3. [`docs/COMPANION-SKILLS.md`](./docs/COMPANION-SKILLS.md). Graphify, diagram-design and the methods that ship inside.
-4. [`docs/MCP-SERVERS.md`](./docs/MCP-SERVERS.md). A dated illustrative MCP map; recheck vendor details before use.
-5. [`commands/init.md`](./commands/init.md). Start here to use it on a project.
+3. [`docs/GUARDRAILS.md`](./docs/GUARDRAILS.md). Current procedures for evidence, reviewed learning, and delivery authority.
+4. [`docs/COMPANION-SKILLS.md`](./docs/COMPANION-SKILLS.md). Graphify, diagram-design and the methods that ship inside.
+5. [`docs/MCP-SERVERS.md`](./docs/MCP-SERVERS.md). A dated illustrative MCP map; recheck vendor details before use.
+6. [`commands/init.md`](./commands/init.md). Start here to use it on a project.
 
 ## More from Code Meet AI
 
