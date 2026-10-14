@@ -47,7 +47,7 @@ count = [0]
 original_replace = module.replace
 def counted_replace(*args):
     count[0] += 1
-    if mode in ("restore-fails", "restore-conflict") and count[0] == number:
+    if mode in ("restore-fails", "restore-conflict", "error-then-sigint-in-restore") and count[0] == number:
         raise OSError("planted write failure")
     if mode == "double-signal" and count[0] == number:
         # Probe: the first SIGINT raises Interrupted; a second SIGINT lands while the first unwinds.
@@ -75,6 +75,12 @@ if mode == "restore-fails":
     def failing_restore(*args):
         raise OSError("planted restore failure")
     module.restore = failing_restore
+if mode == "error-then-sigint-in-restore":
+    original_restore_sig = module.restore
+    def sigint_restore(root, journal, evidence):
+        os.kill(os.getpid(), signal.SIGINT)
+        return original_restore_sig(root, journal, evidence)
+    module.restore = sigint_restore
 if mode == "restore-conflict":
     # A human edit to the written inventory lands before the rollback reads it: a conflict.
     original_restore = module.restore
@@ -228,6 +234,15 @@ for mode, expected_status, label in (("restore-fails", "RECOVERY_FAILED", "rollb
         out = finalize(target, "--recover", "--evidence-dir", str(evidence), label="recover after failed rollback")
         assert "RECOVERED" in out and fx.snapshot(target) == initial and not (target / LOCK).exists(), out
 print("RED control observed: a failed rollback keeps the lock; --recover adopts it and restores the prior bytes")
+
+# PROBE-6e: a SIGINT that lands during the rollback of a non-signal failure must not abort the rollback.
+target = tmp / "sig-in-restore"
+shutil.copytree(start, target)
+evidence = tmp / "sig-in-restore-ev"
+out = hooked(target, evidence, "error-then-sigint-in-restore", 2, 1, "signal during rollback")
+journal_status = json.loads((evidence / "journal.json").read_text())["status"]
+print("PROBE-6e status=" + journal_status + " lock_exists=" + str((target / LOCK).exists()) + " out=" + out.replace(chr(10), " | "), file=sys.stderr)
+assert journal_status == "ROLLED_BACK" and not (target / LOCK).exists() and fx.snapshot(target) == initial, out
 
 # 6d. H5: after the first SIGINT, a second signal that lands while the first unwinds is ignored.
 # The probe is deterministic (the signal is sent inside the unwind), so twenty runs must agree.
