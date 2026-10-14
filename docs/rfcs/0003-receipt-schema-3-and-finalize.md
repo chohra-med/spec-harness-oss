@@ -78,22 +78,22 @@ file must be linked from that package's `RULES.md` (`:190-229`, especially `:225
 `bin/sh-finalize-init.py` records a `status` in its journal (`journal.json` in `--evidence-dir`).
 
 Enumerated with `grep -n '"status"\]\s*=\|status": "' bin/sh-finalize-init.py`. COMPLETE: the grep
-returns six write sites, lines 486, 512, 523, 539, 542 and 628. Lines 539 and 628 each set one of two
+returns six write sites, lines 545, 548, 584, 608, 619 and 695. Lines 545 and 695 each set one of two
 values by a conditional, so the set below has seven words.
 
 | Status | Written at | Meaning | Process exit |
 |---|---|---|---|
-| `PENDING` | `:486` | journal created before any target write | stays on disk only when the process dies before its next status write |
-| `APPLYING` | `:512` | set before each target file is replaced | stays on disk only after an abrupt stop mid-write |
-| `STRUCTURAL_READY` | `:523` | every write applied; a second index reached the same inventory; the success line prints at `:528` | 0 (`:530`), or 130 for an interrupt in the window described under the lock rule |
-| `ROLLED_BACK` | `:539` | a refusal, a tool step that ran past `TOOL_TIMEOUT` (600 s, `:46`; the refusal is at `:302`), or an interrupt; restore put back every prior byte and found no concurrent edit | 1 (raised at `:555`), or 130 when the cause was a signal (`:552-554`) |
-| `RECOVERY_CONFLICT` | `:539` (apply) or `:628` (recover) | restore found a file whose bytes are neither the prior bytes nor a postimage this run wrote; those files are kept | 1 (raised at `:549` and `:631`) |
-| `RECOVERY_FAILED` | `:542` | restore itself raised an error | 1 (raised at `:547`) |
-| `RECOVERED` | `:628` (status written) | `--recover` restored the prior bytes; the success line prints at `:635` | 0 (`:637`) |
+| `PENDING` | `:584` | journal created before any target write | stays on disk only when the process dies before its next status write |
+| `APPLYING` | `:608` | set before each target file is replaced | stays on disk only after an abrupt stop mid-write |
+| `STRUCTURAL_READY` | `:619` | every write applied; a second index reached the same inventory; the success line prints at `:627` | 0 (`:629`). It stays on disk with the completed run kept only when the top-level rollback is refused because another run holds the lock (exit 1, `:572`), or when an interrupt lands in the interpreter's own exit (exit 0 with a traceback; see the lock rule) |
+| `ROLLED_BACK` | `:545` | set by `roll_back` (`:527`) after a complete restore: a refusal (raised at `:636`), a tool step past `TOOL_TIMEOUT` (600 s, `:46`; the refusal is at `:306`), an unnamed failure (re-raised at `:640`), or an interrupt (`interrupted_exit`, `:559`); restore put back every prior byte and found no concurrent edit | 1 for a refusal (`:636`, printed at `:782`), 1 with a traceback for an unnamed failure (`:640`), 130 for an interrupt (`:577`) |
+| `RECOVERY_CONFLICT` | `:545` (from `roll_back`, called by `apply` at `:633` or by `interrupted_exit` at `:569`) or `:695` (recover) | restore found a file whose bytes are neither the prior bytes nor a postimage this run wrote; those files are kept | 1 (raised at `:635` from apply; returned at `:575` from an interrupt; raised at `:698` from recover) |
+| `RECOVERY_FAILED` | `:548` | restore itself raised an error | 1 (raised at `:550`) |
+| `RECOVERED` | `:695` (status written) | `--recover` restored the prior bytes; the success line prints at `:702` | 0 (`:704`) |
 
 Recover refuses a journal whose status is `STRUCTURAL_READY`, `RECOVERED` or `ROLLED_BACK`
-(`:590-593`). It does not refuse `RECOVERY_CONFLICT` or `RECOVERY_FAILED`, so the code path
-for retrying them exists. That path is read from code (`bin/sh-finalize-init.py:583-641`). The conflict path is run by
+(`:657-660`). It does not refuse `RECOVERY_CONFLICT` or `RECOVERY_FAILED`, so the code path
+for retrying them exists. That path is read from code (`bin/sh-finalize-init.py:650-708`). The conflict path is run by
 `tests/finalize-fixtures.sh` section 6c, which applies the manual step below and then `--recover`.
 
 **Manual step for a conflict.** `--recover` restores a file only when its bytes are the journal's prior
@@ -105,33 +105,57 @@ that edit first if it matters. The steps are in `docs/GETTING-STARTED.md`.
 
 The conflict message has one of two forms, depending on the path that kept the files. Both end with `; lock kept.`
 
-- From `--apply` (`:549`, after the journal failure text): `concurrent edits kept, manual recovery needed: <path>`
-- From `--recover` (`:631`): `concurrent edits kept; manual recovery needed: <path>`
+- From `--apply`, or from an interrupt (`conflict_message`, `:521`, after the failure text): `concurrent edits kept, manual recovery needed: <path>`
+- From `--recover` (`:698`): `concurrent edits kept; manual recovery needed: <path>`
 
-**Lock rule** (after the H5 change at `c0daa34`):
+**Lock rule** (after the H5 change at `c0daa34`; revised by correction 19, 2026-10-15):
 
-- `--apply` installs its signal handlers (`:490`) before it takes the lock (`:492`, `take_lock` defined at
-  `:270`), and takes the lock before it writes its journal. The handlers are therefore in place before
-  the first lock call: an interrupt during lock acquisition is an `Interrupted`, not a bare
-  `KeyboardInterrupt` that skips the cleanup.
-- While the lock is taken, SIGINT and SIGTERM are held back (`take_lock`, `:270-293`). If a signal lands
-  after this run created the lock, the lock is removed before the interrupt propagates, and the process
-  exits 130 with no write made. A busy lock refuses at `:238` and leaves the lock file alone (a refusal
-  this run did not create is never removed). The refusal does not create a journal, but it does leave an
-  empty `--evidence-dir` behind (`:485` creates the directory before the lock is taken). A retry needs a new
-  directory. This was run: the refusal exits 1, the lock file was unchanged and the empty directory
-  remained.
-- At the end of an apply the lock is released when the status is `PENDING`, `ROLLED_BACK` or
-  `STRUCTURAL_READY` (`:563-565`). In plain words: the lock is released at the end of a run whose status is `STRUCTURAL_READY`. A run that an interrupt stops before it returns is rolled back to `ROLLED_BACK` and releases its lock, except in the one window described below.
-- The lock is kept when the status is `RECOVERY_CONFLICT` or `RECOVERY_FAILED` (`:563`). A target
-  may then hold a half-written file, so `--recover` must adopt the lock.
-- **Late interrupt, rolled back.** An interrupt (SIGINT or SIGTERM) that lands from the start of apply's try block (`:496`) up to the `return 0` at `:530` is raised inside the try, so the except clause (`:531`) rolls the run back. That span covers the receipt write (the last file in the write order), the second index check, the STRUCTURAL_READY write (`:523`) and its success print (`:528`). The rollback restores every journaled file, sets `ROLLED_BACK` (`:539`), prints a PENDING line and returns 130 (`:552-554`), and the finally releases the lock (`:563-565`). So a Ctrl-C after the receipt is written and before the run returns keeps the rollback, exits 130 and releases the lock. Measured with a SIGINT injected at the lines `:512`, `:523` and `:528`: each run ended `ROLLED_BACK`, exit 130, lock released, every file byte-identical to the start. Before `:490` no handler is installed yet and nothing is locked or written; that short span was not measured.
-- **The one window the rollback does not cover.** From the `return 0` at `:530` until the finally's ignore loop has run (`:559-560`), an interrupt is not caught by the except clause. It escapes `apply` as `Interrupted`, the release at `:563-565` is skipped, and the process exits 130 (`:716-718`) with status `STRUCTURAL_READY` on disk, the completed run kept, the target not rolled back and the lock file left in place. Measured with a SIGINT injected at `:530`, `:559` and `:560`: each ended this way. Once the ignore loop has run, an interrupt is ignored, the run returns 0 and releases its lock. This window does not match the ruling that an interrupt before the run returns keeps the rollback. The code is unchanged by this record, so the gap is open. From that state `--recover` refuses (`:590-591`) and a new `--apply` is refused by the lock (`:238`), so the lock file must be removed by hand after checking that no finalize is running.
-- The first SIGINT or SIGTERM installs an ignore for both signals (`:475-476`, `:534-535`, `:559-560`), so a second
-  signal cannot interrupt the rollback.
-- `--recover` adopts a lock only when the PID recorded in it is not alive (`:644-666`). A live PID
-  refuses (`:665`). It releases the lock only when the recovery succeeded or the lock was its own
-  (`:640-641`).
+- `--apply` installs its signal handler (`install_signal_handlers`, `:475`, called at `:589`) and fills the run
+  record `RUN` (`:58`, set at `:590`) before it takes the lock (`:591`; `take_lock` is defined at `:274`). The
+  handler and the record therefore exist before the first lock call.
+- While the lock is taken, SIGINT and SIGTERM are held back (`take_lock`, `:274-297`). If a signal lands after
+  this run created the lock, the lock is removed before the interrupt propagates. A busy lock refuses at `:242`
+  and leaves the lock file alone (a refusal this run did not create is never removed). The refusal does not
+  create a journal, but it does leave an empty `--evidence-dir` behind (`:583` creates the directory before the
+  lock is taken). A retry needs a new directory. This was run before correction 19; that path is unchanged.
+  The refusal exits 1, the lock file was unchanged and the empty directory remained.
+- **The commit point.** The lock is released at `:625`, after the STRUCTURAL_READY write (`:619`) and before the
+  success print (`:627`) and `return 0` (`:629`). From there the run is committed and the lock no longer guards it.
+- **Rollback from the top level.** After the handler is installed, a SIGINT or SIGTERM raises `Interrupted`
+  (`:481-483`) on whatever line it lands, which covers the release call, the STRUCTURAL_READY write, the
+  `return 0` and everything before them. `apply` does not catch it. It reaches `__main__` (`:777-785`), which
+  calls `interrupted_exit` (`:559`). That calls `roll_back` (`:527`), the same path `apply` uses on a refusal
+  (`:633`). `roll_back`:
+  1. ignores both signals (`:534`), so a second signal cannot interrupt the rollback;
+  2. holds the lock before it writes (`hold_lock_for_rollback`, `:508`). If the commit released the lock and
+     nothing took it, it takes it again with `take_lock` (`:515`), with the same mask and `O_EXCL`. If the lock
+     records this process, it keeps it. If another run holds it, the attempt is refused with the `acquire_lock`
+     message (`:242`) and nothing is written;
+  3. restores every journaled file (`:544`) and records the outcome in the journal;
+  4. releases the lock only when the status is `ROLLED_BACK` (`:553`). It keeps the lock for `RECOVERY_CONFLICT`
+     and `RECOVERY_FAILED`.
+  `interrupted_exit` returns 130 when every write is rolled back (`:577`).
+- **Race refused.** When another run holds the lock at the moment the top-level rollback starts (a second
+  finalizer took it after the commit), the rollback refuses (`:538`, re-raised at `:542`) and writes nothing.
+  It leaves the other run's lock alone. `interrupted_exit` prints the refusal and returns 1 (`:572`). The
+  status stays `STRUCTURAL_READY`, and the journal's `failure` field records `rollback refused`, so the
+  completed run is kept. Apart from the interpreter exit below, this is the only case where an interrupt after the
+  first target write does not roll back. Fixture 6l measures it.
+- **The window that remains: the interpreter's own exit.** After `sys.exit` raises `SystemExit` out of the `try`
+  in `__main__` (`:779`), no code in this file is protected, and the handler is still installed. An interrupt
+  there raises `Interrupted` in code that does not catch it. Measured with a SIGINT sent from an `atexit` hook
+  after a completed run: exit code 0, a traceback ending `Interrupted: SIGINT`, status `STRUCTURAL_READY`, no
+  lock, and every byte equal to the completed run. The rollback does not cover this window. The exact boundary
+  inside the exit path was not measured.
+- **Injection measurement.** A SIGINT injected at each of the 158 line events of `apply` from the first target
+  write (event 67, line 610) to the last (event 224, line 629) ended with exit 130, `ROLLED_BACK`, no lock and
+  every byte equal. The table is in the correction 19 receipt. The same driver on a copy of `6136460` flagged
+  10 of 166 points.
+- The first SIGINT or SIGTERM ignores both signals (`:482`), and `roll_back` sets them again (`:534`), so a
+  second signal cannot interrupt the rollback.
+- `--recover` adopts a lock only when the PID recorded in it is not alive (`acquire_or_adopt_lock`, `:711-733`).
+  A live PID refuses (`:732`). It releases the lock only when the recovery succeeded or the lock was its own
+  (`:707-708`).
 
 ### 4. `doctor` report (`bin/sh-doctor.py`)
 
@@ -162,7 +186,7 @@ client session decides the second (`:5-8`).
 - `doctor` does not check the semantic or the client field. Both stay `NOT_ASSESSED` by design
   (`:150`, `:152`).
 - `--recover` installs no signal handler. `install_signal_handlers` is called only from `--apply`
-  (`:490`), so an interrupt during `--recover` is not covered by the 130 path. This is a known gap,
+  (`:589`), so an interrupt during `--recover` is not covered by the 130 path. This is a known gap,
   not a designed behaviour.
 
 ## Exit codes
@@ -176,19 +200,19 @@ the dispatcher check in `bin/spec-harness:35-41`.
 | `doctor` | 0 | structural READY | `bin/sh-doctor.py:161` |
 | `doctor` | 1 | structural PENDING | `:161` |
 | `doctor` | 2 | target is missing or a symbolic link | `:127` |
-| `finalize-init` | 0 | dry run; `--apply` reached `STRUCTURAL_READY`; `--recover` reached `RECOVERED` | `:681`, `:530`, `:637` |
-| `finalize-init` | 1 | a refusal (precondition, busy lock, concurrent edit, failed or conflicted rollback, or a tool step past `TOOL_TIMEOUT`, where only its direct child is stopped and a child process it started may keep running) | `:715` |
+| `finalize-init` | 0 | dry run; `--apply` reached `STRUCTURAL_READY`; `--recover` reached `RECOVERED`. An interrupt in the interpreter's own exit also exits 0 (measured; see the lock rule in section 3) | `:748`, `:629`, `:704` |
+| `finalize-init` | 1 | a refusal (precondition, busy lock, concurrent edit, failed or conflicted rollback, a rollback refused after an interrupt because another run holds the lock, or a tool step past `TOOL_TIMEOUT`, where only its direct child is stopped and a child process it started may keep running); an unnamed failure, after its rollback, with a traceback | `:782` (refusals from `main`), `:572` and `:575` (interrupt paths), `:636` (raised by apply), `:640` (re-raised) |
 | `finalize-init` | 2 | argument error (`argparse`), or Python older than 3.11 | `bin/spec-harness:35-41` |
-| `finalize-init` | 130 | `--apply` interrupted by SIGINT or SIGTERM and rolled back cleanly (both signals return 130), except the one window in the lock rule of section 3: an interrupt between `:530` and `:560` exits 130 with the completed run kept and the lock left in place | `:552-554`, `:716-718` |
+| `finalize-init` | 130 | `--apply` interrupted by SIGINT or SIGTERM and rolled back from the top level: every write restored, the lock released (both signals). Not covered: an interrupt in the interpreter's own exit (exit 0, section 3), and an interrupt whose rollback is refused because another run holds the lock (exit 1) | `:577`, `:777-785` |
 | `index --preview` | 0 | bytes printed, nothing written | `bin/sh-index.sh:800` |
 | `index` | 1 | a refusal raised as a message (`SystemExit` with a string) | e.g. `:117`, `:170`, `:540` |
 | `index` | 2 | no target argument, or Python older than 3.11 | `bin/sh-index.sh:7-8`, `:14`, `:21` |
 
-An uncaught Python exception in `finalize-init` or `doctor` also exits 1 with a traceback. Neither
-`main` catches it, so it is not a documented status. Lines `:716-718` are the last-resort handler for an
-interrupt that escapes `main`. One path reaches it: a signal during lock acquisition, which `take_lock`
-(`:270-293`) re-raises after it has removed the lock this run created. Every other interrupt during
-`--apply` returns 130 from `apply` itself (`:552-554`).
+An uncaught Python exception in `finalize-init` or `doctor` also exits 1 with a traceback. Neither `main` nor
+`__main__` catches it, so it is not a documented status. An unnamed failure inside `apply` (`:637-640`) rolls
+back first and then re-raises, so the traceback is the only difference from a named refusal. An interrupt that
+reaches `__main__` (`:783-785`) is always handled by `interrupted_exit`. The one interrupt it cannot handle is one
+that lands in the interpreter's own exit (section 3).
 
 ## Test to add when accepted
 
