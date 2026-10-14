@@ -21,6 +21,17 @@ for method in "${METHODS[@]}"; do
   ! grep -Fq '.init-synthesis.json' "$claude" || { echo "standalone route requires receipt: $method" >&2; exit 1; }
 done
 
+# Generated skill text carries no em dash (U+2014): the generator emits the separators, so the check reads the output.
+em_dash=$'\xe2\x80\x94'
+em_rc=0
+em_hits="$(grep -rl --include=SKILL.md -- "$em_dash" "$ROOT/skills")" || em_rc=$?
+[ "$em_rc" -ne 2 ] || { echo "grep failed while scanning $ROOT/skills for U+2014" >&2; exit 1; }
+if [ "$em_rc" -eq 0 ]; then
+  echo "generated skill text contains an em dash (U+2014) in:" >&2
+  echo "$em_hits" >&2
+  exit 1
+fi
+
 python3 - "$ROOT/commands/init.md" "$ROOT/bin/sh-gen-agents.sh" "$ROOT/README.md" <<'PY'
 from pathlib import Path
 import re, sys
@@ -67,33 +78,32 @@ before = {line.split(None, 1)[1].removeprefix('./'): line.split(None, 1)[0] for 
 after = {line.split(None, 1)[1].removeprefix('./'): line.split(None, 1)[0] for line in Path(sys.argv[2]).read_text().splitlines()}
 assert len(before) == len(after) == 18, f"expected 18 generated skill files, got {len(before)} and {len(after)}"
 round3 = {
-    "spec-harness/SKILL.md": "c39b29ff07882181889ccf45ddc9277390eb14310c13dd87437ae8c80ff9439c",
-    "spec-harness-audit/SKILL.md": "14b1665378052322304c54ce361874f7260577305c30d648ffa8acca80331260",
-    "spec-harness-build/SKILL.md": "b84b2644d7a50ceea0e484595e80df178c310a591c5d7b5e17dd6d4982a26514",
-    "spec-harness-generate-agents/SKILL.md": "133d3176754891cb564d9a98359c8047ca4edcb782f490cb3590f85b4a58c505",
-    "spec-harness-grill-me/SKILL.md": "56c9456dd72a7a891caf1c8005bb1c6e7d72c47327c48fe067a87a4c1a351b5d",
-    "spec-harness-install/SKILL.md": "22eb66c8f35a76865a6ed43b69b1dee64186a1b8c83f1627482cc853f40ff299",
-    "spec-harness-learn/SKILL.md": "7416fb371c9a5403559f10e5a7491af839adcc5de1f17dffd2335ce7f5c36eaf",
-    "spec-harness-package-finder/SKILL.md": "607aea125a03c183129e060935e2b9f276abfcba16e3cb7e5fec4a9d2ab62c29",
-    "spec-harness-plan/SKILL.md": "182eb91bbd1c9dca573be12b9fe39d3084aef992334f01a0a911ce9664908f46",
-    "spec-harness-ponytail/SKILL.md": "909698a392cf2944a0aadc18b2604337b104c1bfaf1515caf3ffebe64b345ab7",
-    "spec-harness-rules/SKILL.md": "c0fe5440b06f56d453f7ed6794a73dc925e0c0e1ffca88144a491646a063e0cb",
-    "spec-harness-skill-finder/SKILL.md": "b8a8e214bc373cceb3dde9bb6f670291689febffb520454f428baf868bba3f8d",
-    "spec-harness-spec/SKILL.md": "9efebaf5e6b8da7bb3fd7f2db6f87675782514c59f1f5e5cbfc984d173625879",
-    "spec-harness-teach/SKILL.md": "87e894e0ab2e41f649e7d24bb7fbdffb749581e4c1f0a847e03791ccc49c57c4",
-    "spec-harness-tasks/SKILL.md": "4281604563197c18caec9fd15a8da8bffe3b17b99bb8c7364ce8744318478925",
-    "spec-harness-tester/SKILL.md": "cb0f67b79df0cbe198e5e433159ad3f281530ca65645298bac2d7d6451fbe864",
-    "spec-harness-tickets/SKILL.md": "bf7621458e57b06f4f0d45a99a68bc983d8c88cdeca2b43253d298202837ac83",
-    "spec-harness-verify/SKILL.md": "923884a42ba9d6408178be1e2bb2b4dffa0115bc2dc95078d020e63abc1f15c7",
+    "spec-harness/SKILL.md": "7b18b73eb40bce9da864a7803260642a2f3d6016859c9bd59454986106f86ec0",
+    "spec-harness-audit/SKILL.md": "0b6c32a2e499f310bbdfe14543c505574e0e779b3f6ef245a163d1ef335df96e",
+    "spec-harness-build/SKILL.md": "9cb6640b565b9a0009720135a79636788e81ecf23c352d8434bc6b83533ae6e1",
+    "spec-harness-generate-agents/SKILL.md": "94cf46ef8d203b47b6afaae6fbb1ac2afb7f97aa5a6c48f258dc28e6805f3d6a",
+    "spec-harness-grill-me/SKILL.md": "718137de87532b69c6a9478d9d21c002e30a8c31ed57c2570b03499e7c553c6d",
+    "spec-harness-install/SKILL.md": "39cc29c93730ef89e5700345da7ded70d08b7a9f9f6d26a458c89530cd6046cd",
+    "spec-harness-learn/SKILL.md": "60b548fc0ce07e765c7b08a74bdaea79c8a0c9e8587e308efe40a3b00d18b54c",
+    "spec-harness-package-finder/SKILL.md": "978625d7a5042741985062d3a19b0fe2465e2e5973343b243e78cba7bffa7514",
+    "spec-harness-plan/SKILL.md": "bf3a2ffdd27083f8cf0e35022b7e809363c6600ec58fef8679b6765c162ff5fd",
+    "spec-harness-ponytail/SKILL.md": "bbd3c11de689bd0b7fedf98e50b67d28153074ba577841e913c2812080b4443b",
+    "spec-harness-rules/SKILL.md": "158cdd51adc0cedda88df602709b57e4587c7212f4260f68144de31b5b9f79dc",
+    "spec-harness-skill-finder/SKILL.md": "eec1198e5045fa5184993f7fb28704895290c52a36772ca909ccf91824caf095",
+    "spec-harness-spec/SKILL.md": "a29ddfaffd693515c18d40276a9e21c07fc45ec2b2efbafca4ab1f794d752d55",
+    "spec-harness-teach/SKILL.md": "1f7d01f3275370d7348d957e0d5df7280a7dddebf0f45bd7e5135159356006ac",
+    "spec-harness-tasks/SKILL.md": "f66dfe9fe20033beb0a813de35eb863574b068a40f931ac16a6a6f283aae9ab4",
+    "spec-harness-tester/SKILL.md": "3682f43525470837a5f43447316eefa316eb7b291ca829201a986f5464726c1e",
+    "spec-harness-tickets/SKILL.md": "03ddee75207191baa675272fb83cd9046aaac7422f9f3ce8430f915c9a46ca39",
+    "spec-harness-verify/SKILL.md": "bb80fc7a80e4afb0102308f22044121361fa3c1734d2973320c5a251b0d1abc3",
 }
 assert set(round3) == set(before) == set(after), "generated skill path set differs from frozen round 3"
 trigger = Path(sys.argv[3]).read_text().splitlines()[2]
 assert "implementation work" in trigger and "code" in trigger, "generated Ponytail trigger omits implementation/code work"
+# round3 is the frozen generated-skill map. A deliberate generator change moves it in the same commit.
+# 2026-10-14: the generator's em dashes became ':' or '.', so the entries were re-frozen from the new output.
 changed = sorted(path for path in after if round3[path] != after[path])
-# The four method adapters stay frozen. Every command skill deviates since its trigger text
-# says "the user" instead of naming the author; install also gained technology skills.
-frozen = ["spec-harness-grill-me/SKILL.md", "spec-harness-package-finder/SKILL.md", "spec-harness-skill-finder/SKILL.md", "spec-harness-teach/SKILL.md"]
-assert changed == sorted(set(round3) - set(frozen)), f"unexpected historical skill deviations: {changed}"
+assert changed == [], f"generated skill text differs from frozen round 3: {changed}"
 assert not any("Malik" in (Path(sys.argv[3]).parents[1] / path).read_text() for path in round3), "generated skill names the author"
 for path in round3:
     assert before[path] == after[path], f"isolated regeneration changed source adapter bytes: {path}"

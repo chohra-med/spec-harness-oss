@@ -378,7 +378,7 @@ for label, path in zip(("Expo", "Python", "TypeScript"), sys.argv[1:]):
     text = open(path, encoding="utf-8").read()
     packages = re.findall(r"^### `([^`]+)`$", text, re.M)
     section = text.split("## Excluded paths and limitations\n", 1)[1]
-    exclusions = re.findall(r"^- `([^`]+)` —", section, re.M)
+    exclusions = re.findall(r"^- `([^`]+)`: ", section, re.M)
     assert packages == ["."], (label, packages)
     assert exclusions == [], (label, exclusions)
     print(f"{label} fixture: packages={packages}; exclusions={exclusions}")

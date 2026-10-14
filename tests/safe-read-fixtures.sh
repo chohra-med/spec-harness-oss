@@ -131,11 +131,16 @@ mkfifo "$t/src/pipe.ts"
 printf '# outside rules\n' > "$TMP/outside-rules.md"
 ln -s "$TMP/outside-rules.md" "$t/RULES.md"
 out="$(bash "$ROOT/bin/spec-harness" index "$t" 2>&1)"; rc=$?
-if [[ $rc -eq 0 ]] && grep -q 'src/pipe.ts' "$t/ai_rules/context_map.md" && grep -q '`RULES.md` — symbolic link' "$t/ai_rules/context_map.md"; then
+if [[ $rc -eq 0 ]] && grep -q 'src/pipe.ts' "$t/ai_rules/context_map.md" && grep -q '`RULES.md`: symbolic link' "$t/ai_rules/context_map.md"; then
   pass 'index excludes a FIFO and a symlinked rules file without reading them'
 else
   fail "index FIFO/symlink handling (rc=$rc): $out"
 fi
+# The context map is generated text: it carries no em dash (U+2014). rc 1 is "no match"; a missing file fails.
+cm="$t/ai_rules/context_map.md"
+em_rc=0; grep -q $'\xe2\x80\x94' "$cm" || em_rc=$?
+if [[ -f "$cm" && "$em_rc" -eq 1 ]]; then pass 'index writes ai_rules/context_map.md without an em dash'
+else fail "context map has an em dash or is missing (rc=$em_rc): $(grep -n $'\xe2\x80\x94' "$cm" 2>/dev/null)"; fi
 
 # 4. A packed tarball, invoked from another directory, imports the helper next to its scripts.
 pack="$TMP/pack"; mkdir -p "$pack"
