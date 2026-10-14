@@ -333,7 +333,7 @@ with open(log_path, "w") as log:
     except subprocess.TimeoutExpired:
         timed_exit = "hung (no result within 60 s)"
 out = log_path.read_text()
-assert timed_exit == 1 and "step 'generate-agents --check' timed out after 2 s" in out and "every write was rolled back" in out, \
+assert timed_exit == 1 and "step 'generate-agents --check' timed out after 2 s: its direct child was stopped, but a child process it started may keep running" in out and "every write was rolled back" in out, \
     f"expected a named timeout refusal, got {timed_exit}:\n{out}"
 assert fx.snapshot(target) == initial and not (target / LOCK).exists(), "a timed-out run changed the target or kept its lock"
 assert json.loads((evidence / "journal.json").read_text())["status"] == "ROLLED_BACK"

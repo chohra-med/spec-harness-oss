@@ -297,7 +297,7 @@ def run_tool(step, command, journal=None, evidence=None):
     try:
         result = subprocess.run(command, capture_output=True, timeout=TOOL_TIMEOUT)
     except subprocess.TimeoutExpired:
-        raise Refused(f"step '{step}' timed out after {TOOL_TIMEOUT} s and was stopped; command: {shlex.join(command)}") from None
+        raise Refused(f"step '{step}' timed out after {TOOL_TIMEOUT} s: its direct child was stopped, but a child process it started may keep running; command: {shlex.join(command)}") from None
     if journal is not None:
         stdout = b"" if "--preview" in command else result.stdout
         journal["commands"].append({"args": command[1:], "exit": result.returncode,

@@ -357,7 +357,7 @@ files there. In a monorepo, remove each generated `<package>/RULES.md` as well. 
 | Code | Meaning |
 |---|---|
 | `0` | The shell step finished. The status may still be PENDING. |
-| `1` | A check failed and printed what is missing or stale. `index` or `finalize-init` refused an argument, a precondition or a busy lock. A `finalize-init` tool step (`generate-agents --check` or `index --preview`) that runs longer than 600 seconds is stopped and refused, and the run is rolled back. `doctor` reports structural PENDING. A `finalize-init` rollback that could not finish keeps the lock. |
+| `1` | A check failed and printed what is missing or stale. `index` or `finalize-init` refused an argument, a precondition or a busy lock. A `finalize-init` tool step (`generate-agents --check` or `index --preview`) that runs longer than 600 seconds has its direct child process stopped and is refused, and the run is rolled back. A child process that the step started may keep running. `doctor` reports structural PENDING. A `finalize-init` rollback that could not finish keeps the lock. |
 | `2` | A missing target or unknown command, a bad argument, or a command that only prints a procedure for a model to follow. `doctor`, `index`, `finalize-init` and `generate-agents` also exit 2 on Python older than 3.11. |
 | `130` | `finalize-init` was interrupted by Ctrl-C or SIGTERM during `--apply`; every write was rolled back and the lock was released. |
 
@@ -371,7 +371,7 @@ files there. In a monorepo, remove each generated `<package>/RULES.md` as well. 
 | The check fails after you edited a generated file | the receipt hash is stale | if your inventory is `ai_rules/project_inventory.json`, ask the client to run the guarded refresh in `/sdd init`. A Markdown context map (the default `index` output) cannot be refreshed that way: the refresh refuses it with "re-run init for a Markdown context map", and the policy-drift check does nothing for it |
 | `/sdd` is not recognised in Codex | the project skill was not discovered | open `.agents/skills/sdd/SKILL.md` and follow it |
 | `concurrent edits kept, manual recovery needed` (from `--apply`) or `concurrent edits kept; manual recovery needed` (from `--recover`) | a file changed while `finalize-init --apply` was writing it | follow [Recovery conflict](#recovery-conflict) below |
-| `step '<name>' timed out after 600 s and was stopped` | a `finalize-init` tool step ran past its limit, so the run was refused and rolled back | every write was rolled back and the lock released; find why the step stalled, then run `finalize-init` again with a new `--evidence-dir` |
+| `step '<name>' timed out after 600 s: its direct child was stopped, but a child process it started may keep running` | a `finalize-init` tool step ran past its limit, so the run was refused and rolled back | every write was rolled back and the lock released; find why the step stalled, then run `finalize-init` again with a new `--evidence-dir` |
 
 ## Recovery conflict
 

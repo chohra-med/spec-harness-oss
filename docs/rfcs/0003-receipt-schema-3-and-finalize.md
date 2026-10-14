@@ -175,7 +175,7 @@ the dispatcher check in `bin/spec-harness:35-41`.
 | `doctor` | 1 | structural PENDING | `:161` |
 | `doctor` | 2 | target is missing or a symbolic link | `:127` |
 | `finalize-init` | 0 | dry run; `--apply` reached `STRUCTURAL_READY`; `--recover` reached `RECOVERED` | `:662`, `:515`, `:618` |
-| `finalize-init` | 1 | a refusal (precondition, busy lock, concurrent edit, failed or conflicted rollback, or a tool step past `TOOL_TIMEOUT`) | `:696` |
+| `finalize-init` | 1 | a refusal (precondition, busy lock, concurrent edit, failed or conflicted rollback, or a tool step past `TOOL_TIMEOUT`, where only its direct child is stopped and a child process it started may keep running) | `:696` |
 | `finalize-init` | 2 | argument error (`argparse`), or Python older than 3.11 | `bin/spec-harness:35-41` |
 | `finalize-init` | 130 | `--apply` interrupted by SIGINT or SIGTERM and rolled back cleanly (both signals return 130) | `:538-539`, `:698-699` |
 | `index --preview` | 0 | bytes printed, nothing written | `bin/sh-index.sh:801` |
