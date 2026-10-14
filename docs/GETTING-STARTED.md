@@ -377,7 +377,7 @@ files there. In a monorepo, remove each generated `<package>/RULES.md` as well. 
 
 `finalize-init --apply` (or `--recover`) keeps the lock (`.claude/agents/.sh-finalize.lock` in the target: a file that
 stops a second `finalize-init` from running at the same time; a run releases it when it finishes cleanly or its rollback
-completes) and prints `concurrent edits kept, manual recovery
+completes with no conflict) and prints `concurrent edits kept, manual recovery
 needed: <path>` from `--apply`, or `concurrent edits kept; manual recovery needed: <path>` from `--recover`,
 when a file holds neither the bytes the run started from nor a write the run made. `--recover`
 does not overwrite that file for you, and it cannot clear the conflict by itself. Put the file back yourself,
