@@ -130,6 +130,13 @@ if mode in ("lock-sync-fails", "lock-sync-fails-sigint"):
             raise OSError("planted lock sync failure")
         return real_full_sync(fd)
     module.full_sync = failing_lock_sync
+if mode == "release-sigint":
+    # A SIGINT lands after STRUCTURAL_READY is recorded, at the release call in apply's finally.
+    original_release = module.release_lock
+    def release_with_sigint(root):
+        os.kill(os.getpid(), signal.SIGINT)
+        return original_release(root)
+    module.release_lock = release_with_sigint
 if mode == "slow-tool":
     # A tool step that outlives the timeout: the check sleeps 150 s against a two-second limit.
     module.TOOL_TIMEOUT = 2
@@ -347,6 +354,15 @@ out = hooked(target, tmp / "lock-sync-fails-sigint-ev", "lock-sync-fails-sigint"
 assert not (target / LOCK).exists(), f"a SIGINT with a failed lock fsync left {LOCK} behind:\n{out}"
 assert "interrupted by SIGINT" in out and fx.snapshot(target) == initial, out
 print("PASS: a SIGINT with a failed lock fsync leaves no lock, changes no byte and exits 130")
+
+# 6j. NEEDED-2: a SIGINT after STRUCTURAL_READY is recorded, at the release call, must not skip the release.
+target = tmp / "release-sigint"
+shutil.copytree(start, target)
+evidence = tmp / "release-sigint-ev"
+out = hooked(target, evidence, "release-sigint", 0, 0, "SIGINT at the release call")
+assert not (target / LOCK).exists(), f"a SIGINT at the release call left {LOCK} behind:\n{out}"
+assert json.loads((evidence / "journal.json").read_text())["status"] == "STRUCTURAL_READY" and "STRUCTURAL_READY" in out, out
+print("PASS: a SIGINT after STRUCTURAL_READY releases the lock and the run still exits 0")
 
 # 7. Two finalizers at once: exactly one gets the lock.
 target = tmp / "concurrent"

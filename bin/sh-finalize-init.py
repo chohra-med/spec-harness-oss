@@ -552,6 +552,10 @@ def apply(root, evidence, sources):
             return 130
         raise Refused(f"{journal['failure']}; every write was rolled back") from None
     finally:
+        # Ignore both signals before the release, so a late SIGINT or SIGTERM cannot raise out of this block
+        # and skip the release. The previous handlers come back at the end.
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            signal.signal(sig, signal.SIG_IGN)
         # Keep the lock while a target may hold a half-written file: only a finished or fully rolled
         # back run, or one that never wrote, releases it. Otherwise --recover must adopt it.
         if journal["status"] in ("PENDING", "ROLLED_BACK", "STRUCTURAL_READY"):
