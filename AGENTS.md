@@ -36,7 +36,7 @@ If you cannot tell which, ask. Do not start installing anything on a guess.
 | **Packet** | The folder `specs/<feature>/` that a LITE or FULL ticket keeps: input, spec, goal, plan, tasks and gate records. |
 | **Role** | One agent file with one job: planner, implementer, tester (runs things), verifier (checks each goal line), reviewer (reads the diff against the rules), merger, learner. |
 | **Tier** | The class of model a role asks for: `strong`, `fast` or `review`. Never a model name. |
-| **Inventory** | `ai_rules/project_inventory.json` in the target: its packages and a few sampled source files. Written by `index`. |
+| **Inventory** | The output of `index` in the target: its packages and a few sampled source files. It is `ai_rules/context_map.md`, or `ai_rules/project_inventory.json` when the target keeps its own `context_map.md` (see `docs/GETTING-STARTED.md` step 4). |
 | **Receipt** | `.claude/agents/.init-synthesis.json` in the target: what initialisation produced, with hashes. |
 | **PENDING / READY** | PENDING: files are staged but a model or reviewer has not done its part. READY: the structural check prints it when hashes and citations line up. That alone does not mean the generated rules are correct; the setup is fully ready only after a fresh reviewer accepts them. |
 

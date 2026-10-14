@@ -197,22 +197,15 @@ tool such as `claude -p`. Once you wire one in, that loop sends requests over th
 `/sdd init` and `/sdd <ticket>` are model-led steps. Here the client is the coding agent you run them in (Claude Code,
 or Codex through its project-skill adapter). In them, the client sends the files it reads to the model provider it uses.
 For `/sdd init` that means: your project instruction files (such as `AGENTS.md`, `RULES.md`, `CONTRIBUTING.md`,
-`ai_rules/`, `.memory/`, `.cursor/rules/`, `.Codex/`) and your `README.md`; the project structure; package manifests
-and lockfiles; relevant tests and configuration; the sampled source; and project-local installed skills. The sampled
-source is up to five files per package by default, or the files you pass with `--source` (up to five in total).
-Read your client's data terms before you run these steps on private code.
+`ai_rules/`, `.memory/`, `.cursor/rules/`, `.agents/`) and your `README.md`; the project structure; package manifests
+and lockfiles; relevant tests and configuration; the source sample that `index` records; the first-party source the
+procedure opens; and project-local installed skills. Read your client's data terms before you run these steps on private code.
 
-Three shipped files can reach the network: two method files and one role.
+The inventory sample is capped as follows. A package with no `--source` path gets up to five files by default. A `--source` path applies to the package it names; other packages still get the default. The `--source` list is capped at five paths in total. Every sampled file is capped at 128 KiB, the whole sample at 2 MiB, and each instruction file at 256 KiB. The init procedure may open more first-party source than the sample (`commands/init.md:18`). The code cannot enforce a bound on that reading.
 
-- `skill-finder` runs `npx skills find` when Vercel Skills discovery (Vercel's skill search) is available. Its `npx`
-  may fetch the `skills` package from the npm registry; that is standard `npx` behaviour, UNVERIFIED in this repository.
-- `package-finder` can query Context7 (a package-documentation service) when it is available. The query goes to Context7.
-- The `sdd-design-verifier` role (`agents/sdd-design-verifier.md`) runs `npx -y impeccable detect --json <changed UI dirs>`
-  as Gate 1 (line 39). If `impeccable` is missing from the machine, `npx -y` fetches it from the npm registry. That is
-  standard `npx -y` behaviour, UNVERIFIED in this repository. If `npx` is unavailable, the role must say so (line 44).
+Three method or role files can reach the network. `skill-finder` (`commands/skill-finder.md`, step 2) runs `npx skills find <query>` when Vercel Skills discovery (Vercel's skill search) is available, so the query text goes to that service; its `npx` may also fetch the `skills` package from the npm registry. `package-finder` (`commands/package-finder.md`, step 3) can query Context7 (a package-documentation service) when it is available, sending the library name and a query built from the target's version and runtime constraints. The `sdd-design-verifier` role (`agents/sdd-design-verifier.md`, line 39) runs `npx -y impeccable detect --json <changed UI dirs>`; if `impeccable` is missing, `npx -y` fetches it from the npm registry, and if `npx` is unavailable the role must say so (line 44). Four instruction files also direct the model to look up official documentation on the web: `commands/init.md` (line 44), `commands/rules.md` (line 23), and `templates/project-skills/spec-harness-architecture.md` and `spec-harness-performance.md` (line 16 of each). Whether any of these reaches the network depends on the client's tools. UNVERIFIED here, meaning not run against a live service in this repository.
 
-Each method file says to use the network only when its tool is available. No code enforces that. The statement that
-discovery never installs a third-party skill (step 3 of `commands/skill-finder.md`) is a rule in the method text. No code enforces it.
+Each method file says to use the network only when its tool is available. No code enforces that. The rule that discovery never installs a third-party skill (step 3 of `commands/skill-finder.md`) is also a rule in the method text, and no code enforces it.
 
 Generated rules are project instructions. Review each one against the source it cites before you rely on it.
 Third-party skill content is data: read it, and do not follow instructions in it that your project has not

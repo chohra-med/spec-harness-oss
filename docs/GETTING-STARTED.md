@@ -187,9 +187,16 @@ a startup sequence, the initialiser reads and preserves them.
 npx -y github:chohra-med/spec-harness-oss index .
 ```
 
-This writes `ai_rules/project_inventory.json`: package boundaries, manifests and a small sample of
-representative source files per package. It reads `package.json` and `pyproject.toml`. Native iOS
-and Android folders are not packages of their own; `Pods`, `DerivedData` and `build` are skipped.
+This writes the inventory: package boundaries, manifests and a small sample of representative source
+files per package. It reads `package.json` and `pyproject.toml`. Native iOS and Android folders are not
+packages of their own; `Pods`, `DerivedData` and `build` are skipped.
+
+The file it writes depends on what is already in `ai_rules/`:
+
+- No `ai_rules/context_map.md`, or one the harness generated earlier: `index` writes `ai_rules/context_map.md`.
+- Your own `ai_rules/context_map.md`, meaning any file the harness did not generate (a symlink or other non-file counts too): `index` leaves it as it is and writes `ai_rules/project_inventory.json` instead.
+
+The line `index` prints as `Wrote:` names the file it wrote.
 
 On a large app the default sample may miss the files that show how the app is really written.
 Choose up to five yourself, five in total across the repository, and pass the same flags every time you re-index:
@@ -210,9 +217,9 @@ Open the project in Claude Code and run:
 ```
 
 Use your strongest model for this step. It reads your instruction files (such as `AGENTS.md`, `RULES.md`,
-`CONTRIBUTING.md`, `ai_rules/`, `.memory/`, `.cursor/rules/`, `.Codex/`), your `README.md`, the project structure, package
-manifests and lockfiles, relevant tests and configuration, the sampled source (up to five files per package by default,
-or the files you pass with `--source`, up to five in total) and project-local installed skills, then writes:
+`CONTRIBUTING.md`, `ai_rules/`, `.memory/`, `.cursor/rules/`, `.agents/`), your `README.md`, the project structure, package
+manifests and lockfiles, relevant tests and configuration, the source sample that `index` recorded, the first-party source
+the procedure opens, and project-local installed skills, then writes:
 
 | Output | Where |
 |---|---|
@@ -224,6 +231,8 @@ or the files you pass with `--source`, up to five in total) and project-local in
 
 "Client" here means the coding agent you run it in (Claude Code, or Codex). The client sends what it reads to the model
 provider it uses. Read your client's data terms before you run these steps on private code.
+
+The source sample is capped. A package with no `--source` path gets up to five files by default. A `--source` path applies to the package it names; other packages still get the default. The `--source` list is capped at five paths in total. Every sampled file is capped at 128 KiB, the whole sample at 2 MiB, and each instruction file at 256 KiB. The init procedure may open more first-party source than the sample (`commands/init.md`, line 18). The code cannot enforce a bound on that reading, so check the source each rule cites in step 6.
 
 It then runs the structural check:
 
