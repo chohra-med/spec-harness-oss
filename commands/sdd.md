@@ -38,7 +38,7 @@ For ticket work, record the current source state before planning:
 - Git source: `git rev-parse HEAD` and SHA-256 of the exact `git diff --binary HEAD` bytes. MICRO records `HEAD` only.
 - Non-Git source: mark Git state unavailable and hash the relevant files and rule inputs.
 - Record the applicable rule paths and hashes. Read the target's `AGENTS.md`, `RULES.md`,
-  `CONTRIBUTING.md`, `ai_rules/`, `.memory/`, `.cursor/rules/`, `.Codex/` and README, following
+  `CONTRIBUTING.md`, `ai_rules/`, `.memory/`, `.cursor/rules/`, `.agents/` and README, following
   their startup instructions. Load only the package/source evidence needed for this ticket.
 - Read `.claude/agents/.init-synthesis.json` and validate it with
   `spec-harness generate-agents --check "$PWD"`. Use only role and skill paths named by the receipt.

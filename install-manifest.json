@@ -180,7 +180,7 @@
       "source": "commands/sdd.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "baf398b6b735c7fe905ad0f42fd1de0e42b7322f2bdf47fcbe87c42f6f9d70c9",
+      "sha256": "36b4b82d39257aeebebcf744f27c55e72f9ffae04d2b436006ae17afa94f2d4b",
       "mode": "0644"
     },
     {
@@ -228,7 +228,7 @@
       "source": "commands/init.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "4cf8907214bbe2cfa65bd7c0500ff101522aeb61d0628fe07c7995f2731459ea",
+      "sha256": "4e7f39ccd3851f64cf42ba0e04a482e964c172d10737aa14aa4517285e7a4897",
       "mode": "0644"
     },
     {

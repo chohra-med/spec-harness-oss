@@ -48,7 +48,7 @@ assert [n for n, _ in work_steps] == list(range(9)), "work-order steps are not u
 assert [n for n, _ in work_steps if "Read the target's" in _] == [1], "work order must read target instructions first"
 assert [n for n, _ in work_steps if "Open the actual representative source files" in _] == [2], "work order must inspect real source before methods"
 assert [n for n, _ in work_steps if "After steps 1-2, apply relevant reusable methods" in _] == [3], "work order method selection must follow source inspection"
-for token in ("AGENTS.md", "RULES.md", "CONTRIBUTING.md", "ai_rules/globalRules.md", "ai_rules/rules/frequent_rules.md", "ai_rules/context_map.md", "ai_rules/project_inventory.json", ".memory/", ".cursor/rules/", ".Codex/", "README.md"):
+for token in ("AGENTS.md", "RULES.md", "CONTRIBUTING.md", "ai_rules/globalRules.md", "ai_rules/rules/frequent_rules.md", "ai_rules/context_map.md", "ai_rules/project_inventory.json", ".memory/", ".cursor/rules/", ".agents/", "README.md"):
     assert token in work_steps[1][1], f"work order omits target context path: {token}"
 assert "actual representative source files" in work_steps[2][1] and "relevant tests/config" in work_steps[2][1]
 for label, text in (("init", init), ("work order", workorder)):
@@ -155,7 +155,7 @@ mkdir -p "$work_target"
 bash "$ROOT/bin/sh-gen-agents.sh" "$work_target" >/dev/null
 prompt="$work_target/.claude/agents/.generate-agents.prompt.md"
 test -s "$prompt"
-for path in AGENTS.md RULES.md CONTRIBUTING.md ai_rules/globalRules.md ai_rules/rules/frequent_rules.md ai_rules/context_map.md .memory/ .cursor/rules/ .Codex/ README.md; do
+for path in AGENTS.md RULES.md CONTRIBUTING.md ai_rules/globalRules.md ai_rules/rules/frequent_rules.md ai_rules/context_map.md .memory/ .cursor/rules/ .agents/ README.md; do
   grep -Fq "$path" "$prompt"
 done
 grep -Fq 'Open the actual representative source files' "$prompt"
@@ -168,7 +168,7 @@ body=text.split("## Execute in this order\n",1)[1].split("\n\nA passing --check"
 steps=[(int(n),line) for n,line in re.findall(r"^(\d+)\. (.*)$",body,re.M)]
 assert [n for n,_ in steps] == list(range(9)), "staged work-order numbering must be unique and consecutive 0-8"
 assert "ai_rules/globalRules.md" in steps[1][1]
-assert "AGENTS.md" in steps[1][1] and ".memory/" in steps[1][1] and ".Codex/" in steps[1][1]
+assert "AGENTS.md" in steps[1][1] and ".memory/" in steps[1][1] and ".agents/" in steps[1][1]
 assert "actual representative source files" in steps[2][1]
 assert "After steps 1-2, apply relevant reusable methods" in steps[3][1]
 # Every method owner step 3 names must ship on this branch: a work order that names a missing file
