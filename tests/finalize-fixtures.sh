@@ -236,9 +236,8 @@ except module.Refused as error:
     print("PENDING: " + str(error), file=sys.stderr)
     sys.exit(1)
 except module.Interrupted as error:
-    # Mirrors the finalizer's __main__: an interrupt that unwinds out of apply() exits 130.
-    print("PENDING: interrupted by " + str(error), file=sys.stderr)
-    sys.exit(130)
+    # Mirrors the finalizer's __main__: an interrupt that reaches the top level is rolled back from RUN.
+    sys.exit(module.interrupted_exit(error))
 '''
 
 

@@ -54,6 +54,10 @@ class Interrupted(BaseException):
     """SIGINT or SIGTERM arrived; the apply path rolls back before exiting."""
 
 
+# The run record: apply() fills it before it takes the lock; interrupted_exit() rolls the run back from it.
+RUN = {}
+
+
 def sha(data):
     return hashlib.sha256(data).hexdigest()
 
@@ -469,14 +473,108 @@ def restore(root, journal, evidence):
 
 
 def install_signal_handlers():
+    """Install the interrupt handler once, before the run record and the lock.
+
+    The first SIGINT or SIGTERM ignores both signals and raises Interrupted, so a second one cannot escape
+    the rollback. The handlers stay installed until the process exits.
+    """
     def handler(signum, _frame):
-        # Ignore the next signal from the moment the first one arrives, so a second one that lands
-        # while this one unwinds cannot escape the rollback.
-        for sig in (signal.SIGINT, signal.SIGTERM):
-            signal.signal(sig, signal.SIG_IGN)
+        ignore_signals()
         raise Interrupted(signal.Signals(signum).name)
-    previous = {sig: signal.signal(sig, handler) for sig in (signal.SIGINT, signal.SIGTERM)}
-    return previous
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, handler)
+
+
+def ignore_signals():
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, signal.SIG_IGN)
+
+
+def save_journal_quietly(evidence, journal):
+    try:
+        store_journal(evidence, journal)
+    except OSError:
+        pass
+
+
+def lock_holder(root):
+    """The PID recorded in the lock, or None when the lock is absent or unreadable."""
+    try:
+        return int(read_bounded(LOCK, 64, root=root).strip() or b"0")
+    except (SafeReadError, ValueError, OSError):
+        return None
+
+
+def hold_lock_for_rollback(root):
+    """Hold the finalize lock before a rollback writes anything.
+
+    A commit releases the lock, so after it the lock may be absent (take it again, with take_lock's protections),
+    held by another run (refuse with the usual lock message, write nothing) or still this run's (keep it).
+    """
+    try:
+        take_lock(root)
+    except Refused:
+        if lock_holder(root) != os.getpid():
+            raise
+
+
+def conflict_message(failure, conflicts, evidence):
+    return (f"{failure}; concurrent edits kept, manual recovery needed: {', '.join(conflicts)}; lock kept. "
+            f"Restore each of those files to the bytes its \"before\" entry records in {evidence}/journal.json "
+            "(base64-decoded), then run --recover with the same --evidence-dir")
+
+
+def roll_back(failure):
+    """The one rollback path. apply() calls it on a refusal and interrupted_exit() on an interrupt.
+
+    It works from RUN alone, with signals ignored. It holds the lock before it writes (hold_lock_for_rollback),
+    restores every journaled file whose bytes are still this run's postimage, records the outcome in the journal,
+    and releases the lock only after a complete rollback. Returns the conflicting paths; the lock is kept for them.
+    """
+    ignore_signals()
+    root, evidence, journal = RUN["root"], RUN["evidence"], RUN["journal"]
+    journal["failure"] = failure
+    try:
+        hold_lock_for_rollback(root)
+    except Refused as refusal:
+        journal["failure"] = f"{failure}; rollback refused: {refusal}"
+        save_journal_quietly(evidence, journal)
+        raise
+    try:
+        conflicts = restore(root, journal, evidence)
+        journal["status"] = "RECOVERY_CONFLICT" if conflicts else "ROLLED_BACK"
+        store_journal(evidence, journal)
+    except (Refused, OSError, ValueError) as recovery_error:
+        journal["status"] = "RECOVERY_FAILED"
+        save_journal_quietly(evidence, journal)
+        raise Refused(f"{failure}; rollback failed: {recovery_error}; lock kept; run --recover") from None
+    if not conflicts:
+        try:
+            release_lock(root)
+        except (Refused, OSError):
+            pass
+    return conflicts
+
+
+def interrupted_exit(error):
+    """Top-level rollback: an interrupt reached __main__. Returns the process exit code.
+
+    A rolled-back run exits 130. A refused rollback (the lock is held by another run) writes nothing and exits 1;
+    a conflict keeps the conflicting files and exits 1.
+    """
+    if not RUN:
+        print(f"PENDING: interrupted by {error}", file=sys.stderr)
+        return 130
+    try:
+        conflicts = roll_back(f"interrupted by {error}")
+    except Refused as refusal:
+        print(f"PENDING: interrupted by {error}; the rollback was refused and wrote nothing: {refusal}", file=sys.stderr)
+        return 1
+    if conflicts:
+        print("PENDING: " + conflict_message(f"interrupted by {error}", conflicts, RUN["evidence"]), file=sys.stderr)
+        return 1
+    print(f"PENDING: interrupted by {error}; every write was rolled back", file=sys.stderr)
+    return 130
 
 
 def apply(root, evidence, sources):
@@ -485,14 +583,12 @@ def apply(root, evidence, sources):
     os.makedirs(evidence, mode=0o700)
     journal = {"format": JOURNAL_FORMAT, "schema_version": 1, "target": root, "status": "PENDING",
                "files": {}, "commands": [], "receipt_sha256": None}
-    # The handlers go in before the lock and before any write, so an interrupt from here on is an
-    # Interrupted that reaches the cleanup below, never a bare KeyboardInterrupt.
-    previous = install_signal_handlers()
-    try:
-        take_lock(root)
-    except BaseException:
-        restore_signal_handlers(previous)
-        raise
+    # The handlers and the run record go in before the lock and before any write. From here on an interrupt is an
+    # Interrupted: it unwinds to __main__, which rolls the run back from RUN. The snapshot (journal["files"]) is
+    # complete before the first target write.
+    install_signal_handlers()
+    RUN.update(root=root, evidence=evidence, journal=journal)
+    take_lock(root)
     try:
         store_journal(evidence, journal)
         receipt, write_set, inputs, before, rewritten, new_hash = plan(root, sources, journal, evidence)
@@ -524,53 +620,24 @@ def apply(root, evidence, sources):
                         "receipt_sha256_after": sha(rewritten[RECEIPT]),
                         "semantic_review": "PENDING", "client_loading": "PENDING"})
         store_journal(evidence, journal)
+        # Commit point: the lock is released here. An interrupt after this still rolls the run back, and roll_back
+        # takes the lock again before it writes, so a second finalizer that gets the lock in between is refused.
+        release_lock(root)
         writes = sum(bool(row["expected_after"]) for row in journal["files"].values())
         print(f"STRUCTURAL_READY: binding refresh wrote {writes} file(s); a second index reached the same inventory. "
               "Semantic review and client loading remain PENDING.")
         return 0
-    except (Refused, OSError, ValueError, KeyError, TypeError, Interrupted) as error:
-        interrupted = isinstance(error, Interrupted)
-        # Block further signals while rolling back; the rollback itself must finish.
-        for sig in (signal.SIGINT, signal.SIGTERM):
-            signal.signal(sig, signal.SIG_IGN)
-        journal["failure"] = ("interrupted by " + str(error)) if interrupted else str(error)
-        try:
-            conflicts = restore(root, journal, evidence)
-            journal["status"] = "RECOVERY_CONFLICT" if conflicts else "ROLLED_BACK"
-            store_journal(evidence, journal)
-        except (Refused, OSError, ValueError) as recovery_error:
-            journal["status"] = "RECOVERY_FAILED"
-            try:
-                store_journal(evidence, journal)
-            except OSError:
-                pass
-            raise Refused(f"{journal['failure']}; rollback failed: {recovery_error}; lock kept; run --recover") from None
+    except Interrupted:
+        raise  # __main__ rolls the run back from RUN (interrupted_exit)
+    except (Refused, OSError, ValueError, KeyError, TypeError) as error:
+        conflicts = roll_back(str(error))
         if conflicts:
-            raise Refused(f"{journal['failure']}; concurrent edits kept, manual recovery needed: {', '.join(conflicts)}; lock kept. "
-                          f"Restore each of those files to the bytes its \"before\" entry records in {evidence}/journal.json "
-                          "(base64-decoded), then run --recover with the same --evidence-dir")
-        if interrupted:
-            print(f"PENDING: interrupted by {error}; every write was rolled back", file=sys.stderr)
-            return 130
-        raise Refused(f"{journal['failure']}; every write was rolled back") from None
-    finally:
-        # Ignore both signals before the release, so a late SIGINT or SIGTERM cannot raise out of this block
-        # and skip the release. The previous handlers come back at the end.
-        for sig in (signal.SIGINT, signal.SIGTERM):
-            signal.signal(sig, signal.SIG_IGN)
-        # Keep the lock while a target may hold a half-written file: only a finished or fully rolled
-        # back run, or one that never wrote, releases it. Otherwise --recover must adopt it.
-        if journal["status"] in ("PENDING", "ROLLED_BACK", "STRUCTURAL_READY"):
-            try:
-                release_lock(root)
-            except (Refused, OSError):
-                pass
-        restore_signal_handlers(previous)
-
-
-def restore_signal_handlers(previous):
-    for sig, handler in previous.items():
-        signal.signal(sig, handler)
+            raise Refused(conflict_message(str(error), conflicts, evidence)) from None
+        raise Refused(f"{error}; every write was rolled back") from None
+    except BaseException as error:
+        # A failure the list above does not name still rolls back, then propagates as it did before.
+        roll_back(f"unexpected {type(error).__name__}: {error}")
+        raise
 
 
 def load_journal(evidence):
@@ -714,5 +781,5 @@ if __name__ == "__main__":
         print(f"PENDING: {error}", file=sys.stderr)
         sys.exit(1)
     except Interrupted as error:
-        print(f"PENDING: interrupted by {error}", file=sys.stderr)
-        sys.exit(130)
+        # The interrupt reached the top level: roll the run back from RUN (the same path apply() uses on a refusal).
+        sys.exit(interrupted_exit(error))
