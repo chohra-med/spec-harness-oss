@@ -356,10 +356,10 @@ files there. In a monorepo, remove each generated `<package>/RULES.md` as well. 
 
 | Code | Meaning |
 |---|---|
-| `0` | The shell step finished. The status may still be PENDING. `finalize-init --apply` also exits `0` when an interrupt lands while Python itself is exiting after the run has finished. Measured for an interrupt sent from an `atexit` hook: a traceback on stderr ending `Interrupted: SIGINT`, the journal reads `STRUCTURAL_READY`, and the completed run stays in place. Other exit points are not measured (RFC 0003, section 3). |
+| `0` | The shell step finished. The status may still be PENDING. `finalize-init --apply` also exits `0` when an interrupt lands while Python itself is exiting after the run has finished. Reported at `c01c706` for an interrupt sent from an `atexit` hook (not covered by a fixture): a traceback on stderr ending `Interrupted: SIGINT`, the journal reads `STRUCTURAL_READY`, and the completed run stays in place. Other exit points are not measured (RFC 0003, section 3). |
 | `1` | A check failed and printed what is missing or stale. `index` or `finalize-init` refused an argument, a precondition or a busy lock (the lock is `.claude/agents/.sh-finalize.lock` in the target: a file that stops a second `finalize-init` from running at the same time). A `finalize-init` tool step (`generate-agents --check` or `index --preview`) that runs longer than 600 seconds has its direct child process stopped and is refused, and the run is rolled back. A child process that the step started may keep running. `doctor` reports structural PENDING. A `finalize-init` rollback that could not finish keeps the lock. |
 | `2` | A missing target or unknown command, a bad argument, or a command that only prints a procedure for a model to follow. `doctor`, `index`, `finalize-init` and `generate-agents` also exit 2 on Python older than 3.11. |
-| `130` | The rollback case: `finalize-init --apply` was interrupted by Ctrl-C or SIGTERM, and the rollback finished. The journal (`journal.json` in the `--evidence-dir`) reads `ROLLED_BACK`, which means every write was restored, and the lock was released. Three other interrupt outcomes exit `1`. A rollback refused because another finalize-init holds the lock, or whose lock step fails, writes nothing, and the completed run stays in place (status `STRUCTURAL_READY`). A rollback that finds a changed file (status `RECOVERY_CONFLICT`) keeps that file and the lock. A restore that fails partway (status `RECOVERY_FAILED`) means some files still hold this run's bytes, and keeps the lock. An interrupt that lands while Python is exiting is a different path and is not rolled back: it can exit `0` (see the `0` row, and RFC 0003, section 3). |
+| `130` | The rollback case: `finalize-init --apply` was interrupted by Ctrl-C or SIGTERM, and the rollback finished. The journal (`journal.json` in the `--evidence-dir`) reads `ROLLED_BACK`, which means every write was restored. The lock is released. If the release itself fails, the status is still `ROLLED_BACK` and the lock file is kept (see [Stale lock after a rollback](#stale-lock-after-a-rollback)). Three other interrupt outcomes exit `1`. After the commit, a rollback refused because another finalize-init holds the lock, or whose lock step fails, writes nothing, and the completed run stays in place (status `STRUCTURAL_READY`). Before the commit, a lock-step failure in the rollback is a named refusal instead: the status stays `APPLYING`, the target keeps the writes already made, and the command exits `1` (fixture 6n). A rollback that finds a changed file (status `RECOVERY_CONFLICT`) keeps that file and the lock. A restore that fails partway (status `RECOVERY_FAILED`) means some files still hold this run's bytes, and keeps the lock. An interrupt that lands while Python is exiting is a different path and is not rolled back: it can exit `0` (see the `0` row, and RFC 0003, section 3). |
 
 ## When something looks wrong
 
@@ -373,31 +373,41 @@ files there. In a monorepo, remove each generated `<package>/RULES.md` as well. 
 | `concurrent edits kept, manual recovery needed` (from `--apply`) or `concurrent edits kept; manual recovery needed` (from `--recover`) | a file changed while `finalize-init --apply` was writing it | follow [Recovery conflict](#recovery-conflict) below |
 | `step '<name>' timed out after 600 s: its direct child was stopped, but a child process it started may keep running` | a `finalize-init` tool step ran past its limit, so the run was refused and rolled back | every write was rolled back and the lock released; find why the step stalled, then run `finalize-init` again with a new `--evidence-dir` |
 | `another finalize-init holds .claude/agents/.sh-finalize.lock`, and `--recover` answers `that journal was already restored (ROLLED_BACK)` | a rollback restored every file, but removing its lock failed; the lock now records a process that has exited | follow [Stale lock after a rollback](#stale-lock-after-a-rollback) below |
-| The command exits `0` but prints no `STRUCTURAL_READY:` line | stdout was closed (for example a pipe ended early) while the run was finishing. The run had already committed | Nothing needs undoing. Check the journal: `status` must read `STRUCTURAL_READY`. Then run the check in step 5 |
-| A traceback on stderr, exit `1`, and no `PENDING:` line | an error the run did not name. The run tries to roll back before the traceback prints | Check the journal. `status` must read `ROLLED_BACK`, which means every write was restored. If it reads anything else, the rollback did not finish: stop and report the journal and the traceback |
+| The command exits `0` and prints no `STRUCTURAL_READY:` line | Python's `sys.stdout` was closed before the success line (fixture 6s). The run had committed: the lock is released and nothing rolls back | Nothing needs undoing. Check the journal: `status` must read `STRUCTURAL_READY`. Then run the check in step 5 |
+| The command exits `120` and stderr has `Exception ignored while flushing sys.stdout: BrokenPipeError` | the reader of the pipe closed early (for example a pipe into `head`), so the final flush fails at exit. The run had committed: the lock is released and nothing rolls back. Probed on the same print block, not run on the finalizer | Same as above |
+| The command exits `1` with an `AttributeError: 'NoneType' object has no attribute 'flush'` traceback | file descriptor 1 was closed when the command started (`>&-`), so `sys.stdout` is `None`. The run had committed: the lock is released and nothing rolls back. Probed on the same print block, not run on the finalizer | Same as above |
+| A traceback on stderr, exit `1`, and no `PENDING:` line, from an error the run did not name while it was applying | the run rolls back before the traceback prints (the run's `try`, `:630`) | Check the journal. `status` must read `ROLLED_BACK`, which means every write was restored. If it reads anything else, the rollback did not finish: stop and report the journal and the traceback |
+| A traceback ending `KeyboardInterrupt` on stderr, from a Ctrl-C at the very start of `--apply`, with no journal | the interrupt landed before the run installed its handler (`:621-627`). Nothing is written to the target and no lock is taken. The exit code was not measured on the finalizer | Nothing to undo. Check `git status` in the target, then run again with a new `--evidence-dir` |
+| A traceback with no journal, when `--apply` could not create or sync the lock file (an `OSError`) | the lock step runs before the run's `try` (`:629`), so no rollback runs. A lock file the run created is removed. Read from the code: fixture 6h plants this failure but does not assert the traceback | Check `git status` in the target, then run again with a new `--evidence-dir` |
+| A traceback from the success line, after `STRUCTURAL_READY` was written (see the closed-stdout rows above) | the run is committed, so nothing rolls back | Check the journal: `status` must read `STRUCTURAL_READY`. Then run the check in step 5 |
 
 ## Stale lock after a rollback
 
-A `finalize-init` run whose journal reads `ROLLED_BACK` (every write restored) has put back every file it wrote. The journal is `journal.json` in your `--evidence-dir`. If removing its lock failed at the same
-time, `.claude/agents/.sh-finalize.lock` stays in the target and records the PID (process ID: the number the operating system gives a running program) of a process that has exited. `--recover`
-refuses that journal, so it cannot clear the lock. Remove the lock by hand, and only after you confirm that no finalizer
-is running. From the target root, with `EVIDENCE` set to the `--evidence-dir` of that run:
+A `finalize-init` run whose journal reads `ROLLED_BACK` (every write restored) has put back every file it wrote.
+The journal is `journal.json` in your `--evidence-dir`. If removing its lock failed at the same time,
+`.claude/agents/.sh-finalize.lock` stays in the target and records the PID (process ID: the number the operating system
+gives a running program) of a process that has exited. `--recover` refuses that journal, so it cannot clear the lock.
+Remove the lock by hand, and only after you confirm that no finalizer is running. From the target root, with `EVIDENCE`
+set to the `--evidence-dir` of that run:
 
 ```sh
 EVIDENCE=/path/outside/the/target    # the directory you passed as --evidence-dir
 python3 -I -B -c 'import json, sys; print(json.load(open(sys.argv[1]))["status"])' "$EVIDENCE/journal.json"   # must print ROLLED_BACK
 PID=$(cat .claude/agents/.sh-finalize.lock)
-if ps -p "$PID" -o args= | grep -q sh-finalize-init; then echo "PID $PID is a running finalizer: stop here"; else rm .claude/agents/.sh-finalize.lock; fi
+if ! command -v ps >/dev/null 2>&1; then echo "ps is not available: stop and report; the lock is kept"
+elif ps -p "$PID" -o args= 2>/dev/null | grep -q sh-finalize-init; then echo "PID $PID is a running finalizer: stop here"
+else rm .claude/agents/.sh-finalize.lock && echo "PID $PID is not a running finalizer: lock removed"; fi
 ```
 
-The block checks the PID once, and one check is enough. The lock is exclusive: it is taken before the run writes anything
+The block checks the PID once per run. The lock is exclusive: it is taken before the run writes anything
 to the target and held until the run commits. So while another finalizer runs on this target, the lock records that
 finalizer's PID. A dry run writes nothing and takes no lock.
 
-If the block prints `is a running finalizer: stop here`, that run is still going. Wait for it, then run the block again.
-If it prints nothing, the lock is gone. Either the PID was not running, or the PID now belongs to another program
-(`ps -p "$PID" -o args=` shows its command line). Do not wait for an unrelated program. Then start a new run with a new
-evidence directory outside the target. Route A (`npx`, nothing installed):
+If the block prints `is a running finalizer: stop here`, that run is still going. Wait, then check again; if it does not
+finish, stop it yourself and read the stale-lock section (no unbounded wait). If it prints `ps is not available`, stop
+and report: nothing was removed. If it prints `is not a running finalizer: lock removed`, the PID was not running, or
+it belongs to another program (`ps -p "$PID" -o args=` shows its command line). Do not wait for an unrelated program.
+Then start a new run with a new evidence directory outside the target. Route A (`npx`, nothing installed):
 
 ```sh
 npx -y github:chohra-med/spec-harness-oss finalize-init . --apply --source <each path you passed to index in step 4> --evidence-dir <new directory outside the target>
