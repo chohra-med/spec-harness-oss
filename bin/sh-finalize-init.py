@@ -524,6 +524,9 @@ def hold_lock_for_rollback(root):
     except Refused:
         if not (LOCK_CREATED and lock_holder(root) == os.getpid()):
             raise
+    except OSError as error:
+        # The lock step failed before any write: a named refusal, so interrupted_exit and apply print it.
+        raise Refused(f"cannot take the finalize lock for the rollback: {error}") from None
 
 
 def conflict_message(failure, conflicts, evidence):

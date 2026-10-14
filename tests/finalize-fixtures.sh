@@ -67,6 +67,10 @@ def counted_replace(*args):
     original_replace(*args)
     if mode == "crash-after" and count[0] == number:
         os._exit(23)
+    if mode in ("partial-restore", "rollback-lock-oserror", "unwritten-edit") and count[0] == number:
+        # An interrupt after the third write: the run has written three journaled files and then unwinds.
+        os.kill(os.getpid(), signal.SIGINT)
+        time.sleep(1)
     if mode in ("SIGINT", "SIGTERM") and count[0] == number:
         os.kill(os.getpid(), getattr(signal, mode))
         time.sleep(1)
@@ -224,6 +228,16 @@ if mode == "slow-tool":
             kwargs["timeout"] = 2
         return real_run(command, *args, **kwargs)
     subprocess.run = bounded_run
+if mode == "rollback-lock-oserror":
+    # The second lock take is the rollback's: its create fails with an OSError (not a Refused).
+    original_acquire_os = module.acquire_lock
+    acquire_calls = [0]
+    def acquire_second_fails(root):
+        acquire_calls[0] += 1
+        if acquire_calls[0] == 2:
+            raise OSError(13, "planted lock create failure")
+        return original_acquire_os(root)
+    module.acquire_lock = acquire_second_fails
 if mode == "busy-take-sigint":
     # A stale lock that records this process's PID is present before the run. The first take (apply's) sees it busy
     # and a SIGINT lands inside that busy take; the rollback then takes the lock again and must not remove it.
@@ -536,6 +550,19 @@ out = hooked(target, evidence, "busy-take-sigint", 0, 1, "busy take with a stale
 assert (target / LOCK).exists(), f"a busy take with SIGINT removed a lock this run did not create:\n{out}"
 assert "another finalize-init holds" in out and "interrupted by SIGINT" in out, out
 print("PASS: a SIGINT inside a busy lock take refuses the rollback and leaves a lock this run did not create")
+
+# 6n. N5: an OSError from the rollback's own lock take is not a Refused. It must still end as a named refusal: the
+# rollback writes nothing, the journal status stays as it was (APPLYING), interrupted_exit prints the refusal, exits 1
+# and no traceback is printed.
+target = tmp / "rollback-lock-oserror"
+shutil.copytree(start, target)
+evidence = tmp / "rollback-lock-oserror-ev"
+out = hooked(target, evidence, "rollback-lock-oserror", 3, 1, "rollback lock create fails")
+assert "Traceback" not in out, f"an OSError from the rollback's lock take escaped as a traceback:\n{out}"
+assert "the rollback was refused and wrote nothing" in out and "planted lock create failure" in out, out
+status = json.loads((evidence / "journal.json").read_text())["status"]
+assert status == "APPLYING", f"status {status}, expected APPLYING (as it was before the refusal):\n{out}"
+print("PASS: an OSError from the rollback's lock take is a named refusal: nothing written, status kept, exit 1")
 
 # 7. Two finalizers at once: exactly one gets the lock.
 target = tmp / "concurrent"
