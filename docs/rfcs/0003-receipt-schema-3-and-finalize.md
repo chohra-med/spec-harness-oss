@@ -126,10 +126,9 @@ The conflict message has one of two forms, depending on the path that kept the f
   handler and the record therefore exist before the first lock call.
 - While the lock is taken, SIGINT and SIGTERM are held back (`take_lock`, `:283-308`). If a signal lands after
   this run created the lock, the lock is removed before the interrupt propagates. A busy lock refuses at `:249`
-  and leaves the lock file alone (a refusal this run did not create is never removed). The refusal does not
-  create a journal, but it does leave an empty `--evidence-dir` behind (`:621` creates the directory before the
-  lock is taken). A retry needs a new directory. This was run before correction 19; that path is unchanged.
-  The refusal exits 1, the lock file was unchanged and the empty directory remained.
+  and leaves the lock file alone (a refusal this run did not create is never removed). The refusal exits 1
+  (`:828-830`) and writes no journal. It leaves the empty `--evidence-dir` that `:621` created before the lock is
+  taken, so a retry needs a new directory.
 - **The commit point.** The lock is released at `:663`, after the STRUCTURAL_READY write (`:657`) and before the
   success print (`:683`) and `return 0` (`:688`). From there the run is committed and the lock no longer guards it.
   The success print sits after the rollback handlers, in its own `try` that ignores `OSError` and `ValueError`, so a
