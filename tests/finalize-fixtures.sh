@@ -12,7 +12,7 @@ require_python311
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/sh-finalize.XXXXXX")" || exit 1
 trap 'rm -rf "$TMP"' EXIT
 
-python3 -I -B - "$ROOT" "$TMP" <<'PY'
+python3 -u -I -B - "$ROOT" "$TMP" <<'PY'
 import base64, json, os, shutil, signal, subprocess, sys, time
 from pathlib import Path
 
