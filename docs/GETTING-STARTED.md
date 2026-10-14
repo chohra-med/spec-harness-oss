@@ -356,10 +356,10 @@ files there. In a monorepo, remove each generated `<package>/RULES.md` as well. 
 
 | Code | Meaning |
 |---|---|
-| `0` | The shell step finished. The status may still be PENDING. |
+| `0` | The shell step finished. The status may still be PENDING. `finalize-init --apply` also exits `0` when an interrupt lands while Python itself is exiting after the run has finished: a traceback is printed on stderr, the journal reads `STRUCTURAL_READY`, and the completed run stays in place (RFC 0003, section 3). |
 | `1` | A check failed and printed what is missing or stale. `index` or `finalize-init` refused an argument, a precondition or a busy lock. A `finalize-init` tool step (`generate-agents --check` or `index --preview`) that runs longer than 600 seconds has its direct child process stopped and is refused, and the run is rolled back. A child process that the step started may keep running. `doctor` reports structural PENDING. A `finalize-init` rollback that could not finish keeps the lock. |
 | `2` | A missing target or unknown command, a bad argument, or a command that only prints a procedure for a model to follow. `doctor`, `index`, `finalize-init` and `generate-agents` also exit 2 on Python older than 3.11. |
-| `130` | `finalize-init` was interrupted by Ctrl-C or SIGTERM during `--apply`; every write was rolled back and the lock was released. If another finalize-init took the lock after the run had committed, the rollback refuses, writes nothing and exits `1`. An interrupt that lands while Python itself is exiting is not rolled back and can exit `0` (RFC 0003, section 3). |
+| `130` | The rollback case: `finalize-init --apply` was interrupted by Ctrl-C or SIGTERM and rolled back; every write was restored and the lock was released. If the rollback is refused because another finalize-init holds the lock, it writes nothing and exits `1`. An interrupt that lands while Python is exiting is a different path and is not rolled back: it can exit `0` (see the `0` row, and RFC 0003, section 3). |
 
 ## When something looks wrong
 
