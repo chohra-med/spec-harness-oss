@@ -25,11 +25,15 @@ jobs:
       - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: "22"
       - name: Show tool versions
         run: |
           bash --version | head -n 1
           git --version
           python3 --version
+          node --version
           npm --version
           tar --version | head -n 1
       - name: No test or script may call rg
