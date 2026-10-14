@@ -124,6 +124,12 @@ The conflict message has one of two forms, depending on the path that kept the f
 - `--apply` installs its signal handler (`install_signal_handlers`, `:497`, called at `:627`) and fills the run
   record `RUN` (`:62`, set at `:628`) before it takes the lock (`:629`; `take_lock` is defined at `:283`). The
   handler and the record therefore exist before the first lock call.
+- **Before the handler.** Until `install_signal_handlers` runs (`:627`), SIGINT is Python's default: it raises
+  `KeyboardInterrupt`, which no code in this file catches, so the process prints a traceback. The dry run never
+  installs the handler, so this applies to it too. In `apply` the window runs from the evidence directory that `:621`
+  creates to `:627`. Nothing is written to the target and no lock is taken in that window; the evidence directory may
+  already exist and be empty. A SIGTERM there ends the process without running any code in this file. The exit code
+  of the traceback path was not measured (UNVERIFIED).
 - While the lock is taken, SIGINT and SIGTERM are held back (`take_lock`, `:283-308`). If a signal lands after
   this run created the lock, the lock is removed before the interrupt propagates. A busy lock refuses at `:249`
   and leaves the lock file alone (a refusal this run did not create is never removed). The refusal exits 1
