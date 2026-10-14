@@ -132,7 +132,8 @@ The conflict message has one of two forms, depending on the path that kept the f
      lock only when this run created it (`LOCK_CREATED`, `:65`, set at `:299`, cleared by `release_lock` at `:280`)
      and the file still records this process. A lock this run did not create is never removed, even when it records
      this process's PID (fixture 6m). If another run holds it, the attempt is refused with the `acquire_lock` message
-     (`:249`) and nothing is written;
+     (`:249`) and nothing is written. If the lock step raises an OSError, the attempt is refused as
+     `cannot take the finalize lock for the rollback` (`:544`), again with nothing written (fixture 6n);
   3. restores every journaled file (`:544`) and records the outcome in the journal;
   4. releases the lock only when the status is `ROLLED_BACK` (`:553`). It keeps the lock for `RECOVERY_CONFLICT`
      and `RECOVERY_FAILED`.
