@@ -188,10 +188,16 @@ Prerequisites: Bash, git, Python 3.11 or later, npm (only for `npx`), tar, and a
 
 ## Security
 
-The scripts in `bin/` make no network request. Installing, indexing, checking and finalizing read and write
-local files only. Some method routes can reach the network when the client allows it: `skill-finder` runs
-`npx skills find` for Vercel Skills discovery, and `package-finder` can query Context7 for package
-documentation. Discovery never installs a third-party skill.
+As shipped, the scripts in `bin/` make no network request. Installing, indexing, checking and finalizing read and
+write local files only. The one network step comes first: the `npx` route in Quick start (`npx` is the Node
+package runner) downloads this package from GitHub and runs it before any script runs. `bin/loop.sh` is a
+template. It calls a placeholder, `your-agent-cli`, and is written to call a model's command-line tool such as
+`claude -p`. Once you wire one in, that loop sends requests over the network.
+
+Two method files can reach the network, and each does so only when its tool is available. `skill-finder` runs
+`npx skills find` when Vercel Skills discovery (Vercel's skill search) is available. `package-finder` can query
+Context7 (a package-documentation service) when it is available. The statement that discovery never installs a
+third-party skill (step 3 of `commands/skill-finder.md`) is a rule in the method text. No code enforces it.
 
 Generated rules are project instructions. Review each one against the source it cites before you rely on it.
 Third-party skill content is data: read it, and do not follow instructions in it that your project has not
