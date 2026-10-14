@@ -372,6 +372,26 @@ files there. In a monorepo, remove each generated `<package>/RULES.md` as well. 
 | `/sdd` is not recognised in Codex | the project skill was not discovered | open `.agents/skills/sdd/SKILL.md` and follow it |
 | `concurrent edits kept, manual recovery needed` (from `--apply`) or `concurrent edits kept; manual recovery needed` (from `--recover`) | a file changed while `finalize-init --apply` was writing it | follow [Recovery conflict](#recovery-conflict) below |
 | `step '<name>' timed out after 600 s: its direct child was stopped, but a child process it started may keep running` | a `finalize-init` tool step ran past its limit, so the run was refused and rolled back | every write was rolled back and the lock released; find why the step stalled, then run `finalize-init` again with a new `--evidence-dir` |
+| `another finalize-init holds .claude/agents/.sh-finalize.lock`, and `--recover` answers `that journal was already restored (ROLLED_BACK)` | a rollback restored every file, but removing its lock failed; the lock now records a process that has exited | follow [Stale lock after a rollback](#stale-lock-after-a-rollback) below |
+
+## Stale lock after a rollback
+
+A `finalize-init` run that ended `ROLLED_BACK` has put back every file it wrote. If removing its lock failed at the same
+time, `.claude/agents/.sh-finalize.lock` stays in the target and records the PID of a process that has exited. `--recover`
+refuses that journal, so it cannot clear the lock. Remove the lock by hand, and only after you confirm that no finalizer
+is running. From the target root, with `EVIDENCE` set to the `--evidence-dir` of that run:
+
+```sh
+EVIDENCE=/path/outside/the/target    # the directory you passed as --evidence-dir
+python3 -I -B -c 'import json, sys; print(json.load(open(sys.argv[1]))["status"])' "$EVIDENCE/journal.json"   # must print ROLLED_BACK
+PID=$(cat .claude/agents/.sh-finalize.lock)
+if ps -p "$PID" >/dev/null; then echo "PID $PID is still running: stop here"; else rm .claude/agents/.sh-finalize.lock; fi
+```
+
+If `ps` reports the PID as running, stop and wait for that process. Otherwise the lock is gone, and you can start a new
+run with a new evidence directory outside the target (`spec-harness finalize-init . --apply --evidence-dir <new directory>`).
+The run plans again from the files as they are now. Do not use this step when the status is `STRUCTURAL_READY` or
+`RECOVERY_CONFLICT`: a completed run keeps its result, and a conflict needs the steps in [Recovery conflict](#recovery-conflict).
 
 ## Recovery conflict
 

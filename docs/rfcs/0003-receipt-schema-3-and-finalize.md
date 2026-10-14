@@ -96,6 +96,13 @@ Recover refuses a journal whose status is `STRUCTURAL_READY`, `RECOVERED` or `RO
 for retrying them exists. That path is read from code (`bin/sh-finalize-init.py:698-756`). The conflict path is run by
 `tests/finalize-fixtures.sh` section 6c, which applies the manual step below and then `--recover`.
 
+**A lock left after a rollback.** A `ROLLED_BACK` journal is refused (`:708`, `already restored (ROLLED_BACK)`), so
+`--recover` cannot clear a lock that a failed release left behind. `roll_back` ignores an error from its release
+(`:580-581`), and `take_lock` does the same in its cleanup (`:305-307`). The lock then records a process that has
+exited. The manual step is in `docs/GETTING-STARTED.md`, section "Stale lock after a rollback": confirm that the
+journal status is `ROLLED_BACK` and that the recorded PID is not running, then remove `.claude/agents/.sh-finalize.lock`
+by hand.
+
 **Files this run never wrote.** `restore` skips a journaled file whose `expected_after` is empty (`:477-478`). Such a
 file is neither put back nor a conflict, so a human edit to it is kept and the rollback completes (fixture 6r). Only
 files this run wrote are restored or can conflict.
