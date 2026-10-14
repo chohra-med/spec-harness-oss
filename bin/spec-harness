@@ -34,8 +34,8 @@ cmd="${1:-help}"; shift || true
 # Python programs need 3.11+; the version is checked before any program is parsed.
 require_python() {
   command -v python3 >/dev/null 2>&1 || { echo "spec-harness $1 requires Python 3.11+; install python3 and retry" >&2; exit 2; }
-  python3 -I -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null || {
-    echo "spec-harness $1 requires Python 3.11+ (found $(python3 -I -c 'import platform; print(platform.python_version())' 2>/dev/null || echo unknown)); install a newer python3 and retry" >&2
+  python3 -I -B -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null || {
+    echo "spec-harness $1 requires Python 3.11+ (found $(python3 -I -B -c 'import platform; print(platform.python_version())' 2>/dev/null || echo unknown)); install a newer python3 and retry" >&2
     exit 2
   }
 }

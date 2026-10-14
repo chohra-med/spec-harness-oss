@@ -16,8 +16,8 @@ command -v python3 >/dev/null 2>&1 || {
 # Check the version before Python parses the program below, so an old interpreter gets this
 # message instead of a SyntaxError. -I (isolated mode) keeps the current directory, PYTHONPATH and
 # the user site out of sys.path: a module planted in the target cannot replace the standard library.
-python3 -I -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null || {
-  printf 'spec-harness-index requires Python 3.11+ (found %s); install a newer python3 and retry.\n' "$(python3 -I -c 'import platform; print(platform.python_version())' 2>/dev/null || echo unknown)" >&2
+python3 -I -B -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null || {
+  printf 'spec-harness-index requires Python 3.11+ (found %s); install a newer python3 and retry.\n' "$(python3 -I -B -c 'import platform; print(platform.python_version())' 2>/dev/null || echo unknown)" >&2
   exit 2
 }
 

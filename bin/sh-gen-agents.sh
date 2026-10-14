@@ -8,8 +8,8 @@ SYS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 # module planted in the target or the current directory cannot shadow the standard library.
 require_python() {
   command -v python3 >/dev/null 2>&1 || { echo "$1 requires Python 3.11+; install python3 and retry" >&2; exit 2; }
-  python3 -I -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null || {
-    echo "$1 requires Python 3.11+ (found $(python3 -I -c 'import platform; print(platform.python_version())' 2>/dev/null || echo unknown)); install a newer python3 and retry" >&2
+  python3 -I -B -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null || {
+    echo "$1 requires Python 3.11+ (found $(python3 -I -B -c 'import platform; print(platform.python_version())' 2>/dev/null || echo unknown)); install a newer python3 and retry" >&2
     exit 2
   }
 }
@@ -503,7 +503,7 @@ EOF_PROMPT
 require_python "generate-agents"
 # The work order names the target only relatively: an absolute path would put a personal directory
 # into a file that may be committed.
-python3 -I - "$TEMP_PROMPT" "$(basename "$ABS")" "${INVENTORY:-missing}" "$INVENTORY_STATUS" <<'PY'
+python3 -I -B - "$TEMP_PROMPT" "$(basename "$ABS")" "${INVENTORY:-missing}" "$INVENTORY_STATUS" <<'PY'
 from pathlib import Path
 import sys
 path = Path(sys.argv[1])

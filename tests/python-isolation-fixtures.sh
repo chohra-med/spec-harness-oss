@@ -125,5 +125,22 @@ for candidate in /usr/bin/python3 /usr/local/bin/python3.9 /usr/bin/python3.9 /u
   fi
 done
 
+# Every python3 program a shipped script runs carries -I (isolation) and -B (no bytecode written into the
+# install tree). `command -v python3` is a lookup, not a run, so it is not matched. Output is file:line.
+py_offenders=""
+for f in "$ROOT"/bin/*.sh "$ROOT/bin/spec-harness"; do
+  while IFS= read -r hit; do
+    flags="$(printf '%s\n' "${hit#*:}" | grep -oE 'python3( +-[A-Za-z]+)+' | head -n 1)"
+    ok=0
+    case " $flags " in *" -I "*) case " $flags " in *" -B "*) ok=1 ;; esac ;; esac
+    [[ "$ok" -eq 1 ]] || py_offenders="$py_offenders ${f#"$ROOT"/}:${hit%%:*}"
+  done < <(grep -nE 'python3 +-' "$f")
+done
+if [[ -z "$py_offenders" ]]; then
+  pass 'every python3 program in bin/*.sh and bin/spec-harness carries -I and -B'
+else
+  fail "python3 program without -I -B:$py_offenders"
+fi
+
 if [[ "$failures" -gt 0 ]]; then printf 'RED: %s python isolation check(s) failed\n' "$failures"; exit 1; fi
 printf 'GREEN: python isolation and version guard\n'
