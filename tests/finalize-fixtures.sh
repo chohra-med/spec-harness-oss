@@ -238,6 +238,17 @@ if mode == "rollback-lock-oserror":
             raise OSError(13, "planted lock create failure")
         return original_acquire_os(root)
     module.acquire_lock = acquire_second_fails
+if mode == "partial-restore":
+    # Restore puts back the first written file, then the second written file has gone missing: its read fails.
+    original_restore_partial = module.restore
+    def restore_with_missing_second(root, journal, evidence):
+        # The in-process journal order is the order restore walks; the journal on disk is sorted, so the test
+        # takes the order from this probe, not from the file.
+        written = [path for path, row in reversed(list(journal["files"].items())) if row["expected_after"]]
+        print("PROBE partial-restore first=" + written[0] + " removed=" + written[1], file=sys.stderr, flush=True)
+        os.remove(os.path.join(root, written[1]))
+        return original_restore_partial(root, journal, evidence)
+    module.restore = restore_with_missing_second
 if mode == "busy-take-sigint":
     # A stale lock that records this process's PID is present before the run. The first take (apply's) sees it busy
     # and a SIGINT lands inside that busy take; the rollback then takes the lock again and must not remove it.
@@ -563,6 +574,25 @@ assert "the rollback was refused and wrote nothing" in out and "planted lock cre
 status = json.loads((evidence / "journal.json").read_text())["status"]
 assert status == "APPLYING", f"status {status}, expected APPLYING (as it was before the refusal):\n{out}"
 print("PASS: an OSError from the rollback's lock take is a named refusal: nothing written, status kept, exit 1")
+
+# 6o. N2: a rollback that restores some files and then fails is partial. The interrupt print must say so and name
+# the files, and must not say that nothing was written. Restore puts back the first written file, then the second
+# written file cannot be read (it was removed).
+target = tmp / "partial-restore"
+shutil.copytree(start, target)
+evidence = tmp / "partial-restore-ev"
+out = hooked(target, evidence, "partial-restore", 3, 1, "partial restore")
+assert "wrote nothing" not in out, f"a partial restore must not claim that nothing was written:\n{out}"
+probe = re.search(r"PROBE partial-restore first=(\S+) removed=(\S+)", out)
+assert probe, f"no probe line:\n{out}"
+first, removed = probe.group(1), probe.group(2)
+journal = json.loads((evidence / "journal.json").read_text())
+assert journal["status"] == "RECOVERY_FAILED", journal["status"]
+assert journal["restored"] == [first], f"expected only {first} restored, got {journal['restored']}"
+assert (target / first).read_bytes() == base64.b64decode(journal["files"][first]["before"]), "the restored file is not the prior bytes"
+assert "partial" in out and first in out and removed in out, f"the partial restore must name the files:\n{out}"
+assert (target / LOCK).exists(), "a failed restore keeps the lock"
+print("PASS: a partial rollback says so and names the restored and the not-restored files")
 
 # 7. Two finalizers at once: exactly one gets the lock.
 target = tmp / "concurrent"

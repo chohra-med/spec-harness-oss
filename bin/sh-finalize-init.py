@@ -50,6 +50,10 @@ class Refused(Exception):
     """A precondition failed; the message is reported as PENDING."""
 
 
+class RollbackFailed(Refused):
+    """A restore raised partway: some files may hold the prior bytes and others this run's bytes; the lock is kept."""
+
+
 class Interrupted(BaseException):
     """SIGINT or SIGTERM arrived; the apply path rolls back before exiting."""
 
@@ -462,17 +466,25 @@ def verify_inputs(root, inputs):
 
 
 def restore(root, journal, evidence):
-    """Put back the exact prior bytes of every journaled file whose postimage is still ours."""
+    """Put back the exact prior bytes of every journaled file whose postimage is still ours.
+
+    journal["restored"] lists each file that now holds its prior bytes, in the order restore reached it, so a
+    failure partway can be reported by name.
+    """
     conflicts = []
+    journal["restored"] = []
     for path, row in reversed(list(journal["files"].items())):
         current = read_target(root, path)
         prior = decode(row["before"])
         if current == prior:
+            if row["expected_after"]:
+                journal["restored"].append(path)
             continue
         if sha(current) not in row["expected_after"]:
             conflicts.append(path)
             continue
         replace(root, path, sha(current), prior)
+        journal["restored"].append(path)
     removed = cleanup_temporaries(root, journal["files"])
     journal["removed_temporaries"] = removed
     journal["recovery_conflicts"] = conflicts
@@ -558,7 +570,7 @@ def roll_back(failure):
     except (Refused, OSError, ValueError) as recovery_error:
         journal["status"] = "RECOVERY_FAILED"
         save_journal_quietly(evidence, journal)
-        raise Refused(f"{failure}; rollback failed: {recovery_error}; lock kept; run --recover") from None
+        raise RollbackFailed(f"{failure}; rollback failed: {recovery_error}; lock kept; run --recover") from None
     if not conflicts and LOCK_CREATED:
         try:
             release_lock(root)
@@ -570,14 +582,26 @@ def roll_back(failure):
 def interrupted_exit(error):
     """Top-level rollback: an interrupt reached __main__. Returns the process exit code.
 
-    A rolled-back run exits 130. A refused rollback (the lock is held by another run) writes nothing and exits 1;
-    a conflict keeps the conflicting files and exits 1.
+    A rolled-back run exits 130. A refused rollback (the lock is held by another run, or the lock step failed)
+    writes nothing and exits 1. A failed restore keeps the lock, says which files it restored and which it did
+    not, and exits 1. A conflict keeps the conflicting files and exits 1.
     """
     if not RUN:
         print(f"PENDING: interrupted by {error}", file=sys.stderr)
         return 130
     try:
         conflicts = roll_back(f"interrupted by {error}")
+    except RollbackFailed as failed:
+        journal = RUN["journal"]
+        restored = journal.get("restored", [])
+        unrestored = [path for path, row in journal["files"].items() if row["expected_after"] and path not in restored]
+        if restored:
+            outcome = (f"the rollback was partial: restored {', '.join(restored)}; "
+                       f"not restored: {', '.join(unrestored)}")
+        else:
+            outcome = "the rollback failed before it restored any file; this run's writes are still on disk"
+        print(f"PENDING: interrupted by {error}; {outcome}: {failed}", file=sys.stderr)
+        return 1
     except Refused as refusal:
         print(f"PENDING: interrupted by {error}; the rollback was refused and wrote nothing: {refusal}", file=sys.stderr)
         return 1
