@@ -232,7 +232,7 @@ the procedure opens, and project-local installed skills, then writes:
 "Client" here means the coding agent you run it in (Claude Code, or Codex). The client sends what it reads to the model
 provider it uses. Read your client's data terms before you run these steps on private code.
 
-The source sample is capped. A package with no `--source` path gets up to five files by default. A `--source` path applies to the package it names; other packages still get the default. The `--source` list is capped at five paths in total. Every sampled file is capped at 128 KiB, the whole sample at 2 MiB, and each instruction file at 256 KiB. A file over its cap is left out and recorded as excluded, except a generated output the receipt registers, where `index` stops with a PENDING message and exit 1; a `--source` file over 128 KiB also stops `index` with exit 1. The init procedure may open more first-party source than the sample (`commands/init.md`, line 18). The code cannot enforce a bound on that reading, so check the source each rule cites in step 6.
+The source sample is capped. A package with no `--source` path gets up to five files by default. A `--source` path applies to the package it names; other packages still get the default. The `--source` list is capped at five paths in total. Every sampled file is capped at 128 KiB, the whole sample at 2 MiB, and each instruction file at 256 KiB. A source or instruction file over its cap is left out and recorded as excluded, except a generated output the receipt registers, where `index` stops with a PENDING message and exit 1; a `--source` file over 128 KiB also stops `index` with exit 1. A manifest over 256 KiB is not left out. `index` records it as unreadable, and after initialisation `generate-agents --check` fails with a message containing "unsupported or unreadable manifest" until the manifest is made smaller or moved out of the scanned tree. The init procedure may open more first-party source than the sample (`commands/init.md`, line 18). The code cannot enforce a bound on that reading, so check the source each rule cites in step 6.
 
 It then runs the structural check:
 
@@ -368,7 +368,7 @@ files there. In a monorepo, remove each generated `<package>/RULES.md` as well. 
 | `PENDING: missing or unsafe synthesis receipt` | `/sdd init` has not run yet | run step 5 |
 | The client ignores the harness | your own `CLAUDE.md` was preserved | step 3 |
 | `Indexed 0 package boundary/boundaries` | no `package.json` or `pyproject.toml` at the root you indexed | index the directory that has one |
-| The check fails after you edited a generated file | the receipt hash is stale | ask the client to run the guarded refresh in `/sdd init` |
+| The check fails after you edited a generated file | the receipt hash is stale | if your inventory is `ai_rules/project_inventory.json`, ask the client to run the guarded refresh in `/sdd init`. A Markdown context map (the default `index` output) cannot be refreshed that way: the refresh refuses it with "re-run init for a Markdown context map", and the policy-drift check does nothing for it |
 | `/sdd` is not recognised in Codex | the project skill was not discovered | open `.agents/skills/sdd/SKILL.md` and follow it |
 | `concurrent edits kept, manual recovery needed` (from `--apply`) or `concurrent edits kept; manual recovery needed` (from `--recover`) | a file changed while `finalize-init --apply` was writing it | follow [Recovery conflict](#recovery-conflict) below |
 
