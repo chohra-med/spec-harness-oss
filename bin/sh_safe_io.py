@@ -1,4 +1,4 @@
-"""Bounded, no-follow reads shared by index, the readiness check, finalize-init, doctor and run-state.
+"""Bounded, no-follow reads shared by index, the readiness check, finalize-init and doctor.
 
 Standard library only. Every reader refuses symbolic links, FIFOs, devices and other non-regular
 files, refuses files over a byte budget, and notices a file that changes while it is read. With a

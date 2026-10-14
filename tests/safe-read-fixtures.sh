@@ -126,6 +126,13 @@ dir_race_refused("a directory swapped for a link after its stat is refused by O_
 PY
 then pass 'shared helper contract'; else fail 'shared helper contract'; fi
 
+# The helper's docstring names only callers that exist on this branch (run-state arrives in a later PR).
+if grep -q 'run-state' "$ROOT/bin/sh_safe_io.py"; then
+  fail "bin/sh_safe_io.py docstring names a later caller: $(grep -n 'run-state' "$ROOT/bin/sh_safe_io.py")"
+else
+  pass 'bin/sh_safe_io.py docstring names no later-PR caller'
+fi
+
 # 2. The readiness check reads its receipt through the helper.
 check() { bash "$ROOT/bin/spec-harness" generate-agents --check "$1" 2>&1; }
 t="$TMP/check"; mkdir -p "$t/real-claude/agents" "$t/.claude"
