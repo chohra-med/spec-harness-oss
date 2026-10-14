@@ -670,8 +670,12 @@ def apply(root, evidence, sources):
             raise Refused(conflict_message(str(error), conflicts, evidence)) from None
         raise Refused(f"{error}; every write was rolled back") from None
     except BaseException as error:
-        # A failure the list above does not name still rolls back, then propagates as it did before.
-        roll_back(f"unexpected {type(error).__name__}: {error}")
+        # A failure the list above does not name still rolls back. A conflict the rollback finds is printed with its
+        # file list, as the named branch does; with no conflict the original error propagates as it did before.
+        failure = f"unexpected {type(error).__name__}: {error}"
+        conflicts = roll_back(failure)
+        if conflicts:
+            raise Refused(conflict_message(failure, conflicts, evidence)) from error
         raise
 
 

@@ -47,6 +47,8 @@ count = [0]
 original_replace = module.replace
 def counted_replace(*args):
     count[0] += 1
+    if mode == "unnamed-conflict" and count[0] == number:
+        raise RuntimeError("planted unnamed failure")
     if mode in ("restore-fails", "restore-conflict", "error-then-sigint-in-restore") and count[0] == number:
         raise OSError("planted write failure")
     if mode == "double-signal" and count[0] == number:
@@ -238,6 +240,15 @@ if mode == "rollback-lock-oserror":
             raise OSError(13, "planted lock create failure")
         return original_acquire_os(root)
     module.acquire_lock = acquire_second_fails
+if mode == "unnamed-conflict":
+    # An unnamed failure (not a Refused, OSError, ValueError, KeyError or TypeError) after the second write, and a
+    # concurrent human edit to the inventory that the rollback then finds: the conflict must still be printed.
+    original_restore_unnamed = module.restore
+    def conflicting_restore_after_unnamed(root, journal, evidence):
+        with open(os.path.join(root, "ai_rules/project_inventory.json"), "ab") as handle:
+            handle.write(b"\n")
+        return original_restore_unnamed(root, journal, evidence)
+    module.restore = conflicting_restore_after_unnamed
 if mode == "partial-restore":
     # Restore puts back the first written file, then the second written file has gone missing: its read fails.
     original_restore_partial = module.restore
@@ -593,6 +604,18 @@ assert (target / first).read_bytes() == base64.b64decode(journal["files"][first]
 assert "partial" in out and first in out and removed in out, f"the partial restore must name the files:\n{out}"
 assert (target / LOCK).exists(), "a failed restore keeps the lock"
 print("PASS: a partial rollback says so and names the restored and the not-restored files")
+
+# 6p. N3: an unnamed failure rolls back, and a conflict that the rollback finds must still be printed as the
+# conflict message (the file list for manual recovery). The traceback is not the only output.
+target = tmp / "unnamed-conflict"
+shutil.copytree(start, target)
+evidence = tmp / "unnamed-conflict-ev"
+out = hooked(target, evidence, "unnamed-conflict", 2, 1, "unnamed failure with a conflict")
+assert "concurrent edits kept, manual recovery needed: ai_rules/project_inventory.json" in out, f"the conflict list was dropped:\n{out}"
+assert "Traceback" not in out, f"the conflict must be a named refusal, not a traceback:\n{out}"
+assert json.loads((evidence / "journal.json").read_text())["status"] == "RECOVERY_CONFLICT"
+assert (target / LOCK).exists(), "a conflict keeps the lock"
+print("PASS: an unnamed failure whose rollback finds a conflict prints the conflict list as a named refusal")
 
 # 7. Two finalizers at once: exactly one gets the lock.
 target = tmp / "concurrent"
