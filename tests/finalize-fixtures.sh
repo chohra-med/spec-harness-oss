@@ -171,6 +171,46 @@ if mode == "return-sigint":
             return local
         return local
     sys.settrace(tracer)
+if mode == "after-main-sigint":
+    # A SIGINT lands after apply() has returned 0: the top level (the __main__ mirror below) must roll back.
+    original_main = module.main
+    def main_then_sigint(argv=None):
+        code = original_main(argv)
+        os.kill(os.getpid(), signal.SIGINT)
+        return code
+    module.main = main_then_sigint
+if mode == "race-after-commit":
+    # The commit point releases the lock. A second finalizer then takes the lock and holds it until the test
+    # releases it (hold-lock below); the interrupt lands while the lock is busy, so the rollback must refuse.
+    original_release_race = module.release_lock
+    def release_then_race(root):
+        original_release_race(root)
+        base = sys.argv[3]
+        holder = subprocess.Popen([sys.executable, "-I", "-B", os.environ["HOOK_FILE"], sys.argv[1], root, base + "-other-ev", "hold-lock", "0"],
+                                  stdout=open(base + "-other.log", "w"), stderr=subprocess.STDOUT,
+                                  env=dict(os.environ, HOLD_FILE=base + "-release"))
+        with open(base + "-holder", "w") as record:
+            record.write(str(holder.pid))
+        lock_path = os.path.join(root, ".claude/agents/.sh-finalize.lock")
+        deadline = time.time() + 30
+        while time.time() < deadline:
+            try:
+                if open(lock_path).read() == f"{holder.pid}\n":
+                    break
+            except FileNotFoundError:
+                pass
+            time.sleep(0.01)
+        os.kill(os.getpid(), signal.SIGINT)
+    module.release_lock = release_then_race
+if mode == "hold-lock":
+    # Runs as the second finalizer: it holds the lock inside plan() until the test writes HOLD_FILE.
+    original_plan_hold = module.plan
+    def hold_plan(*args, **kwargs):
+        deadline = time.time() + 60
+        while not os.path.exists(os.environ["HOLD_FILE"]) and time.time() < deadline:
+            time.sleep(0.05)
+        return original_plan_hold(*args, **kwargs)
+    module.plan = hold_plan
 if mode == "slow-tool":
     # A tool step that outlives its limit: the check sleeps 150 s. The limit is the timeout argument run_tool
     # passes to subprocess.run, which this hook records. The module constant is NOT overwritten, so a changed
@@ -200,6 +240,10 @@ except module.Interrupted as error:
     print("PENDING: interrupted by " + str(error), file=sys.stderr)
     sys.exit(130)
 '''
+
+
+HOOK_PATH = tmp / "finalize-hook.py"
+HOOK_PATH.write_text(HOOK)
 
 
 def hooked(target, evidence, mode, number, expected, label):
@@ -405,11 +449,13 @@ print("PASS: a SIGINT with a failed lock fsync leaves no lock, changes no byte a
 # 6j. Ruling (2026-10-15): a SIGINT at ANY point after the first target write, before the run returns, rolls the
 # run back: exit 130, status ROLLED_BACK, every byte restored to the start snapshot, no lock file. A completed
 # run is never kept when it is interrupted. Points: the release call (lock still present), the STRUCTURAL_READY
-# write (before and after the journal write), and the line that returns 0 after the success message.
+# write (before and after the journal write), the line that returns 0 after the success message, and the point
+# after apply() has returned 0 (the top level still rolls back).
 for label, mode, number in (("the release call", "release-sigint", 0),
                             ("the STRUCTURAL_READY write, before it", "status-sigint", 0),
                             ("the STRUCTURAL_READY write, after it", "status-sigint", 1),
-                            ("the line before return 0", "return-sigint", 0)):
+                            ("the line before return 0", "return-sigint", 0),
+                            ("after apply() returned 0", "after-main-sigint", 0)):
     target = tmp / f"6j-{mode}-{number}"
     shutil.copytree(start, target)
     evidence = tmp / f"6j-{mode}-{number}-ev"
@@ -432,6 +478,43 @@ assert json.loads((evidence / "journal.json").read_text())["status"] == "ROLLED_
 assert fx.snapshot(target) == initial, f"a SIGINT after the release call did not restore every byte:\n{out}"
 assert "interrupted by SIGINT" in out, out
 print("PASS: a SIGINT after the release call has removed the lock still rolls back, leaves no lock and exits 130")
+
+# 6l. Ruling (2026-10-15), race: the commit point releases the lock, so a second finalizer can take it before a
+# top-level rollback writes. The rollback must hold the lock before it writes. While another run holds it, the
+# rollback refuses with the lock message, writes nothing, leaves the other run's lock alone and exits 1.
+done = tmp / "race-done"
+shutil.copytree(start, done)
+finalize(done, "--apply", "--evidence-dir", str(tmp / "race-done-ev"), label="clean run for the completed snapshot")
+def content(root):
+    snap = fx.snapshot(root)
+    snap.pop(LOCK, None)
+    return snap
+
+
+completed = content(done)
+assert completed != initial
+target = tmp / "race-window"
+shutil.copytree(start, target)
+race_ev = tmp / "race-ev"
+proc = subprocess.run([sys.executable, "-I", "-B", str(HOOK_PATH), FINALIZE, str(target), str(race_ev), "race-after-commit", "0"],
+                      capture_output=True, text=True, timeout=120, env=dict(os.environ, HOOK_FILE=str(HOOK_PATH)))
+race_out = proc.stdout + proc.stderr
+assert proc.returncode == 1, f"a rollback that finds the lock busy must exit 1, got {proc.returncode}:\n{race_out}"
+assert f"another finalize-init holds {LOCK}" in race_out, race_out
+race_journal = json.loads((race_ev / "journal.json").read_text())
+assert race_journal["status"] == "STRUCTURAL_READY" and "rollback refused" in race_journal["failure"], race_journal
+assert content(target) == completed, "the rollback wrote while another run held the lock"
+holder_pid = (tmp / "race-ev-holder").read_text()
+assert (target / LOCK).read_text() == f"{holder_pid}\n", "the rollback removed or changed the other run's lock"
+open(str(race_ev) + "-release", "w").close()
+deadline = time.time() + 120
+while (target / LOCK).exists() and time.time() < deadline:
+    time.sleep(0.05)
+assert not (target / LOCK).exists(), "the other run did not finish after the release"
+other_log = (tmp / "race-ev-other.log").read_text()
+assert "STRUCTURAL_READY" in other_log and "Traceback" not in other_log, other_log
+assert content(target) == completed, "the other run changed the completed target"
+print("PASS: a rollback that finds the lock busy after the commit point refuses, writes nothing and leaves the other run's lock")
 
 # 7. Two finalizers at once: exactly one gets the lock.
 target = tmp / "concurrent"
