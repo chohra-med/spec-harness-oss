@@ -142,5 +142,21 @@ else
   fail "python3 program without -I -B:$py_offenders"
 fi
 
+# The GETTING-STARTED rows that state the Python 3.11 requirement must name every command that refuses an
+# older interpreter (the dispatcher's require_python and the scripts' own version checks).
+gs="$ROOT/docs/GETTING-STARTED.md"
+prereq_row="$(grep -F '| Python 3.11 or newer |' "$gs" || true)"
+exit_row="$(grep -F 'also exit 2 on Python older than 3.11' "$gs" || true)"
+doc_missing=""
+for cmd in index doctor finalize-init generate-agents; do
+  [[ "$prereq_row" == *"\`$cmd\`"* ]] || doc_missing="$doc_missing prerequisite:$cmd"
+  [[ "$exit_row" == *"\`$cmd\`"* ]] || doc_missing="$doc_missing exit-2:$cmd"
+done
+if [[ -n "$prereq_row" && -n "$exit_row" && -z "$doc_missing" ]]; then
+  pass 'GETTING-STARTED names every command that refuses Python older than 3.11'
+else
+  fail "GETTING-STARTED Python 3.11 rows omit:${doc_missing:- (row not found)}"
+fi
+
 if [[ "$failures" -gt 0 ]]; then printf 'RED: %s python isolation check(s) failed\n' "$failures"; exit 1; fi
 printf 'GREEN: python isolation and version guard\n'

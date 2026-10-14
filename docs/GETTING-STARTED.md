@@ -22,7 +22,7 @@ what the initialiser wrote; allow longer on a large app.
 | Tool | Needed for |
 |---|---|
 | `git`, `bash` 3.2 or newer | everything |
-| Python 3.11 or newer | `index` and the structural check |
+| Python 3.11 or newer | `index`, `doctor`, `finalize-init` and `generate-agents` (the structural check is `generate-agents --check`) |
 | Node.js | only the `npx` route; a checkout needs none |
 | Claude Code, or Codex | the model-led steps (`/sdd init`, `/sdd <ticket>`) |
 
@@ -344,7 +344,7 @@ files there. In a monorepo, remove each generated `<package>/RULES.md` as well. 
 |---|---|
 | `0` | The shell step finished. The status may still be PENDING. |
 | `1` | A check failed and printed what is missing or stale. `index` or `finalize-init` refused an argument, a precondition or a busy lock. `doctor` reports structural PENDING. A `finalize-init` rollback that could not finish keeps the lock. |
-| `2` | A missing target or unknown command, a bad argument, or a command that only prints a procedure for a model to follow. `doctor`, `index` and `finalize-init` also exit 2 on Python older than 3.11. |
+| `2` | A missing target or unknown command, a bad argument, or a command that only prints a procedure for a model to follow. `doctor`, `index`, `finalize-init` and `generate-agents` also exit 2 on Python older than 3.11. |
 | `130` | `finalize-init` was interrupted by Ctrl-C or SIGTERM during `--apply`; every write was rolled back and the lock was released. |
 
 ## When something looks wrong
