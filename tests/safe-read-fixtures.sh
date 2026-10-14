@@ -97,6 +97,32 @@ def race_refused(label, relpath, *, plain=False):
 
 race_refused("a link swapped in after the stat is refused by O_NOFOLLOW (in-root read)", "dir/race-root.txt")
 race_refused("a link swapped in after the stat is refused by O_NOFOLLOW (plain path read)", "dir/race-plain.txt", plain=True)
+
+# A DIRECTORY on the path swapped for a link to a directory outside the root, after its stat and
+# before its open. O_NOFOLLOW on the directory open is what refuses it with the in-root reason. Without
+# it the open follows the link and reads outside bytes, and only the later identity check refuses,
+# with a different reason.
+def dir_race_refused(label):
+    base = root / "racedir"
+    base.mkdir()
+    (base / "leaf.txt").write_bytes(b"regular")
+    outside_dir = root / "outdir"
+    outside_dir.mkdir()
+    (outside_dir / "leaf.txt").write_bytes(b"outside")
+    swapped = []
+    real_open = os.open
+    def swap_then_open(name, flags, *args, **kwargs):
+        if not swapped and os.fspath(name) == "racedir":
+            os.rename(base, root / "racedir-away")
+            os.symlink(outside_dir, base, target_is_directory=True)
+            swapped.append(True)
+        return real_open(name, flags, *args, **kwargs)
+    with patch("sh_safe_io.os.open", swap_then_open):
+        data, reason = read_bounded_result("racedir/leaf.txt", 100, root=str(root))
+    assert swapped and data is None and reason == "not a regular in-root file", (label, data, reason)
+    print("PASS: " + label)
+
+dir_race_refused("a directory swapped for a link after its stat is refused by O_NOFOLLOW on the directory open")
 PY
 then pass 'shared helper contract'; else fail 'shared helper contract'; fi
 
