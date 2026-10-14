@@ -175,8 +175,10 @@ The conflict message has one of two forms, depending on the path that kept the f
   (UNVERIFIED).
 - **Injection measurement.** A SIGINT injected at each of the 158 line events of `apply` from the first target
   write (event 67, line 610) to the last (event 224, line 629) ended with exit 130, `ROLLED_BACK`, no lock and
-  every byte equal. The table is in the correction 19 receipt. The same driver on a copy of `6136460` flagged
-  10 of 166 points. These numbers were measured on the script before correction 20 (`f3d2587`), so the line numbers
+  every byte equal. The 158 is the count of trace line events from event 67 through event 224, both included
+  (224 - 67 + 1). The table is in the correction 19 receipt. The same driver on a copy of `6136460` flagged
+  10 of 166 points: 166 is every `apply` line event that driver swept in that older script, not only the write
+  window, and 10 of them were not clean. These numbers were measured on the script before correction 20 (`f3d2587`), so the line numbers
   in this paragraph are that script's (`:610`, `:629`). Correction 20 changed the rollback and the success print, so
   the measurement was not repeated for the current script (UNVERIFIED).
 - The first SIGINT or SIGTERM ignores both signals (`:504`), and `roll_back` sets them again (`:560`), so a
