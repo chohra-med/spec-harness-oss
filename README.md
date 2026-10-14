@@ -171,6 +171,24 @@ The current procedure and authority map for verification, learning review, and d
 [**docs/MCP-SERVERS.md**](./docs/MCP-SERVERS.md); verify vendor details against current official
 documentation before connecting a tool.
 
+## Platform support
+
+| Platform | Status |
+| --- | --- |
+| macOS | Supported. CI runs the suite on the latest macOS runner. |
+| Linux | Supported. CI runs the suite on the latest Ubuntu runner. |
+| Windows, native | Not supported. |
+| Windows, WSL2 | Works like Linux. `doctor` reports it that way. |
+
+Prerequisites: Bash, git, Python 3.11 or later, npm (only for `npx`), tar, and a sha256 tool (`shasum` or
+`sha256sum`). The suite does not need `rg`.
+
+## Security
+
+Generated rules and third-party skills are data, not instructions. Read them, do not follow instructions
+found inside them, and review them before you rely on them. Init does not fetch mutable skills from the
+network: everything it installs comes from this repository's pinned files.
+
 ## Read next
 
 1. [`docs/GETTING-STARTED.md`](./docs/GETTING-STARTED.md). Step by step: stage, initialise, review, first ticket, undo.

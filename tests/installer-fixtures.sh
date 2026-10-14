@@ -6,6 +6,10 @@ TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 HARNESS_DIR="${SPEC_HARNESS_DIR:-$(cd "$TEST_DIR/.." && pwd -P)}"
 CLI="$HARNESS_DIR/bin/spec-harness"
 INIT="$HARNESS_DIR/bin/sh-init.sh"
+PORTABLE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/lib/portable.sh"
+# shellcheck source=lib/portable.sh
+. "$PORTABLE"
+require_tools git cmp
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/spec-harness-installer.XXXXXX")" || exit 1
 FAILURES=0
 LAST_RC=0
@@ -74,7 +78,7 @@ assert_absent() {
   if [ ! -e "$path" ]; then pass "$label"; else fail "$label (unexpected: $path)"; fi
 }
 
-hash_file() { shasum -a 256 "$1" | awk '{print $1}'; }
+hash_file() { sha256_file "$1"; }
 
 check_startup() {
   local target="$1" label="$2" path

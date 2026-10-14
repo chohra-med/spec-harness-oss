@@ -19,10 +19,10 @@ fail() {
 
 pass() { printf 'PASS: %s\n' "$1"; }
 
-if ! command -v python3 >/dev/null 2>&1; then
-  printf 'SKIPPED: python3 is required\n'
-  exit 1
-fi
+# shellcheck source=lib/portable.sh
+. "$TEST_DIR/lib/portable.sh"
+require_tools git
+require_python311
 
 CHECKER="$TMP/checker.py"
 cat >"$CHECKER" <<'PYEOF'

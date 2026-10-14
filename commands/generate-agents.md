@@ -42,6 +42,15 @@ Do not fill unselected roles merely because a template exists. A change to the i
 - the core skill names `spec-harness-architecture`, `spec-harness-performance`, `spec-harness-packages`, plus `spec-harness-quality` and `spec-harness-conduct` on a first initialisation (schema 2; an existing schema-1 receipt keeps only the first three), plus at most five `spec-harness-tech-<technology>` skills scoped to the packages that use that technology, each with output paths/hashes, package paths and citations;
 - selected `roles` and `excluded_roles`, with role file paths/hashes, package paths, citations, and selection/exclusion reasons.
 
+A package row may also list `rule_modules`: package-local topic files at `<package>/ai_rules/rules/<topic>.md` (`ai_rules/rules/<topic>.md` for the root), each with `name`, `path`, `sha256` and `citations`. Each module carries the raw-inventory source-bound marker, cites its own lines, and is linked from that package's `RULES.md`. While a router or module still matches the receipt, `index` records it as `receipt-generated` without a hash, so refreshing its marker does not change the inventory.
+
+**Schema 3 (policy coverage).** Use `schema_version: 3` when the receipt also records how the project's own policy files were covered. Schema 3 keeps every schema 2 requirement, including the five core skills, and adds:
+
+- `policy_sources`: one row per project policy file read (`path`, `sha256`, `requirement_ids`, the atomic requirements found in it);
+- `policy_coverage`: exactly one row per requirement id, with `id`, `path`, `sha256`, `line_start`, `line_end` and a `disposition`. `captured` names a registered `rule_path` (a package `RULES.md` or rule module) and a `rule_anchor` text found in it; `not-applicable` gives a `reason`; `conflict` and `owner-decision` give a reason and keep the receipt PENDING until resolved.
+
+For schema 3 the check also rejects a policy file whose bytes changed after `index` hashed it. Schema 1 and 2 receipts keep their meaning and are not asked for a ledger.
+
 Each citation has `package_path`, `path`, `line_start`, `line_end` and `sha256`. Cite representative code/config/test paths actually listed by the inventory. The readiness check rejects missing files, changed hashes, out-of-package citations, invalid line spans, generic/stub rule text, unsupported or incomplete inventory, skill conflicts, missing required roles, missing markers or stale role blocks. It prints each detected defect and exits nonzero. PENDING is the only honest result when synthesis or evidence is unresolved.
 
 A passing `--check` proves structural integrity and current cited bytes only. Before declaring overall initialization READY, a separate fresh reviewer must check that every cited span supports its claim, package boundaries are respected, and policy conflicts or unsupported recommendations are surfaced. Record the review outcome; if no independent review context is available, keep overall initialization PENDING even when this checker prints READY. The check does not prove a role was dispatched or that a feature goal passed; feature acceptance remains separate.

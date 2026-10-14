@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
+PORTABLE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/lib/portable.sh"
+# shellcheck source=lib/portable.sh
+. "$PORTABLE"
+require_tools bash
+require_python311
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/sh-portable-skills.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 CLI="$ROOT/bin/spec-harness"
@@ -45,7 +50,7 @@ assert ".claude/skills/" in readme and ".agents/skills/" in readme and "Native d
 PY
 
 skill_hash_map() {
-  (cd "$1" && find . -type f -name SKILL.md -print0 | sort -z | xargs -0 shasum -a 256)
+  (cd "$1" && find . -type f -name SKILL.md -print0 | sort -z | xargs -0 bash -c '. "$0"; sha256_lines "$@"' "$PORTABLE")
 }
 source_before="$(skill_hash_map "$ROOT/skills")"
 GENERATOR_COPY="$TMP/generator-copy"
@@ -164,9 +169,9 @@ mkdir -p "$custom"
 for client in .claude .agents; do
   rel="$client/skills/spec-harness-grill-me/SKILL.md"
   printf 'user custom bytes\n' >"$custom/$rel"
-  before_hash="$(shasum -a 256 "$custom/$rel" | awk '{print $1}')"
+  before_hash="$(sha256_file "$custom/$rel")"
   "$CLI" install "$custom" integrate >"$TMP/custom.log"
-  after_hash="$(shasum -a 256 "$custom/$rel" | awk '{print $1}')"
+  after_hash="$(sha256_file "$custom/$rel")"
   test "$before_hash" = "$after_hash"
   grep -Fq "$rel" "$TMP/custom.log"
 done
