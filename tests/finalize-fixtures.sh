@@ -264,6 +264,14 @@ if mode == "edit-then-foreign-lock":
                     handle.write("1\n")
         return original_read_foreign(root, path)
     module.read_target = read_edit_then_foreign_lock
+if mode == "unwritten-edit":
+    # RULES.md is journaled but this run never wrote it. A human edit lands in it before the rollback reads it.
+    original_restore_unwritten = module.restore
+    def restore_after_unwritten_edit(root, journal, evidence):
+        with open(os.path.join(root, "RULES.md"), "ab") as handle:
+            handle.write(b"\nhuman edit\n")
+        return original_restore_unwritten(root, journal, evidence)
+    module.restore = restore_after_unwritten_edit
 if mode == "partial-restore":
     # Restore puts back the first written file, then the second written file has gone missing: its read fails.
     original_restore_partial = module.restore
@@ -641,6 +649,22 @@ out = hooked(target, evidence, "edit-then-foreign-lock", 3, 1, "a failure whose 
 assert "concurrent edit preserved: ai_rules/project_inventory.json" in out and "another finalize-init holds" in out, f"the printed text lost the original failure:\n{out}"
 assert (target / LOCK).read_text() == "1\n", "the rollback changed or removed another run's lock"
 print("PASS: a failure whose rollback is refused by a lock prints the original failure with the refusal")
+
+# 6r. A2: a journaled file this run never wrote (expected_after empty) is not part of the rollback. A human edit to
+# it is not a conflict: the rollback completes (exit 130), keeps the edit, and restores every file this run wrote.
+target = tmp / "unwritten-edit"
+shutil.copytree(start, target)
+evidence = tmp / "unwritten-edit-ev"
+out = hooked(target, evidence, "unwritten-edit", 3, 130, "a human edit to a file this run never wrote")
+journal = json.loads((evidence / "journal.json").read_text())
+assert journal["files"]["RULES.md"]["expected_after"] == [], "RULES.md must be a journaled, never-written file for this test"
+assert journal["status"] == "ROLLED_BACK", f"status {journal['status']}, expected ROLLED_BACK:\n{out}"
+assert "manual recovery" not in out, f"an unwritten file's edit must not be a conflict:\n{out}"
+assert (target / "RULES.md").read_bytes() == initial["RULES.md"] + b"\nhuman edit\n", "the human edit was overwritten"
+rest, base = fx.snapshot(target), dict(initial)
+rest.pop("RULES.md"); base.pop("RULES.md")
+assert rest == base and not (target / LOCK).exists(), "the rollback did not restore every file this run wrote"
+print("PASS: a human edit to a file this run never wrote is kept, is not a conflict, and the rollback completes")
 
 # 7. Two finalizers at once: exactly one gets the lock.
 target = tmp / "concurrent"

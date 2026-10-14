@@ -474,11 +474,14 @@ def restore(root, journal, evidence):
     conflicts = []
     journal["restored"] = []
     for path, row in reversed(list(journal["files"].items())):
+        if not row["expected_after"]:
+            # This run never wrote the file, so there is no postimage of its own to put back. Whatever it holds now
+            # (including a human edit) is left alone and is not a conflict.
+            continue
         current = read_target(root, path)
         prior = decode(row["before"])
         if current == prior:
-            if row["expected_after"]:
-                journal["restored"].append(path)
+            journal["restored"].append(path)
             continue
         if sha(current) not in row["expected_after"]:
             conflicts.append(path)
