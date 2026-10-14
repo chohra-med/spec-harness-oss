@@ -117,6 +117,19 @@ if mode == "sigint-after-lock":
         original_acquire(root)
         os.kill(os.getpid(), signal.SIGINT)
     module.acquire_lock = acquire_then_sigint
+if mode in ("lock-sync-fails", "lock-sync-fails-sigint"):
+    # The first fsync while the lock file exists is the lock's own: it fails, and with the -sigint mode a
+    # SIGINT is sent first, so the signal is held back by take_lock and lands after the error.
+    real_full_sync = module.full_sync
+    lock_syncs = [0]
+    def failing_lock_sync(fd):
+        if lock_syncs[0] == 0 and os.path.exists(os.path.join(sys.argv[2], ".claude/agents/.sh-finalize.lock")):
+            lock_syncs[0] += 1
+            if mode == "lock-sync-fails-sigint":
+                os.kill(os.getpid(), signal.SIGINT)
+            raise OSError("planted lock sync failure")
+        return real_full_sync(fd)
+    module.full_sync = failing_lock_sync
 if mode == "slow-tool":
     # A tool step that outlives the timeout: the check sleeps 150 s against a two-second limit.
     module.TOOL_TIMEOUT = 2
@@ -318,6 +331,22 @@ assert timed_exit == 1 and "step 'generate-agents --check' timed out after 2 s" 
 assert fx.snapshot(target) == initial and not (target / LOCK).exists(), "a timed-out run changed the target or kept its lock"
 assert json.loads((evidence / "journal.json").read_text())["status"] == "ROLLED_BACK"
 print("PASS: a tool step past its timeout fails the run with the step and command named, and rolls back")
+
+# 6h. NEEDED-1: a failure right after the lock file is created (its fsync raises) leaves no lock behind.
+target = tmp / "lock-sync-fails"
+shutil.copytree(start, target)
+out = hooked(target, tmp / "lock-sync-fails-ev", "lock-sync-fails", 0, 1, "lock fsync fails")
+assert not (target / LOCK).exists(), f"a failed lock fsync left {LOCK} behind:\n{out}"
+assert fx.snapshot(target) == initial, "a failed lock fsync changed the target"
+print("PASS: a failed fsync right after the lock is created leaves no lock and changes no byte")
+
+# 6i. NEEDED-1 with a signal: a SIGINT that lands together with that failure leaves no lock and exits 130.
+target = tmp / "lock-sync-fails-sigint"
+shutil.copytree(start, target)
+out = hooked(target, tmp / "lock-sync-fails-sigint-ev", "lock-sync-fails-sigint", 0, 130, "lock fsync fails with SIGINT")
+assert not (target / LOCK).exists(), f"a SIGINT with a failed lock fsync left {LOCK} behind:\n{out}"
+assert "interrupted by SIGINT" in out and fx.snapshot(target) == initial, out
+print("PASS: a SIGINT with a failed lock fsync leaves no lock, changes no byte and exits 130")
 
 # 7. Two finalizers at once: exactly one gets the lock.
 target = tmp / "concurrent"

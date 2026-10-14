@@ -230,13 +230,26 @@ def cleanup_temporaries(root, paths):
 
 def acquire_lock(root):
     descriptors = open_parent(root, LOCK)
+    name = LOCK.split("/")[-1]
     try:
         try:
-            fd = os.open(LOCK.split("/")[-1], os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600, dir_fd=descriptors[-1])
+            fd = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600, dir_fd=descriptors[-1])
         except FileExistsError:
             raise Refused(f"another finalize-init holds {LOCK}; wait for it, or run --recover if a previous run crashed") from None
-        os.write(fd, f"{os.getpid()}\n".encode())
-        full_sync(fd)
+        # The lock file exists from here on. If the write or the sync fails, close the descriptor and remove
+        # the file before the error propagates, so a failure never leaves a lock this run created.
+        try:
+            os.write(fd, f"{os.getpid()}\n".encode())
+            full_sync(fd)
+        except BaseException:
+            try:
+                os.close(fd)
+            finally:
+                try:
+                    os.unlink(name, dir_fd=descriptors[-1])
+                except FileNotFoundError:
+                    pass
+            raise
         os.close(fd)
     finally:
         for fd in reversed(descriptors):
