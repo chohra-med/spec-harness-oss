@@ -47,6 +47,21 @@ count = [0]
 original_replace = module.replace
 def counted_replace(*args):
     count[0] += 1
+    if mode in ("restore-fails", "restore-conflict") and count[0] == number:
+        raise OSError("planted write failure")
+    if mode == "double-signal" and count[0] == number:
+        # Probe: the first SIGINT raises Interrupted; a second SIGINT lands while the first unwinds.
+        try:
+            os.kill(os.getpid(), signal.SIGINT)
+        except module.Interrupted:
+            state = "SIG_IGN" if signal.getsignal(signal.SIGINT) == signal.SIG_IGN else "handler"
+            print("PROBE first-handler=" + state, file=sys.stderr)
+            try:
+                os.kill(os.getpid(), signal.SIGINT)
+                print("PROBE second-signal=ignored", file=sys.stderr)
+            except module.Interrupted:
+                print("PROBE second-signal=raised", file=sys.stderr)
+            raise
     if mode == "crash-before" and count[0] == number:
         os._exit(23)
     original_replace(*args)
@@ -56,6 +71,18 @@ def counted_replace(*args):
         os.kill(os.getpid(), getattr(signal, mode))
         time.sleep(1)
 module.replace = counted_replace
+if mode == "restore-fails":
+    def failing_restore(*args):
+        raise OSError("planted restore failure")
+    module.restore = failing_restore
+if mode == "restore-conflict":
+    # A human edit to the written inventory lands before the rollback reads it: a conflict.
+    original_restore = module.restore
+    def conflicting_restore(root, journal, evidence):
+        with open(os.path.join(root, "ai_rules/project_inventory.json"), "ab") as handle:
+            handle.write(b"\n")
+        return original_restore(root, journal, evidence)
+    module.restore = conflicting_restore
 if mode == "crash-at-rename":
     real = module.os.replace
     def rename(src, dst, **kwargs):
@@ -184,6 +211,39 @@ out = hooked(target, tmp / "late-edit-ev", "edit-before-rename", 3, 1, "edit bef
 assert "concurrent edit preserved: ai_rules/project_inventory.json" in out, out
 assert (target / "ai_rules/project_inventory.json").read_bytes() == initial["ai_rules/project_inventory.json"] + b"\n"
 print("RED control observed: the re-hash right before the rename keeps a late human edit")
+
+# 6c. H5: a failed rollback keeps the lock, so a second finalizer is refused and --recover adopts it.
+for mode, expected_status, label in (("restore-fails", "RECOVERY_FAILED", "rollback fails"),
+                                     ("restore-conflict", "RECOVERY_CONFLICT", "rollback conflicts")):
+    target = tmp / f"lock-{mode}"
+    shutil.copytree(start, target)
+    evidence = tmp / f"lock-{mode}-ev"
+    out = hooked(target, evidence, mode, 2, 1, label)
+    assert json.loads((evidence / "journal.json").read_text())["status"] == expected_status
+    assert (target / LOCK).exists(), f"{expected_status} must keep the lock; output: {out}"
+    assert "lock kept; run --recover" in out, out
+    blocked = finalize(target, "--apply", "--evidence-dir", str(tmp / f"lock-{mode}-other"), expected=1, label=f"apply after {label}")
+    assert "another finalize-init holds" in blocked, blocked
+    if mode == "restore-fails":
+        out = finalize(target, "--recover", "--evidence-dir", str(evidence), label="recover after failed rollback")
+        assert "RECOVERED" in out and fx.snapshot(target) == initial and not (target / LOCK).exists(), out
+print("RED control observed: a failed rollback keeps the lock; --recover adopts it and restores the prior bytes")
+
+# 6d. H5: after the first SIGINT, a second signal that lands while the first unwinds is ignored.
+# The probe is deterministic (the signal is sent inside the unwind), so twenty runs must agree.
+red = []
+for attempt in range(20):
+    target = tmp / f"double-{attempt}"
+    shutil.copytree(start, target)
+    evidence = tmp / f"double-{attempt}-ev"
+    out = hooked(target, evidence, "double-signal", 3, 130, f"double SIGINT {attempt}")
+    if "PROBE first-handler=SIG_IGN" not in out or "PROBE second-signal=ignored" not in out:
+        red.append(attempt)
+    assert fx.snapshot(target) == initial and not (target / LOCK).exists(), f"run {attempt}: rollback incomplete"
+    assert json.loads((evidence / "journal.json").read_text())["status"] == "ROLLED_BACK", f"run {attempt}"
+    shutil.rmtree(target)
+assert not red, f"{len(red)} of 20 runs let a second SIGINT escape the rollback handler; last output:\n{out}"
+print("PASS: twenty double-SIGINT runs ignore the second signal, roll back every write and release the lock")
 
 # 7. Two finalizers at once: exactly one gets the lock.
 target = tmp / "concurrent"

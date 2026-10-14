@@ -424,6 +424,10 @@ def restore(root, journal, evidence):
 
 def install_signal_handlers():
     def handler(signum, _frame):
+        # Ignore the next signal from the moment the first one arrives, so a second one that lands
+        # while this one unwinds cannot escape the rollback.
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            signal.signal(sig, signal.SIG_IGN)
         raise Interrupted(signal.Signals(signum).name)
     previous = {sig: signal.signal(sig, handler) for sig in (signal.SIGINT, signal.SIGTERM)}
     return previous
@@ -488,18 +492,21 @@ def apply(root, evidence, sources):
                 store_journal(evidence, journal)
             except OSError:
                 pass
-            raise Refused(f"{journal['failure']}; rollback failed: {recovery_error}; run --recover") from None
+            raise Refused(f"{journal['failure']}; rollback failed: {recovery_error}; lock kept; run --recover") from None
         if conflicts:
-            raise Refused(f"{journal['failure']}; concurrent edits kept, manual recovery needed: {', '.join(conflicts)}")
+            raise Refused(f"{journal['failure']}; concurrent edits kept, manual recovery needed: {', '.join(conflicts)}; lock kept; run --recover")
         if interrupted:
             print(f"PENDING: interrupted by {error}; every write was rolled back", file=sys.stderr)
             return 130
         raise Refused(f"{journal['failure']}; every write was rolled back") from None
     finally:
-        try:
-            release_lock(root)
-        except (Refused, OSError):
-            pass
+        # Keep the lock while a target may hold a half-written file: only a finished or fully rolled
+        # back run, or one that never wrote, releases it. Otherwise --recover must adopt it.
+        if journal["status"] in ("PENDING", "ROLLED_BACK", "STRUCTURAL_READY"):
+            try:
+                release_lock(root)
+            except (Refused, OSError):
+                pass
         for sig, handler in previous.items():
             signal.signal(sig, handler)
 
