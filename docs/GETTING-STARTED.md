@@ -209,8 +209,10 @@ Open the project in Claude Code and run:
 /sdd init
 ```
 
-Use your strongest model for this step. It reads your instruction files and the sampled source,
-then writes:
+Use your strongest model for this step. It reads your instruction files (such as `AGENTS.md`, `RULES.md`,
+`CONTRIBUTING.md`, `ai_rules/`, `.memory/`, `.cursor/rules/`, `.Codex/`), your `README.md`, the project structure, package
+manifests and lockfiles, relevant tests and configuration, the sampled source (up to five files per package by default,
+or the files you pass with `--source`, up to five in total) and project-local installed skills, then writes:
 
 | Output | Where |
 |---|---|
@@ -219,6 +221,9 @@ then writes:
 | One skill per major technology the code really uses, at most five | `.claude/skills/spec-harness-tech-<technology>/SKILL.md` |
 | Project rules inside each role | the `GEN:rules` block of `.claude/agents/sdd-*.md` |
 | The receipt | `.claude/agents/.init-synthesis.json` |
+
+"Client" here means the coding agent you run it in (Claude Code, or Codex). The client sends what it reads to the model
+provider it uses. Read your client's data terms before you run these steps on private code.
 
 It then runs the structural check:
 
@@ -360,14 +365,17 @@ files there. In a monorepo, remove each generated `<package>/RULES.md` as well. 
 
 ## Recovery conflict
 
-`finalize-init --apply` (or `--recover`) keeps the lock and prints `concurrent edits kept, manual recovery
+`finalize-init --apply` (or `--recover`) keeps the lock (`.claude/agents/.sh-finalize.lock` in the target: a file that
+stops a second `finalize-init` from running at the same time; a run releases it when it finishes cleanly or its rollback
+completes) and prints `concurrent edits kept, manual recovery
 needed: <path>` from `--apply`, or `concurrent edits kept; manual recovery needed: <path>` from `--recover`,
 when a file holds neither the bytes the run started from nor a write the run made. `--recover`
 does not overwrite that file for you, and it cannot clear the conflict by itself. Put the file back yourself,
 then run recovery again. From the target root:
 
 1. Save the file first if your edit matters. Step 2 overwrites it.
-2. Write back the bytes the journal recorded for that file:
+2. Write back the bytes the journal recorded for that file. The journal is `journal.json` in your evidence directory,
+   outside the target: it records each file's bytes from before the run, the run's status and the commands it ran.
 
    ```sh
    EVIDENCE=/path/outside/the/target   # the directory you passed as --evidence-dir
@@ -376,6 +384,9 @@ then run recovery again. From the target root:
    entry = json.load(open(sys.argv[1]))["files"][sys.argv[2]]
    open(sys.argv[2], "wb").write(base64.b64decode(entry["before"]))' "$EVIDENCE/journal.json" "$FILE"
    ```
+
+   Steps 2 and 3 must run in the same shell session, because `$EVIDENCE` is set in step 2. If you open a new
+   terminal, set `EVIDENCE` again to the same path before step 3.
 
 3. Run recovery with the same evidence directory. Route A (`npx`, nothing installed):
 

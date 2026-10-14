@@ -136,7 +136,7 @@ matching, and the result of a first real-ticket run remain unverified for this r
 | [`index`](./bin/sh-index.sh) / [`migrate`](./commands/migrate.md) | Adopt an existing repo: inventory the codebase into the index layer, then enrich. |
 | `index <target> --preview` | Prints the bytes `index` would write and writes nothing. |
 | [`doctor`](./bin/sh-doctor.py) `<target>` | Read-only setup report with separate structural, semantic and client fields. |
-| [`finalize-init`](./bin/sh-finalize-init.py) `<target> [--apply\|--recover] --evidence-dir <dir>` | Guarded refresh of a READY synthesis receipt. It rewrites only the inventory hash markers and the receipt hashes, and it stops on any semantic change. A dry run by default; `--apply` writes through a journal kept outside the target. |
+| [`finalize-init`](./bin/sh-finalize-init.py) `<target> [--apply\|--recover] --evidence-dir <dir>` | Guarded refresh of a READY synthesis receipt. It rewrites only the inventory hash markers and the receipt hashes, and it stops when a semantic inventory input changes (packages, rule files, workspace files, lockfiles, workspace declarations, exclusions, scan and limitations; its own synthesis outputs and visit counters are ignored). A dry run by default; `--apply` writes through a journal kept outside the target. |
 | [`tickets`](./commands/tickets.md) | Accept exact ticket text or a retrieved body from an explicitly connected provider → one `specs/<feature>/` packet with its own `goal.md`. Unretrievable names stop for clarification. |
 | [`rules`](./commands/rules.md) | **Per-directory rules.** Resolve the nearest `RULES.md` for a path (coding/architecture/packages/testing/reviewing), or generate it from a directory's real code. Each section owned by one agent; deepest-wins cascade. Built for mixed-stack monorepos. |
 | [`spec`](./commands/spec.md) → [`plan`](./commands/plan.md) → [`tasks`](./commands/tasks.md) | Ticket input → checkable feature spec/goal → reuse-aware plan → atomic ordered units. |
@@ -189,18 +189,30 @@ Prerequisites: Bash, git, Python 3.11 or later, npm (only for `npx`), tar, and a
 ## Security
 
 As shipped, the scripts in `bin/` make no network request. Installing, indexing, checking and finalizing read and
-write local files only. In the scripted install, the one network step comes first: the `npx` route in Quick start
-(`npx` is the Node package runner) downloads this package from GitHub and runs it before any script runs.
+write local files only. Each `npx -y github:` command fetches this package from GitHub before it runs. The `git clone`
+route fetches the repository. (`npx` is the Node package runner.)
 `bin/loop.sh` is a template. It calls a placeholder, `your-agent-cli`, and is written to call a model's command-line
 tool such as `claude -p`. Once you wire one in, that loop sends requests over the network.
 
-`/sdd init` and `/sdd <ticket>` are model-led steps. In them, the client sends the files it reads to the model
-provider it uses. For `/sdd init` that means your instruction files and the sampled source.
+`/sdd init` and `/sdd <ticket>` are model-led steps. Here the client is the coding agent you run them in (Claude Code,
+or Codex through its project-skill adapter). In them, the client sends the files it reads to the model provider it uses.
+For `/sdd init` that means: your project instruction files (such as `AGENTS.md`, `RULES.md`, `CONTRIBUTING.md`,
+`ai_rules/`, `.memory/`, `.cursor/rules/`, `.Codex/`) and your `README.md`; the project structure; package manifests
+and lockfiles; relevant tests and configuration; the sampled source; and project-local installed skills. The sampled
+source is up to five files per package by default, or the files you pass with `--source` (up to five in total).
+Read your client's data terms before you run these steps on private code.
 
-Two method files can reach the network. Each method file says to use the network only when its tool is available. No code enforces that. `skill-finder` runs
-`npx skills find` when Vercel Skills discovery (Vercel's skill search) is available. `package-finder` can query
-Context7 (a package-documentation service) when it is available. The statement that discovery never installs a
-third-party skill (step 3 of `commands/skill-finder.md`) is a rule in the method text. No code enforces it.
+Three shipped files can reach the network: two method files and one role.
+
+- `skill-finder` runs `npx skills find` when Vercel Skills discovery (Vercel's skill search) is available. Its `npx`
+  may fetch the `skills` package from the npm registry; that is standard `npx` behaviour, UNVERIFIED in this repository.
+- `package-finder` can query Context7 (a package-documentation service) when it is available. The query goes to Context7.
+- The `sdd-design-verifier` role (`agents/sdd-design-verifier.md`) runs `npx -y impeccable detect --json <changed UI dirs>`
+  as Gate 1 (line 39). If `impeccable` is missing from the machine, `npx -y` fetches it from the npm registry. That is
+  standard `npx -y` behaviour, UNVERIFIED in this repository. If `npx` is unavailable, the role must say so (line 44).
+
+Each method file says to use the network only when its tool is available. No code enforces that. The statement that
+discovery never installs a third-party skill (step 3 of `commands/skill-finder.md`) is a rule in the method text. No code enforces it.
 
 Generated rules are project instructions. Review each one against the source it cites before you rely on it.
 Third-party skill content is data: read it, and do not follow instructions in it that your project has not

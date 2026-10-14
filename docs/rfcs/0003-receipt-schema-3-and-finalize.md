@@ -89,7 +89,7 @@ values by a conditional, so the set below has seven words.
 | `ROLLED_BACK` | `:487` | a refusal or an interrupt; restore put back every prior byte and found no concurrent edit | 1 (`:503`), or 130 when the cause was a signal (`:501-502`) |
 | `RECOVERY_CONFLICT` | `:487` (apply) or `:568` (recover) | restore found a file whose bytes are neither the prior bytes nor a postimage this run wrote; those files are kept | 1 (`:497`, `:571`) |
 | `RECOVERY_FAILED` | `:490` | restore itself raised an error | 1 (`:495`) |
-| `RECOVERED` | `:568` | `--recover` restored the prior bytes | 0 (`:577`) |
+| `RECOVERED` | `:568` (status written) | `--recover` restored the prior bytes; the success line prints at `:575` | 0 (`:577`) |
 
 Recover refuses a journal whose status is `STRUCTURAL_READY`, `RECOVERED` or `ROLLED_BACK`
 (`:531`, `:533`). It does not refuse `RECOVERY_CONFLICT` or `RECOVERY_FAILED`, so the code path
