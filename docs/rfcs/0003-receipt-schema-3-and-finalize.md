@@ -127,10 +127,12 @@ The conflict message has one of two forms, depending on the path that kept the f
   calls `interrupted_exit` (`:559`). That calls `roll_back` (`:527`), the same path `apply` uses on a refusal
   (`:633`). `roll_back`:
   1. ignores both signals (`:534`), so a second signal cannot interrupt the rollback;
-  2. holds the lock before it writes (`hold_lock_for_rollback`, `:508`). If the commit released the lock and
-     nothing took it, it takes it again with `take_lock` (`:515`), with the same mask and `O_EXCL`. If the lock
-     records this process, it keeps it. If another run holds it, the attempt is refused with the `acquire_lock`
-     message (`:242`) and nothing is written;
+  2. holds the lock before it writes (`hold_lock_for_rollback`, `:530`). If the commit released the lock and
+     nothing took it, it takes it again with `take_lock` (`:538`), with the same mask and `O_EXCL`. It keeps a
+     lock only when this run created it (`LOCK_CREATED`, `:65`, set at `:299`, cleared by `release_lock` at `:280`)
+     and the file still records this process. A lock this run did not create is never removed, even when it records
+     this process's PID (fixture 6m). If another run holds it, the attempt is refused with the `acquire_lock` message
+     (`:249`) and nothing is written;
   3. restores every journaled file (`:544`) and records the outcome in the journal;
   4. releases the lock only when the status is `ROLLED_BACK` (`:553`). It keeps the lock for `RECOVERY_CONFLICT`
      and `RECOVERY_FAILED`.
