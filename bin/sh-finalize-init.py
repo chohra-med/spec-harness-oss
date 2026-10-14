@@ -275,6 +275,8 @@ def take_lock(root):
     cannot leave a lock this run created. A busy lock (Refused) is left alone: this run did not create it.
     """
     created = False
+    # Assumption: pthread_sigmask changes the mask of the calling thread only. Holding SIGINT and SIGTERM
+    # back is therefore correct only in a single-threaded process, and this finalizer creates no threads.
     held = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT, signal.SIGTERM})
     try:
         try:
