@@ -32,7 +32,7 @@ if [ "$em_rc" -eq 0 ]; then
   exit 1
 fi
 
-python3 - "$ROOT/commands/init.md" "$ROOT/bin/sh-gen-agents.sh" "$ROOT/README.md" <<'PY'
+python3 -I -B - "$ROOT/commands/init.md" "$ROOT/bin/sh-gen-agents.sh" "$ROOT/README.md" <<'PY'
 from pathlib import Path
 import re, sys
 init, workorder, readme = (Path(x).read_text() for x in sys.argv[1:])
@@ -71,7 +71,7 @@ cp -R "$ROOT/skills/." "$GENERATOR_COPY/skills/"
 skill_hash_map "$GENERATOR_COPY/skills" >"$TMP/generator-before.sha"
 bash "$GENERATOR_COPY/bin/sh-make-skills.sh" >/dev/null
 skill_hash_map "$GENERATOR_COPY/skills" >"$TMP/generator-first.sha"
-python3 - "$TMP/generator-before.sha" "$TMP/generator-first.sha" "$GENERATOR_COPY/skills/spec-harness-ponytail/SKILL.md" <<'PY'
+python3 -I -B - "$TMP/generator-before.sha" "$TMP/generator-first.sha" "$GENERATOR_COPY/skills/spec-harness-ponytail/SKILL.md" <<'PY'
 from pathlib import Path
 import sys
 before = {line.split(None, 1)[1].removeprefix('./'): line.split(None, 1)[0] for line in Path(sys.argv[1]).read_text().splitlines()}
@@ -125,7 +125,7 @@ for mode in new integrate; do
     grep -Fq ".claude/commands/spec-harness/$method.md" "$target/.agents/skills/spec-harness-$method/SKILL.md"
     grep -Fq ".claude/commands/spec-harness/$method.md" "$target/.claude/skills/spec-harness-$method/SKILL.md"
   done
-  python3 - "$target" <<'PY'
+  python3 -I -B - "$target" <<'PY'
 from pathlib import Path
 import sys
 root = Path(sys.argv[1])
@@ -160,7 +160,7 @@ for path in AGENTS.md RULES.md CONTRIBUTING.md ai_rules/globalRules.md ai_rules/
 done
 grep -Fq 'Open the actual representative source files' "$prompt"
 grep -Fq 'After steps 1-2, apply relevant reusable methods' "$prompt"
-python3 - "$prompt" "$ROOT" <<'PY'
+python3 -I -B - "$prompt" "$ROOT" <<'PY'
 from pathlib import Path
 import re, sys
 text=Path(sys.argv[1]).read_text()

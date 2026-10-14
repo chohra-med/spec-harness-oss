@@ -142,6 +142,19 @@ else
   fail "python3 program without -I -B:$py_offenders"
 fi
 
+# The portable-skills contract runs its own Python programs; each carries -I -B like the shipped ones.
+# (Other test files still run unisolated python3; they are a follow-up, not covered by this guard.)
+pc_offenders=""
+while IFS= read -r hit; do
+  flags="$(printf '%s\n' "${hit#*:}" | grep -oE 'python3( +-[A-Za-z]+)+' | head -n 1)"
+  [[ " $flags " == *" -I "* && " $flags " == *" -B "* ]] || pc_offenders="$pc_offenders tests/portable-skills-contract.sh:${hit%%:*}"
+done < <(grep -nE 'python3 +-' "$ROOT/tests/portable-skills-contract.sh")
+if [[ -z "$pc_offenders" ]]; then
+  pass 'every python3 program in tests/portable-skills-contract.sh carries -I and -B'
+else
+  fail "python3 program without -I -B:$pc_offenders"
+fi
+
 # The GETTING-STARTED rows that state the Python 3.11 requirement must name every command that refuses an
 # older interpreter (the dispatcher's require_python and the scripts' own version checks).
 gs="$ROOT/docs/GETTING-STARTED.md"
