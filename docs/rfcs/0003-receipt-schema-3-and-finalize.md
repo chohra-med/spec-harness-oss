@@ -96,6 +96,10 @@ Recover refuses a journal whose status is `STRUCTURAL_READY`, `RECOVERED` or `RO
 for retrying them exists. That path is read from code (`bin/sh-finalize-init.py:650-708`). The conflict path is run by
 `tests/finalize-fixtures.sh` section 6c, which applies the manual step below and then `--recover`.
 
+**Files this run never wrote.** `restore` skips a journaled file whose `expected_after` is empty (`:477-478`). Such a
+file is neither put back nor a conflict, so a human edit to it is kept and the rollback completes (fixture 6r). Only
+files this run wrote are restored or can conflict.
+
 **Manual step for a conflict.** `--recover` restores a file only when its bytes are the journal's prior
 bytes or a postimage this run wrote. Any other content stays a conflict, so a hand edit clears it only when
 the result is the prior bytes. For each file the message names, write the bytes its journal entry records
