@@ -144,7 +144,9 @@ The conflict message has one of two forms, depending on the path that kept the f
   `interrupted_exit` returns 130 when every write is rolled back (`:577`).
 - **Race refused.** When another run holds the lock at the moment the top-level rollback starts (a second
   finalizer took it after the commit), the rollback refuses (`:564`, re-raised at `:568`) and writes nothing.
-  It leaves the other run's lock alone. `interrupted_exit` prints the refusal and returns 1 (`:609-610`). The
+  It leaves the other run's lock alone. The refusal text begins with the original failure, then names the lock
+  refusal (`:568`), so a failure whose rollback is refused prints both (fixture 6q). `interrupted_exit` prints the
+  refusal and returns 1 (`:609-610`). The
   status stays `STRUCTURAL_READY`, and the journal's `failure` field records `rollback refused`, so the
   completed run is kept. Fixture 6l measures this case.
 - **Four cases where an interrupt after the first target write does not roll back.** (1) The race refusal above:
