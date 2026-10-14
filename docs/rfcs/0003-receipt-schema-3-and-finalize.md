@@ -103,6 +103,11 @@ the result is the prior bytes. For each file the message names, write the bytes 
 `spec-harness finalize-init <target> --recover --evidence-dir <dir>`. This overwrites a concurrent edit, so save
 that edit first if it matters. The steps are in `docs/GETTING-STARTED.md`.
 
+The conflict message has one of two forms, depending on the path that kept the files. Both end with `; lock kept.`
+
+- From `--apply` (`:497`, after the journal failure text): `concurrent edits kept, manual recovery needed: <path>`
+- From `--recover` (`:571`): `concurrent edits kept; manual recovery needed: <path>`
+
 **Lock rule** (after the H5 change at `c0daa34`):
 
 - `--apply` takes the lock before it writes its journal (`:440`). A busy lock refuses at `:233` and
