@@ -36,13 +36,20 @@ def finalize(target, *extra, expected=0, label="finalize", cwd=None):
     return run(CLI + ["finalize-init", str(target), *extra], expected, label, cwd=cwd)
 
 
-# A hook runner: loads the finalizer as a module, patches one function, then runs main().
+# A hook runner. It runs the shipped finalizer's top level, applies one patch, then runs the shipped file's own
+# `if __name__ == "__main__":` block unchanged, so an interrupt reaches the real top-level handler. The source is
+# split at that line only to put the patch in between; the block is compiled with its original line numbers.
 HOOK = r'''
-import importlib.util, os, signal, subprocess, sys, time
-spec = importlib.util.spec_from_file_location("finalizer", sys.argv[1])
-module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(module)
-mode, number = sys.argv[4], int(sys.argv[5])
+import importlib.util, os, signal, subprocess, sys, time, types
+ARGS = list(sys.argv)
+MAIN_MARK = '\nif __name__ == "__main__":\n'
+module = types.ModuleType("finalizer")
+module.__file__ = ARGS[1]
+source = open(ARGS[1]).read()
+assert source.count(MAIN_MARK) == 1, "the finalizer must have exactly one __main__ block"
+head, main_block = source.split(MAIN_MARK)
+exec(compile(head, ARGS[1], "exec"), module.__dict__)
+mode, number = ARGS[4], int(ARGS[5])
 count = [0]
 original_replace = module.replace
 def counted_replace(*args):
@@ -129,7 +136,7 @@ if mode in ("lock-sync-fails", "lock-sync-fails-sigint"):
     real_full_sync = module.full_sync
     lock_syncs = [0]
     def failing_lock_sync(fd):
-        if lock_syncs[0] == 0 and os.path.exists(os.path.join(sys.argv[2], ".claude/agents/.sh-finalize.lock")):
+        if lock_syncs[0] == 0 and os.path.exists(os.path.join(ARGS[2], ".claude/agents/.sh-finalize.lock")):
             lock_syncs[0] += 1
             if mode == "lock-sync-fails-sigint":
                 os.kill(os.getpid(), signal.SIGINT)
@@ -163,7 +170,7 @@ if mode == "status-sigint":
     module.store_journal = store_with_sigint
 if mode == "return-sigint":
     # A SIGINT lands on the line that returns 0 after the success message (traced by line number).
-    lines = open(sys.argv[1]).read().splitlines()
+    lines = open(ARGS[1]).read().splitlines()
     marker = next(i for i, text in enumerate(lines, 1) if "STRUCTURAL_READY: binding refresh" in text)
     return_line = next(i for i in range(marker, len(lines) + 1) if lines[i - 1].strip() == "return 0")
     fired = [False]
@@ -178,7 +185,7 @@ if mode == "return-sigint":
         return local
     sys.settrace(tracer)
 if mode == "after-main-sigint":
-    # A SIGINT lands after apply() has returned 0: the top level (the __main__ mirror below) must roll back.
+    # A SIGINT lands after apply() has returned 0: the top level (the shipped __main__ block) must roll back.
     original_main = module.main
     def main_then_sigint(argv=None):
         code = original_main(argv)
@@ -191,8 +198,8 @@ if mode == "race-after-commit":
     original_release_race = module.release_lock
     def release_then_race(root):
         original_release_race(root)
-        base = sys.argv[3]
-        holder = subprocess.Popen([sys.executable, "-I", "-B", os.environ["HOOK_FILE"], sys.argv[1], root, base + "-other-ev", "hold-lock", "0"],
+        base = ARGS[3]
+        holder = subprocess.Popen([sys.executable, "-I", "-B", os.environ["HOOK_FILE"], ARGS[1], root, base + "-other-ev", "hold-lock", "0"],
                                   stdout=open(base + "-other.log", "w"), stderr=subprocess.STDOUT,
                                   env=dict(os.environ, HOLD_FILE=base + "-release"))
         with open(base + "-holder", "w") as record:
@@ -308,14 +315,10 @@ if mode == "slow":
         time.sleep(number)
         return original_plan(*args, **kwargs)
     module.plan = slow_plan
-try:
-    sys.exit(module.main([sys.argv[2], "--apply", "--evidence-dir", sys.argv[3]]))
-except module.Refused as error:
-    print("PENDING: " + str(error), file=sys.stderr)
-    sys.exit(1)
-except module.Interrupted as error:
-    # Mirrors the finalizer's __main__: an interrupt that reaches the top level is rolled back from RUN.
-    sys.exit(module.interrupted_exit(error))
+# Run the shipped __main__ block as written: the finalizer's own argv, its own Refused and Interrupted handlers.
+module.__dict__["__name__"] = "__main__"
+sys.argv = [ARGS[1], ARGS[2], "--apply", "--evidence-dir", ARGS[3]]
+exec(compile("\n" * (head.count("\n") + 1) + 'if __name__ == "__main__":\n' + main_block, ARGS[1], "exec"), module.__dict__)
 '''
 
 
