@@ -1,4 +1,4 @@
-# Command: `sdd` — initialize the harness or execute one ticket
+# Command: `sdd`, initialize the harness or execute one ticket
 
 > One shared, model-led procedure for project initialization and ticket work. Claude's `/sdd`
 > command and the Codex `sdd` project skill are thin entrypoints to this file. Shell commands only

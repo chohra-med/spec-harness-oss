@@ -1,4 +1,4 @@
-# Spec Harness — {{PROJECT_NAME}}
+# Spec Harness: {{PROJECT_NAME}}
 
 Status: **PENDING**. This deterministic install stages the harness; it does not inspect this
 project, derive rules or skills, bind roles, or create feature-specific acceptance.

@@ -1,4 +1,4 @@
-# Agent rules — {{PROJECT_NAME}}
+# Agent rules: {{PROJECT_NAME}}
 
 > **Reviewed ratchet:** this file may be sharpened after a failure is understood and classified;
 > failures do not add policy automatically. Preserve feedback and rule history.
@@ -27,7 +27,7 @@ or acceptance work remains.
 
 - A ticket task is done only when a fresh verifier returns PASS against that ticket's
   `specs/<feature>/goal.md`; do not substitute the unrelated root `goal.md`.
-- "It ran without erroring" is **NOT** done. "Tests pass" is necessary, not sufficient — the
+- "It ran without erroring" is **NOT** done. "Tests pass" is necessary, not sufficient; the
   goal end-state is the bar.
 
 ## On failure (the ratchet in motion)
@@ -41,7 +41,7 @@ or acceptance work remains.
 
 {{STACK_RULES}}
 
-## Ratchet log (append-only — reviewed policy changes with their cause)
+## Ratchet log (append-only: reviewed policy changes with their cause)
 
-<!-- ## YYYY-MM-DD — <what broke> → <the rule that now prevents it> -->
-- *(none yet — the system is fresh)*
+<!-- ## YYYY-MM-DD, <what broke> → <the rule that now prevents it> -->
+- *(none yet, the system is fresh)*

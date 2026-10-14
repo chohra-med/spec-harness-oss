@@ -1,4 +1,4 @@
-# Command: `generate-agents` — bind roles to checked project evidence
+# Command: `generate-agents`, bind roles to checked project evidence
 
 > The shell stages a work order and checks a receipt. A capable model reads the target inventory, existing rules and actual source, then fills the project-specific role blocks. Staging alone is always PENDING.
 
