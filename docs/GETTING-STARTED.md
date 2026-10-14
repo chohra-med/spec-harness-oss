@@ -232,7 +232,7 @@ the procedure opens, and project-local installed skills, then writes:
 "Client" here means the coding agent you run it in (Claude Code, or Codex). The client sends what it reads to the model
 provider it uses. Read your client's data terms before you run these steps on private code.
 
-The source sample is capped. A package with no `--source` path gets up to five files by default. A `--source` path applies to the package it names; other packages still get the default. The `--source` list is capped at five paths in total. Every sampled file is capped at 128 KiB, the whole sample at 2 MiB, and each instruction file at 256 KiB. The init procedure may open more first-party source than the sample (`commands/init.md`, line 18). The code cannot enforce a bound on that reading, so check the source each rule cites in step 6.
+The source sample is capped. A package with no `--source` path gets up to five files by default. A `--source` path applies to the package it names; other packages still get the default. The `--source` list is capped at five paths in total. Every sampled file is capped at 128 KiB, the whole sample at 2 MiB, and each instruction file at 256 KiB. A file over its cap is left out and recorded as excluded, except a generated output the receipt registers, where `index` stops with a PENDING message and exit 1; a `--source` file over 128 KiB also stops `index` with exit 1. The init procedure may open more first-party source than the sample (`commands/init.md`, line 18). The code cannot enforce a bound on that reading, so check the source each rule cites in step 6.
 
 It then runs the structural check:
 
