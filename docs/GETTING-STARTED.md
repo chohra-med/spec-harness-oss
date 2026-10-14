@@ -356,3 +356,34 @@ files there. In a monorepo, remove each generated `<package>/RULES.md` as well. 
 | `Indexed 0 package boundary/boundaries` | no `package.json` or `pyproject.toml` at the root you indexed | index the directory that has one |
 | The check fails after you edited a generated file | the receipt hash is stale | ask the client to run the guarded refresh in `/sdd init` |
 | `/sdd` is not recognised in Codex | the project skill was not discovered | open `.agents/skills/sdd/SKILL.md` and follow it |
+| `concurrent edits kept, manual recovery needed` | a file changed while `finalize-init --apply` was writing it | follow [Recovery conflict](#recovery-conflict) below |
+
+## Recovery conflict
+
+`finalize-init --apply` (or `--recover`) keeps the lock and prints `concurrent edits kept, manual recovery
+needed: <path>` when a file holds neither the bytes the run started from nor a write the run made. `--recover`
+does not overwrite that file for you, and it cannot clear the conflict by itself. Put the file back yourself,
+then run recovery again. From the target root:
+
+1. Save the file first if your edit matters. Step 2 overwrites it.
+2. Write back the bytes the journal recorded for that file:
+
+   ```sh
+   EVIDENCE=/path/outside/the/target   # the directory you passed as --evidence-dir
+   FILE=ai_rules/project_inventory.json # the path the message names; repeat for each path it names
+   python3 -I -B -c 'import base64, json, sys
+   entry = json.load(open(sys.argv[1]))["files"][sys.argv[2]]
+   open(sys.argv[2], "wb").write(base64.b64decode(entry["before"]))' "$EVIDENCE/journal.json" "$FILE"
+   ```
+
+3. Run recovery with the same evidence directory:
+
+   ```sh
+   spec-harness finalize-init . --recover --evidence-dir "$EVIDENCE"
+   ```
+
+   Expect `RECOVERED: prior bytes restored` and exit 0. The lock is released only after that success, so you do
+   not remove it by hand.
+
+A hand edit to some other content does not work: recovery accepts only the recorded bytes or a write the run
+made, so any other content stays a conflict.

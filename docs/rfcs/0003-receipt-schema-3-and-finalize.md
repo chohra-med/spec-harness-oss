@@ -78,7 +78,7 @@ file must be linked from that package's `RULES.md` (`:190-229`, especially `:225
 `bin/sh-finalize-init.py` records a `status` in its journal (`journal.json` in `--evidence-dir`).
 
 Enumerated with `grep -n '"status"\]\s*=\|status": "' bin/sh-finalize-init.py`. COMPLETE: the grep
-returns six write sites, lines 441, 460, 471, 487, 490 and 566. Lines 487 and 566 each set one of two
+returns six write sites, lines 441, 460, 471, 487, 490 and 568. Lines 487 and 566 each set one of two
 values by a conditional, so the set below has seven words.
 
 | Status | Written at | Meaning | Process exit |
@@ -86,15 +86,22 @@ values by a conditional, so the set below has seven words.
 | `PENDING` | `:441` | journal created before any target write | stays on disk only when the process dies before its next status write |
 | `APPLYING` | `:460` | set before each target file is replaced | stays on disk only after an abrupt stop mid-write |
 | `STRUCTURAL_READY` | `:471` | every write applied; a second index reached the same inventory; the success line prints at `:476` | 0 (`:478`) |
-| `ROLLED_BACK` | `:487` | a refusal or an interrupt; restore put back every prior byte and found no concurrent edit | 1 (`:501`), or 130 when the cause was a signal (`:499-500`) |
-| `RECOVERY_CONFLICT` | `:487` (apply) or `:566` (recover) | restore found a file whose bytes are neither the prior bytes nor a postimage this run wrote; those files are kept | 1 (`:497`, `:569`) |
+| `ROLLED_BACK` | `:487` | a refusal or an interrupt; restore put back every prior byte and found no concurrent edit | 1 (`:503`), or 130 when the cause was a signal (`:501-502`) |
+| `RECOVERY_CONFLICT` | `:487` (apply) or `:568` (recover) | restore found a file whose bytes are neither the prior bytes nor a postimage this run wrote; those files are kept | 1 (`:497`, `:571`) |
 | `RECOVERY_FAILED` | `:490` | restore itself raised an error | 1 (`:495`) |
-| `RECOVERED` | `:566` | `--recover` restored the prior bytes | 0 (`:573`) |
+| `RECOVERED` | `:568` | `--recover` restored the prior bytes | 0 (`:577`) |
 
 Recover refuses a journal whose status is `STRUCTURAL_READY`, `RECOVERED` or `ROLLED_BACK`
-(`:529`, `:531`). It does not refuse `RECOVERY_CONFLICT` or `RECOVERY_FAILED`, so the code path
-for retrying them exists. That path is read from code (`bin/sh-finalize-init.py:521-577`) and has not been
-run as a recovery of a real conflict.
+(`:531`, `:533`). It does not refuse `RECOVERY_CONFLICT` or `RECOVERY_FAILED`, so the code path
+for retrying them exists. That path is read from code (`bin/sh-finalize-init.py:523-581`). The conflict path is run by
+`tests/finalize-fixtures.sh` section 6c, which applies the manual step below and then `--recover`.
+
+**Manual step for a conflict.** `--recover` restores a file only when its bytes are the journal's prior
+bytes or a postimage this run wrote. Any other content stays a conflict, so a hand edit clears it only when
+the result is the prior bytes. For each file the message names, write the bytes its journal entry records
+(`files[<path>].before`, base64-decoded) back to the file, then run
+`spec-harness finalize-init <target> --recover --evidence-dir <dir>`. This overwrites a concurrent edit, so save
+that edit first if it matters. The steps are in `docs/GETTING-STARTED.md`.
 
 **Lock rule** (after the H5 change at `c0daa34`):
 
@@ -104,14 +111,14 @@ run as a recovery of a real conflict.
   directory. This was run: the refusal exits 1, the lock file was unchanged and the empty directory
   remained.
 - At the end of an apply the lock is released when the status is `PENDING`, `ROLLED_BACK` or
-  `STRUCTURAL_READY` (`:505-509`).
+  `STRUCTURAL_READY` (`:507-511`).
 - The lock is kept when the status is `RECOVERY_CONFLICT` or `RECOVERY_FAILED` (`:495`, `:497`). A target
   may then hold a half-written file, so `--recover` must adopt the lock.
 - The first SIGINT or SIGTERM installs an ignore for both signals (`:425-432`, `:482-483`), so a second
   signal cannot interrupt the rollback.
-- `--recover` adopts a lock only when the PID recorded in it is not alive (`:580-602`). A live PID
-  refuses (`:601`). It releases the lock only when the recovery succeeded or the lock was its own
-  (`:576-577`).
+- `--recover` adopts a lock only when the PID recorded in it is not alive (`:584-606`). A live PID
+  refuses (`:605`). It releases the lock only when the recovery succeeded or the lock was its own
+  (`:580-581`).
 
 ### 4. `doctor` report (`bin/sh-doctor.py`)
 
@@ -156,16 +163,16 @@ the dispatcher check in `bin/spec-harness:35-41`.
 | `doctor` | 0 | structural READY | `bin/sh-doctor.py:161` |
 | `doctor` | 1 | structural PENDING | `:161` |
 | `doctor` | 2 | target is missing or a symbolic link | `:127` |
-| `finalize-init` | 0 | dry run; `--apply` reached `STRUCTURAL_READY`; `--recover` reached `RECOVERED` | `:617`, `:478`, `:573` |
-| `finalize-init` | 1 | a refusal (precondition, busy lock, concurrent edit, failed or conflicted rollback) | `:651` |
+| `finalize-init` | 0 | dry run; `--apply` reached `STRUCTURAL_READY`; `--recover` reached `RECOVERED` | `:621`, `:478`, `:577` |
+| `finalize-init` | 1 | a refusal (precondition, busy lock, concurrent edit, failed or conflicted rollback) | `:655` |
 | `finalize-init` | 2 | argument error (`argparse`), or Python older than 3.11 | `bin/spec-harness:35-41` |
-| `finalize-init` | 130 | `--apply` interrupted by SIGINT or SIGTERM and rolled back cleanly (both signals return 130) | `:499-500`, `:654` |
+| `finalize-init` | 130 | `--apply` interrupted by SIGINT or SIGTERM and rolled back cleanly (both signals return 130) | `:501-502`, `:658` |
 | `index --preview` | 0 | bytes printed, nothing written | `bin/sh-index.sh:801` |
 | `index` | 1 | a refusal raised as a message (`SystemExit` with a string) | e.g. `:117`, `:170`, `:540` |
 | `index` | 2 | no target argument, or Python older than 3.11 | `bin/sh-index.sh:7-8`, `:14`, `:21` |
 
 An uncaught Python exception in `finalize-init` or `doctor` also exits 1 with a traceback. Neither
-`main` catches it, so it is not a documented status. Line `:654` is the last-resort handler for an
+`main` catches it, so it is not a documented status. Line `:658` is the last-resort handler for an
 interrupt that escapes `--apply`; no path in the code reads as reaching it.
 
 ## Test to add when accepted

@@ -227,9 +227,21 @@ for mode, expected_status, label in (("restore-fails", "RECOVERY_FAILED", "rollb
     out = hooked(target, evidence, mode, 2, 1, label)
     assert json.loads((evidence / "journal.json").read_text())["status"] == expected_status
     assert (target / LOCK).exists(), f"{expected_status} must keep the lock; output: {out}"
-    assert "lock kept; run --recover" in out, out
+    if mode == "restore-fails":
+        assert "lock kept; run --recover" in out, out
+    else:
+        # A conflict is not fixed by --recover alone: the message must name the manual step.
+        assert "then run --recover" in out and "journal.json" in out and '"before"' in out, out
     blocked = finalize(target, "--apply", "--evidence-dir", str(tmp / f"lock-{mode}-other"), expected=1, label=f"apply after {label}")
     assert "another finalize-init holds" in blocked, blocked
+    if mode == "restore-conflict":
+        stuck = finalize(target, "--recover", "--evidence-dir", str(evidence), expected=1, label="recover while the conflict stands")
+        assert "then run --recover" in stuck and (target / LOCK).exists(), stuck
+        # The documented manual step: put the file back to the bytes its journal entry records, then --recover.
+        row = json.loads((evidence / "journal.json").read_text())["files"]["ai_rules/project_inventory.json"]
+        (target / "ai_rules/project_inventory.json").write_bytes(base64.b64decode(row["before"]))
+        out = finalize(target, "--recover", "--evidence-dir", str(evidence), label="recover after the manual step")
+        assert "RECOVERED" in out and fx.snapshot(target) == initial and not (target / LOCK).exists(), out
     if mode == "restore-fails":
         out = finalize(target, "--recover", "--evidence-dir", str(evidence), label="recover after failed rollback")
         assert "RECOVERED" in out and fx.snapshot(target) == initial and not (target / LOCK).exists(), out
