@@ -73,6 +73,30 @@ with patch("sh_safe_io.os.read", mutate):
     data, reason = read_bounded_result("dir/file.txt", 100, root=str(root))
 assert data is None and "changed" in reason, (data, reason)
 print("PASS: helper notices a file that changes while it is read")
+
+# A regular file swapped for a link after the stat and before the open. The stat check cannot see
+# this race, so O_NOFOLLOW on the open is the only guard that refuses the link with its reason.
+def race_refused(label, relpath, *, plain=False):
+    target = root / relpath
+    target.write_bytes(b"regular")
+    swapped = []
+    real_open = os.open
+    def swap_then_open(name, flags, *args, **kwargs):
+        if not swapped and os.fspath(name).endswith(target.name):
+            target.unlink()
+            os.symlink(root / "outside.txt", target)
+            swapped.append(True)
+        return real_open(name, flags, *args, **kwargs)
+    with patch("sh_safe_io.os.open", swap_then_open):
+        if plain:
+            data, reason = read_bounded_result(str(target), 100)
+        else:
+            data, reason = read_bounded_result(relpath, 100, root=str(root))
+    assert swapped and data is None and reason == "not a regular in-root file", (label, data, reason)
+    print("PASS: " + label)
+
+race_refused("a link swapped in after the stat is refused by O_NOFOLLOW (in-root read)", "dir/race-root.txt")
+race_refused("a link swapped in after the stat is refused by O_NOFOLLOW (plain path read)", "dir/race-plain.txt", plain=True)
 PY
 then pass 'shared helper contract'; else fail 'shared helper contract'; fi
 
