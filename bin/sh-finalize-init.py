@@ -662,9 +662,6 @@ def apply(root, evidence, sources):
         # takes the lock again before it writes, so a second finalizer that gets the lock in between is refused.
         release_lock(root)
         writes = sum(bool(row["expected_after"]) for row in journal["files"].values())
-        print(f"STRUCTURAL_READY: binding refresh wrote {writes} file(s); a second index reached the same inventory. "
-              "Semantic review and client loading remain PENDING.")
-        return 0
     except Interrupted:
         raise  # __main__ rolls the run back from RUN (interrupted_exit)
     except (Refused, OSError, ValueError, KeyError, TypeError) as error:
@@ -680,6 +677,15 @@ def apply(root, evidence, sources):
         if conflicts:
             raise Refused(conflict_message(failure, conflicts, evidence)) from error
         raise
+    # The run is committed (the lock was released above). A failure to print its success line must not roll it back,
+    # so the print sits outside the rollback handlers. The journal still records STRUCTURAL_READY.
+    try:
+        print(f"STRUCTURAL_READY: binding refresh wrote {writes} file(s); a second index reached the same inventory. "
+              "Semantic review and client loading remain PENDING.")
+        sys.stdout.flush()
+    except (OSError, ValueError):
+        pass
+    return 0
 
 
 def load_journal(evidence):

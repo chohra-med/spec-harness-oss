@@ -272,6 +272,13 @@ if mode == "unwritten-edit":
             handle.write(b"\nhuman edit\n")
         return original_restore_unwritten(root, journal, evidence)
     module.restore = restore_after_unwritten_edit
+if mode == "print-closed-stdout":
+    # The lock is released at the commit point; then stdout is closed, so the success line cannot be printed.
+    original_release_closed = module.release_lock
+    def release_then_close_stdout(root):
+        original_release_closed(root)
+        sys.stdout.close()
+    module.release_lock = release_then_close_stdout
 if mode == "partial-restore":
     # Restore puts back the first written file, then the second written file has gone missing: its read fails.
     original_restore_partial = module.restore
@@ -665,6 +672,18 @@ rest, base = fx.snapshot(target), dict(initial)
 rest.pop("RULES.md"); base.pop("RULES.md")
 assert rest == base and not (target / LOCK).exists(), "the rollback did not restore every file this run wrote"
 print("PASS: a human edit to a file this run never wrote is kept, is not a conflict, and the rollback completes")
+
+# 6s. N8: the run is committed at the lock release. A failure to print its success line afterwards (stdout closed)
+# must not roll the verified run back: exit 0, status STRUCTURAL_READY, the completed bytes kept, no lock.
+target = tmp / "print-closed-stdout"
+shutil.copytree(start, target)
+evidence = tmp / "print-closed-stdout-ev"
+out = hooked(target, evidence, "print-closed-stdout", 0, 0, "a closed stdout after the commit")
+journal = json.loads((evidence / "journal.json").read_text())
+assert journal["status"] == "STRUCTURAL_READY", f"status {journal['status']}, expected STRUCTURAL_READY:\n{out}"
+assert (target / "ai_rules/project_inventory.json").read_bytes() != initial["ai_rules/project_inventory.json"], "the committed run was undone"
+assert not (target / LOCK).exists(), "a committed run left its lock behind"
+print("PASS: a print failure after the commit point does not roll the committed run back")
 
 # 7. Two finalizers at once: exactly one gets the lock.
 target = tmp / "concurrent"
