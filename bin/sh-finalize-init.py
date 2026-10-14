@@ -20,6 +20,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import signal
 import stat
 import subprocess
@@ -40,6 +41,9 @@ BIND = re.compile(rb"(?<=inventory-sha256=)[0-9a-f]{64}")
 HEX64 = re.compile(r"[0-9a-f]{64}")
 GEN_START, GEN_END = b"<!-- GEN:rules START -->", b"<!-- GEN:rules END -->"
 HARNESS_BIN = os.path.dirname(os.path.realpath(__file__))
+# Seconds one tool step (generate-agents --check, index --preview) may run. A normal step takes about
+# 0.05 s on a small READY target, so 600 s is far above any real run and still bounds a hung child.
+TOOL_TIMEOUT = 600
 
 
 class Refused(Exception):
@@ -276,8 +280,11 @@ def take_lock(root):
 
 # --- plan -----------------------------------------------------------------------------------------
 
-def run_tool(command, journal=None, evidence=None):
-    result = subprocess.run(command, capture_output=True)
+def run_tool(step, command, journal=None, evidence=None):
+    try:
+        result = subprocess.run(command, capture_output=True, timeout=TOOL_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        raise Refused(f"step '{step}' timed out after {TOOL_TIMEOUT} s and was stopped; command: {shlex.join(command)}") from None
     if journal is not None:
         stdout = b"" if "--preview" in command else result.stdout
         journal["commands"].append({"args": command[1:], "exit": result.returncode,
@@ -309,7 +316,7 @@ def load_receipt(root):
 
 def plan(root, sources, journal=None, evidence=None):
     """Return (receipt, write set, frozen inputs, before bytes, rewritten bytes, new inventory hash)."""
-    run_tool(check_command(root), journal, evidence)
+    run_tool("generate-agents --check", check_command(root), journal, evidence)
     receipt = load_receipt(root)
     receipt_bytes = read_target(root, RECEIPT)
     write_set = write_set_from_receipt(receipt)
@@ -362,7 +369,7 @@ def plan(root, sources, journal=None, evidence=None):
     old_inventory = json.loads(before[inventory_path])
     collect(old_inventory.get("rule_files", []))
 
-    after_inventory = run_tool(index_command(root, sources), journal, evidence)
+    after_inventory = run_tool("index --preview", index_command(root, sources), journal, evidence)
     if not after_inventory.startswith(b"{"):
         raise Refused("index preview is not a JSON inventory")
     new_inventory = json.loads(after_inventory)
@@ -491,8 +498,8 @@ def apply(root, evidence, sources):
             store_journal(evidence, journal)
             replace(root, path, row["before_sha256"], data)
         verify_inputs(root, inputs)
-        run_tool(check_command(root), journal, evidence)
-        second = run_tool(index_command(root, sources), journal, evidence)
+        run_tool("generate-agents --check", check_command(root), journal, evidence)
+        second = run_tool("index --preview", index_command(root, sources), journal, evidence)
         if second != rewritten[receipt["inventory_path"]]:
             raise Refused("a second index did not reach the same inventory (no fixed point)")
         for path, data in rewritten.items():

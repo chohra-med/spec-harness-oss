@@ -117,6 +117,10 @@ if mode == "sigint-after-lock":
         original_acquire(root)
         os.kill(os.getpid(), signal.SIGINT)
     module.acquire_lock = acquire_then_sigint
+if mode == "slow-tool":
+    # A tool step that outlives the timeout: the check sleeps 150 s against a two-second limit.
+    module.TOOL_TIMEOUT = 2
+    module.check_command = lambda root: [sys.executable, "-c", "import time; time.sleep(150)"]
 if mode == "slow":
     original_plan = module.plan
     def slow_plan(*args, **kwargs):
@@ -295,6 +299,25 @@ assert not (target / LOCK).exists(), f"a SIGINT in the lock window left {LOCK} b
 assert proc.returncode == 130 and "interrupted by SIGINT" in out, f"expected exit 130 via the handler, got {proc.returncode}:\n{out}"
 assert fx.snapshot(target) == initial, "a SIGINT in the lock window changed the target"
 print("PASS: a SIGINT right after the lock is created leaves no lock, changes no byte and exits 130")
+
+# 6g. A tool step that outlives TOOL_TIMEOUT fails the run with the step and the command named, rolls back,
+# and releases the lock. The finalizer must not hang: the test bounds its own run at 60 seconds.
+target = tmp / "tool-timeout"
+shutil.copytree(start, target)
+evidence = tmp / "tool-timeout-ev"
+log_path = tmp / "tool-timeout.log"
+with open(log_path, "w") as log:
+    try:
+        timed_exit = subprocess.run([sys.executable, "-I", "-B", "-c", HOOK, FINALIZE, str(target), str(evidence), "slow-tool", "0"],
+                                    stdout=log, stderr=subprocess.STDOUT, timeout=60).returncode
+    except subprocess.TimeoutExpired:
+        timed_exit = "hung (no result within 60 s)"
+out = log_path.read_text()
+assert timed_exit == 1 and "step 'generate-agents --check' timed out after 2 s" in out and "every write was rolled back" in out, \
+    f"expected a named timeout refusal, got {timed_exit}:\n{out}"
+assert fx.snapshot(target) == initial and not (target / LOCK).exists(), "a timed-out run changed the target or kept its lock"
+assert json.loads((evidence / "journal.json").read_text())["status"] == "ROLLED_BACK"
+print("PASS: a tool step past its timeout fails the run with the step and command named, and rolls back")
 
 # 7. Two finalizers at once: exactly one gets the lock.
 target = tmp / "concurrent"
