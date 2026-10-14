@@ -150,11 +150,14 @@ The conflict message has one of two forms, depending on the path that kept the f
   bytes, the lock is kept, and the print names both sets and exits 1 (`:597-607`). (4) The interpreter's own exit,
   below, which exits 0.
 - **The window that remains: the interpreter's own exit.** After `sys.exit` raises `SystemExit` out of the `try`
-  in `__main__` (`:779`), no code in this file is protected, and the handler is still installed. An interrupt
-  there raises `Interrupted` in code that does not catch it. Measured with a SIGINT sent from an `atexit` hook
-  after a completed run: exit code 0, a traceback ending `Interrupted: SIGINT`, status `STRUCTURAL_READY`, no
-  lock, and every byte equal to the completed run. The rollback does not cover this window. The exact boundary
-  inside the exit path was not measured.
+  in `__main__` (`:827`, and the exits at `:830` and `:833`), no code in this file is protected. The handler is
+  never restored: `install_signal_handlers` (`:497`) runs once and nothing resets the default disposition. So an
+  interrupt there raises `Interrupted` in code that does not catch it, on every exit path of `__main__`, not only
+  after a completed run. Measured with a SIGINT sent from an `atexit` hook after a completed run: exit code 0, a
+  traceback ending `Interrupted: SIGINT`, status `STRUCTURAL_READY`, no lock, and every byte equal to the completed
+  run. The rollback does not cover this window. The exact boundary inside the exit path was not measured. After a
+  refusal (exit 1) or a 130 exit, the same window exists; the exit code and output of those paths were not measured
+  (UNVERIFIED).
 - **Injection measurement.** A SIGINT injected at each of the 158 line events of `apply` from the first target
   write (event 67, line 610) to the last (event 224, line 629) ended with exit 130, `ROLLED_BACK`, no lock and
   every byte equal. The table is in the correction 19 receipt. The same driver on a copy of `6136460` flagged
