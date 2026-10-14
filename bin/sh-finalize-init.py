@@ -659,7 +659,7 @@ def apply(root, evidence, sources):
                         "semantic_review": "PENDING", "client_loading": "PENDING"})
         store_journal(evidence, journal)
         # Commit point: the lock is released here. An interrupt after this still rolls the run back, and roll_back
-        # takes the lock again before it writes, so a second finalizer that gets the lock in between is refused.
+        # takes the lock again before it writes, so a second finalizer that holds the lock when roll_back runs is refused.
         release_lock(root)
         writes = sum(bool(row["expected_after"]) for row in journal["files"].values())
     except Interrupted:
