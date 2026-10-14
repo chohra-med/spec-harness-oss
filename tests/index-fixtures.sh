@@ -487,4 +487,17 @@ done
 diff -r "$TMP/name-a/clone-alpha/ai_rules" "$TMP/name-b/other-name/ai_rules" > "$TMP/name-diff.out" || fail 'index output depends on the checkout folder name'
 pass 'same content under two folder names produces byte-identical index output'
 
+mkdir -p "$TMP/overcap/src" "$TMP/overcap/ai_rules"
+printf '{"name":"overcap-fixture"}\n' > "$TMP/overcap/package.json"
+printf 'export const small = 1;\n' > "$TMP/overcap/src/small.js"
+python3 -I -c 'import sys; open(sys.argv[1], "wb").write(b"// big\n".ljust(180000, b"x"))' "$TMP/overcap/src/big.js"
+bash "$INDEX" "$TMP/overcap" > "$TMP/overcap.out"
+overcap_map="$TMP/overcap/ai_rules/context_map.md"
+overcap_rep="$(grep -F -- '- Representative first-party source:' "$overcap_map" || true)"
+[[ -n "$overcap_rep" ]] || fail 'representative source line missing from over-cap map'
+grep -Fq 'small.js' <<<"$overcap_rep" || fail 'readable source missing from representative list'
+! grep -Fq 'big.js' <<<"$overcap_rep" || fail 'over-cap source listed as representative (read) source'
+grep -Fq -- '- `src/big.js`: source not sampled:' "$overcap_map" || fail 'over-cap source missing from excluded section'
+pass 'over-cap source is excluded, not listed as representative'
+
 printf 'All index fixtures passed.\n'

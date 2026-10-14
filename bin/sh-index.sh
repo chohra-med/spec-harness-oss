@@ -604,7 +604,6 @@ for package_path in package_paths:
             data, error = read_bounded(absolute, min(MAX_SOURCE_BYTES, MAX_SAMPLE_BYTES - sampled_bytes))
         if error:
             add_exclusion(path_rel, "source not sampled", error)
-            package["representative_sources"].append({"path": path_rel, "read_status": "excluded", "reason": error})
             continue
         if path_rel not in explicit_source_bytes:
             sampled_bytes += len(data)
