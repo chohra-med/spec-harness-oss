@@ -85,7 +85,7 @@ values by a conditional, so the set below has seven words.
 |---|---|---|---|
 | `PENDING` | `:622` | journal created before any target write | stays on disk only when the process dies before its next status write |
 | `APPLYING` | `:646` | set before each target file is replaced | stays on disk only after an abrupt stop mid-write |
-| `STRUCTURAL_READY` | `:657` | every write applied; a second index reached the same inventory; the success line prints at `:683` | 0 (`:688`). It stays on disk with the completed run kept only when the top-level rollback is refused because another run holds the lock (exit 1, `:609-610`), or when the lock step for the rollback fails (around line 544, exit 1, `:609-610`), or when an interrupt lands in the interpreter's own exit (exit 0 with a traceback; see the lock rule) |
+| `STRUCTURAL_READY` | `:657` | every write applied; a second index reached the same inventory; the success line prints at `:683` | 0 (`:688`). Kept after the commit when the top-level rollback is refused (another run holds the lock) or its lock step fails (exit 1, `:544`, `:609-610`), or when an interrupt lands in the interpreter's own exit (exit 0; see the lock rule) |
 | `ROLLED_BACK` | `:571` | set by `roll_back` (`:553`) after a complete restore: a refusal (raised at `:671`), a tool step past `TOOL_TIMEOUT` (600 s, `:46`; the refusal is at `:317`), an unnamed failure (re-raised at `:679`), or an interrupt (`interrupted_exit`, `:585`); restore put back every prior byte and found no concurrent edit | 1 for a refusal (`:671`, printed at `:829`), 1 with a traceback for an unnamed failure (`:679`), 130 for an interrupt (`:615`) |
 | `RECOVERY_CONFLICT` | `:571` (from `roll_back`, called by `apply` at `:668` or by `interrupted_exit` at `:596`) or `:743` (recover) | restore found a file whose bytes are neither the prior bytes nor a postimage this run wrote; those files are kept | 1 (raised at `:670` from apply; returned at `:613` from an interrupt; raised at `:746` from recover) |
 | `RECOVERY_FAILED` | `:574` | restore raised partway. The journal's `restored` list (`:475`) names the files it put back; the other written files still hold this run's bytes, so this is not a complete rollback | 1 (raised as `RollbackFailed` at `:576`; an interrupt prints the restored and the unrestored files at `:606`) |
@@ -100,8 +100,8 @@ for retrying them exists. That path is read from code (`bin/sh-finalize-init.py:
 `--recover` cannot clear a lock that a failed release left behind. `roll_back` ignores an error from its release
 (`:580-581`), and `take_lock` does the same in its cleanup (`:305-307`). The lock then records a process that has
 exited. The manual step is in `docs/GETTING-STARTED.md`, section "Stale lock after a rollback": confirm that the
-journal status is `ROLLED_BACK` and that the recorded PID is not running, then remove `.claude/agents/.sh-finalize.lock`
-by hand.
+journal status is `ROLLED_BACK` and that the recorded PID (process ID: the number the operating system gives a
+running program) is not running, then remove `.claude/agents/.sh-finalize.lock` by hand.
 
 **Files this run never wrote.** `restore` skips a journaled file whose `expected_after` is empty (`:477-478`). Such a
 file is neither put back nor a conflict, so a human edit to it is kept and the rollback completes (fixture 6r). Only
@@ -136,10 +136,11 @@ The conflict message has one of two forms, depending on the path that kept the f
   (`:828-830`) and writes no journal. It leaves the empty `--evidence-dir` that `:621` created before the lock is
   taken, so a retry needs a new directory.
 - **The commit point.** The lock is released at `:663`, after the STRUCTURAL_READY write (`:657`) and before the
-  success print (`:683`) and `return 0` (`:688`). The release ends the lock's protection. It does not end the rollback: an interrupt after the release still rolls
-  the run back. Only a failure to print the success line keeps the completed run.
+  success print (`:683`) and `return 0` (`:688`). The release ends the lock's protection. It does not end the
+  rollback: an interrupt after the release still rolls the run back, except in the four cases below.
   The success print sits after the rollback handlers, in its own `try` that ignores `OSError` and `ValueError`, so a
-  failed print (a closed stdout) does not roll the completed run back (fixture 6s). It exits 0.
+  failed print does not roll the completed run back. A closed `sys.stdout` exits 0 (fixture 6s). Other print
+  failures are not covered by that fixture (see the closed-stdout rows in `docs/GETTING-STARTED.md`).
 - **Rollback from the top level.** After the handler is installed, a SIGINT or SIGTERM raises `Interrupted`
   (`:503-505`) on whatever line it lands, which covers the release call, the STRUCTURAL_READY write, the
   `return 0` and everything before them. `apply` does not catch it. It reaches `__main__` (`:825-833`), which
@@ -237,20 +238,29 @@ the dispatcher check in `bin/spec-harness:35-41`.
 | `doctor` | 1 | structural PENDING | `:161` |
 | `doctor` | 2 | target is missing or a symbolic link | `:127` |
 | `finalize-init` | 0 | dry run; `--apply` reached `STRUCTURAL_READY`; `--recover` reached `RECOVERED`. An interrupt in the interpreter's own exit also exits 0. For an interrupt sent from an `atexit` hook, reproduced at `c01c706`: exit 0, a traceback ending `Interrupted: SIGINT`, journal `STRUCTURAL_READY`, no lock. The other exit points are not measured (UNVERIFIED); see the lock rule in section 3 | `:796`, `:688`, `:752` |
-| `finalize-init` | 1 | a refusal (precondition, busy lock, concurrent edit, failed or conflicted rollback, a rollback refused after an interrupt because another run holds the lock, or a tool step past `TOOL_TIMEOUT`, where only its direct child is stopped and a child process it started may keep running); an unnamed failure, after its rollback, with a traceback | `:829` (refusals from `main`), `:609-610` and `:613` (interrupt paths), `:671` (raised by apply), `:679` (re-raised) |
+| `finalize-init` | 1 | a refusal (precondition, busy lock, concurrent edit, failed or conflicted rollback, a rollback refused after an interrupt because another run holds the lock, or a tool step past `TOOL_TIMEOUT`, where only its direct child is stopped and a child process it started may keep running); an unnamed failure whose rollback completes with no conflict, with a traceback | `:829` (refusals from `main`), `:609-610` and `:613` (interrupt paths), `:671` (raised by apply), `:679` (re-raised) |
 | `finalize-init` | 2 | argument error (`argparse`), or Python older than 3.11 | `bin/spec-harness:35-41` |
-| `finalize-init` | 130 | `--apply` interrupted by SIGINT or SIGTERM and rolled back from the top level: every write restored, the lock released (both signals). Not covered: an interrupt in the interpreter's own exit (exit 0, section 3); an interrupt whose rollback is refused because another run holds the lock, or whose lock step fails (exit 1); an interrupt whose rollback finds a conflict (exit 1, conflicting files and lock kept); an interrupt whose restore raises partway (exit 1, `RECOVERY_FAILED`, section 3) | `:615`, `:825-833` |
+| `finalize-init` | 130 | `--apply` interrupted by SIGINT or SIGTERM and rolled back from the top level: every write restored, the lock released (both signals; if the release itself fails, the status is still `ROLLED_BACK` and the lock file is kept, see "Stale lock after a rollback" in `docs/GETTING-STARTED.md`). Not covered: an interrupt in the interpreter's own exit (exit 0, section 3); an interrupt whose rollback is refused because another run holds the lock, or whose lock step fails (exit 1); an interrupt whose rollback finds a conflict (exit 1, conflicting files and lock kept); an interrupt whose restore raises partway (exit 1, `RECOVERY_FAILED`, section 3) | `:615`, `:825-833` |
 | `index --preview` | 0 | bytes printed, nothing written | `bin/sh-index.sh:800` |
 | `index` | 1 | a refusal raised as a message (`SystemExit` with a string) | e.g. `:117`, `:170`, `:540` |
 | `index` | 2 | no target argument, or Python older than 3.11 | `bin/sh-index.sh:7-8`, `:14`, `:21` |
 
 An uncaught Python exception in `finalize-init` or `doctor` also exits 1 with a traceback. Neither `main` nor
 `__main__` catches it, so it is not a documented status. An unnamed failure inside `apply` (`:672-679`) rolls
-back first. With no conflict it re-raises. The output then has no rollback sentence, so check the journal: status `ROLLED_BACK` means every write was rolled back. With a
-conflict it prints the conflict message with its file list as a named refusal (`:678`; fixture 6p). An interrupt
-that reaches `__main__` (`:831-833`) goes to `interrupted_exit` (`:585`). `roll_back` catches only `Refused`,
-`OSError` and `ValueError` during restore (`:573`), so an unnamed exception inside the rollback itself still escapes
-as a traceback (not measured). The one interrupt `interrupted_exit` cannot handle is one that lands in the
+back first, and the output then depends on the rollback:
+
+- (a) **The rollback completes with no conflict.** The original error re-raises (`:679`): a traceback, exit 1, and
+  no rollback sentence. The journal reads `ROLLED_BACK`, which means every write was rolled back.
+- (b) **The rollback finds a conflict.** A named refusal prints the conflict message with its file list (`:678`;
+  fixture 6p). Exit 1.
+- (c) **The rollback is refused on the lock (`:568`) or a restore fails (`:576`).** Both are raised as a `Refused`
+  (`RollbackFailed` is a subclass, `:53`), so `__main__` prints a named `PENDING:` line (`:828-830`), exit 1, and no
+  traceback. A refused rollback writes nothing and does not remove the lock. A failed restore keeps the lock and
+  sets `RECOVERY_FAILED`.
+
+An interrupt that reaches `__main__` (`:831-833`) goes to `interrupted_exit` (`:585`). `roll_back` catches only
+`Refused`, `OSError` and `ValueError` during restore (`:573`), so an unnamed exception inside the rollback itself still
+escapes as a traceback (not measured). The one interrupt `interrupted_exit` cannot handle is one that lands in the
 interpreter's own exit (section 3).
 
 ## Test to add when accepted
