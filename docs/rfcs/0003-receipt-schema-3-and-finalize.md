@@ -136,11 +136,16 @@ The conflict message has one of two forms, depending on the path that kept the f
      and `RECOVERY_FAILED`.
   `interrupted_exit` returns 130 when every write is rolled back (`:577`).
 - **Race refused.** When another run holds the lock at the moment the top-level rollback starts (a second
-  finalizer took it after the commit), the rollback refuses (`:538`, re-raised at `:542`) and writes nothing.
-  It leaves the other run's lock alone. `interrupted_exit` prints the refusal and returns 1 (`:572`). The
+  finalizer took it after the commit), the rollback refuses (`:564`, re-raised at `:568`) and writes nothing.
+  It leaves the other run's lock alone. `interrupted_exit` prints the refusal and returns 1 (`:609-610`). The
   status stays `STRUCTURAL_READY`, and the journal's `failure` field records `rollback refused`, so the
-  completed run is kept. Apart from the interpreter exit below, this is the only case where an interrupt after the
-  first target write does not roll back. Fixture 6l measures it.
+  completed run is kept. Fixture 6l measures this case.
+- **Four cases where an interrupt after the first target write does not roll back.** (1) The race refusal above:
+  the completed run is kept, exit 1. (2) A conflict: the rollback finds a file whose bytes are neither the prior
+  bytes nor this run's postimage, keeps that file and the lock, and exits 1 (`interrupted_exit`, `:611-613`). (3) A
+  restore that raises partway (`RECOVERY_FAILED`): some files hold the prior bytes and others still hold this run's
+  bytes, the lock is kept, and the print names both sets and exits 1 (`:597-607`). (4) The interpreter's own exit,
+  below, which exits 0.
 - **The window that remains: the interpreter's own exit.** After `sys.exit` raises `SystemExit` out of the `try`
   in `__main__` (`:779`), no code in this file is protected, and the handler is still installed. An interrupt
   there raises `Interrupted` in code that does not catch it. Measured with a SIGINT sent from an `atexit` hook
@@ -203,7 +208,7 @@ the dispatcher check in `bin/spec-harness:35-41`.
 | `finalize-init` | 0 | dry run; `--apply` reached `STRUCTURAL_READY`; `--recover` reached `RECOVERED`. An interrupt in the interpreter's own exit also exits 0 (measured; see the lock rule in section 3) | `:748`, `:629`, `:704` |
 | `finalize-init` | 1 | a refusal (precondition, busy lock, concurrent edit, failed or conflicted rollback, a rollback refused after an interrupt because another run holds the lock, or a tool step past `TOOL_TIMEOUT`, where only its direct child is stopped and a child process it started may keep running); an unnamed failure, after its rollback, with a traceback | `:782` (refusals from `main`), `:572` and `:575` (interrupt paths), `:636` (raised by apply), `:640` (re-raised) |
 | `finalize-init` | 2 | argument error (`argparse`), or Python older than 3.11 | `bin/spec-harness:35-41` |
-| `finalize-init` | 130 | `--apply` interrupted by SIGINT or SIGTERM and rolled back from the top level: every write restored, the lock released (both signals). Not covered: an interrupt in the interpreter's own exit (exit 0, section 3), and an interrupt whose rollback is refused because another run holds the lock (exit 1) | `:577`, `:777-785` |
+| `finalize-init` | 130 | `--apply` interrupted by SIGINT or SIGTERM and rolled back from the top level: every write restored, the lock released (both signals). Not covered: an interrupt in the interpreter's own exit (exit 0, section 3); an interrupt whose rollback is refused because another run holds the lock, or whose lock step fails (exit 1); an interrupt whose rollback finds a conflict (exit 1, conflicting files and lock kept); an interrupt whose restore raises partway (exit 1, `RECOVERY_FAILED`, section 3) | `:615`, `:825-833` |
 | `index --preview` | 0 | bytes printed, nothing written | `bin/sh-index.sh:800` |
 | `index` | 1 | a refusal raised as a message (`SystemExit` with a string) | e.g. `:117`, `:170`, `:540` |
 | `index` | 2 | no target argument, or Python older than 3.11 | `bin/sh-index.sh:7-8`, `:14`, `:21` |
