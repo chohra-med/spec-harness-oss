@@ -24,6 +24,7 @@
     "templates",
     "docs",
     "install-manifest.json",
+    "install-migrations.tsv",
     "README.md",
     "AGENTS.md",
     "learning_human.html",

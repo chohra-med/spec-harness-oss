@@ -50,7 +50,7 @@ def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 try:
-    run(["python3", "-c", "pass"], 1, "expected-failure helper positive control")
+    run(["python3", "-I", "-B", "-c", "pass"], 1, "expected-failure helper positive control")
 except AssertionError as error:
     assert "expected exit 1, got 0" in str(error), error
     print("PASS: expected-failure helper rejects a successful child")

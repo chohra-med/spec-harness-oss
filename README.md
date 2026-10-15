@@ -174,6 +174,48 @@ The current procedure and authority map for verification, learning review, and d
 [**docs/MCP-SERVERS.md**](./docs/MCP-SERVERS.md); verify vendor details against current official
 documentation before connecting a tool.
 
+## Updating
+
+Pull the new version of the source, then update the installed target. Nothing is applied until you
+run it with the digest the plan printed:
+
+```sh
+git -C <checkout> pull --ff-only
+spec-harness status <target>                    # installed version and commit, and the source version
+spec-harness update <target>                    # plan only: one state per file, and a digest
+spec-harness update <target> --apply DIGEST     # apply exactly that plan
+```
+
+Each planned file is one of these states:
+
+- `UNCHANGED`: the installed bytes already match the new source.
+- `UPDATE`: you have not edited the file, so it is replaced.
+- `CUSTOMIZED-KEEP`: you edited the file and the source did not change, so your edit is kept.
+- `MERGE`: you edited the file and the source changed without overlap; a clean three-way merge is written.
+- `CONFLICT`: the merge overlaps. `<file>.spec-harness-proposed` is written next to the file, and the
+  file itself is left for you to resolve.
+- `NEW`: a file the new version adds.
+- `REMOVED-UPSTREAM`: a file the new version no longer ships. It is listed, and never deleted.
+
+Generated synthesis outputs are not touched. If the project has a synthesis receipt and the update writes an
+`UPDATE`, `NEW` or `MERGE` file, the update marks synthesis stale, and `spec-harness generate-agents --check`
+reports it until you run `/sdd init` again. An update that writes only `CONFLICT` proposals does not mark it.
+
+## Uninstall
+
+`spec-harness uninstall <target>` prints a plan only. It reads the install record
+(`.spec-harness/install.json`) and sorts each file the harness wrote under one heading. To remove the install:
+
+1. Run `spec-harness uninstall <target>` and read the plan.
+2. Delete only the files under `UNCHANGED since install (safe to delete)`.
+3. Keep the files under `EDITED since install (review before deleting)` and `YOURS before install (never delete)`.
+4. Delete the harness state directory, `.spec-harness/`.
+
+`ALREADY GONE` names files that no longer exist, so there is nothing to delete. The plan does not list the
+generated synthesis outputs (rules, skills, role bindings and the receipt), so those stay until you remove them
+yourself. A target installed before 0.4.0 has no record, so `uninstall` exits 1 and says so, and you must check
+`git status` yourself.
+
 ## Platform support
 
 | Platform | Status |

@@ -154,3 +154,60 @@ def load_json_object(path, max_bytes, *, root=None, what="JSON file"):
     if not isinstance(value, dict):
         raise SafeReadError(str(path), f"{what} must be a JSON object")
     return value
+
+
+class WriteRefused(Exception):
+    """A write was refused: an unsafe path, a link or non-directory on the way, or a non-regular target."""
+
+
+def write_regular(root, rel, data, executable=False):
+    """Create or atomically replace one file under ``root`` without following a link on the way.
+
+    Every directory component is opened with ``O_NOFOLLOW``, the temporary file is created exclusively
+    without following links, and the final name is only replaced when it is a regular file or absent.
+    Raises WriteRefused.
+    """
+    if not safe_relative(rel):
+        raise WriteRefused(f"unsafe write path: {rel!r}")
+    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    descriptors = [os.open(root, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))]
+    temporary = None
+    try:
+        for part in rel.split("/")[:-1]:
+            try:
+                os.mkdir(part, 0o755, dir_fd=descriptors[-1])
+            except FileExistsError:
+                pass
+            try:
+                descriptors.append(os.open(part, flags, dir_fd=descriptors[-1]))
+            except OSError:
+                raise WriteRefused(f"refusing a link or non-directory on the way to {rel}") from None
+        name = rel.split("/")[-1]
+        directory = descriptors[-1]
+        try:
+            info = os.stat(name, dir_fd=directory, follow_symlinks=False)
+            if not stat.S_ISREG(info.st_mode):
+                raise WriteRefused(f"refusing to replace a non-regular file: {rel}")
+        except FileNotFoundError:
+            pass
+        temporary = f".spec-harness-update-{os.getpid()}-{os.urandom(6).hex()}"
+        fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+                     0o755 if executable else 0o644, dir_fd=directory)
+        try:
+            view = memoryview(data)
+            while view:
+                view = view[os.write(fd, view):]
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        os.replace(temporary, name, src_dir_fd=directory, dst_dir_fd=directory)
+        temporary = None
+        os.fsync(directory)
+    finally:
+        if temporary:
+            try:
+                os.unlink(temporary, dir_fd=descriptors[-1])
+            except FileNotFoundError:
+                pass
+        for fd in reversed(descriptors):
+            os.close(fd)

@@ -37,6 +37,11 @@
     "specs",
     "workflows"
   ],
+  "installRecord": {
+    "record": ".spec-harness/install.json",
+    "baseDir": ".spec-harness/base",
+    "note": "The installer also writes this record of what it staged (format spec-harness-install-record) and one base copy of every file it added, under baseDir at the same relative path. status, update and uninstall read them. A file that already existed and differs from the harness file is recorded as not managed and has no base copy. A file that already existed and is byte-identical to the harness file is recorded as managed and gets a base copy."
+  },
   "loaderBlock": "## Spec Harness\n\n- Setup status: `SPEC-HARNESS.md`. Keep PENDING items PENDING until they are checked.\n- Before code edits read `ai_rules/rules/frequent_rules.md`, `.memory/40-active.md` and the nearest `RULES.md`.\n- Feature work goes through `/sdd <ticket text>`. The procedure is `.claude/commands/sdd.md`.\n- A task is done when a fresh verifier returns PASS against the ticket's own goal, not when tests pass.\n- Rules change only through `.claude/commands/spec-harness/learn.md`, after review.\n",
   "entries": [
     {
@@ -212,7 +217,7 @@
       "source": "commands/generate-agents.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "415b09d29010d3d9a93eee97fdb42a5ac3a24ff8193e9e0ae857a8ea49bb0d3e",
+      "sha256": "5ba3909e35e6720482e518a83dcc19b31760bd1caf8648899e43a81da1aaefa8",
       "mode": "0644"
     },
     {
@@ -228,7 +233,7 @@
       "source": "commands/init.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "4e7f39ccd3851f64cf42ba0e04a482e964c172d10737aa14aa4517285e7a4897",
+      "sha256": "4c08576e0c0b620cd4cc3d72a9ae3b424ed3d978dcd6830a0429116205e631a7",
       "mode": "0644"
     },
     {
@@ -768,7 +773,7 @@
       "source": "learning_human.html",
       "render": "copy",
       "tokens": [],
-      "sha256": "a5b00cd45d091de64cc1edbe529dddbaed1e9a7d38c022dc3a26f89d738d7de3",
+      "sha256": "f74b91e838524615ed210e89b949e24ab432aa3d8e5cd6fa63826a0872061ee0",
       "mode": "0644"
     },
     {

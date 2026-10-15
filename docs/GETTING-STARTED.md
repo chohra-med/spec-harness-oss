@@ -120,8 +120,9 @@ git switch -c chore/spec-harness
 git status   # commit or stash first: a clean tree makes the next diff readable
 ```
 
-There is no uninstall command. The branch is your undo: delete it, or see
-[Undo](#undo).
+`spec-harness uninstall <target>` prints what the install record says was written and deletes
+nothing. The branch is your undo: delete it, or see [Undo](#undo). The uninstall steps are in the
+README's `## Uninstall` section.
 
 ### 2. Stage the harness
 
@@ -337,6 +338,21 @@ nearest tier and says so. It does not stop.
 - **Only source files can be cited.** Claims about `package.json` or a README are not covered by the
   structural check, so read those rules yourself.
 
+## Updating
+
+Update the source checkout, then the installed target. Each step is safe to repeat; `update` plans
+first and applies only the digest you pass back:
+
+```sh
+git -C <checkout> pull --ff-only
+spec-harness status <target>
+spec-harness update <target>
+spec-harness update <target> --apply DIGEST
+```
+
+The README's Updating section lists what each planned state means (`UPDATE`, `MERGE`, `CONFLICT`).
+A `CONFLICT` leaves a `<file>.spec-harness-proposed` beside the file for you to resolve by hand.
+
 ## Undo
 
 Before the commit:
@@ -345,7 +361,7 @@ Do not run this while a finalize-init run may be in progress: it removes untrack
 
 ```sh
 git restore .
-git clean -fd .claude .agents .memory ai_rules specs workflows learning
+git clean -fd .claude .agents .memory .spec-harness ai_rules specs workflows learning
 git clean -f AGENTS.md CLAUDE.md RULES.md SPEC-HARNESS.md constitution.md goal.md loop.sh learning_human.html
 ```
 
