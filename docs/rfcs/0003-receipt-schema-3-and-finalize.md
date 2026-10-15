@@ -127,7 +127,7 @@ The conflict message has one of two forms, depending on the path that kept the f
 - From `--apply`, or from an interrupt (`conflict_message`, `:547`, after the failure text): `concurrent edits kept, manual recovery needed: <path>`
 - From `--recover` (`:746`): `concurrent edits kept; manual recovery needed: <path>`
 
-**Lock rule** (after the H5 change at `c0daa34`; revised by corrections 19, 20 and 21, 2026-10-15):
+**Lock rule** (after the H5 change at `c0daa34`; revised by corrections 19, 20, 21 and 25):
 
 - `--apply` installs its signal handler (`install_signal_handlers`, `:497`, called at `:627`) and fills the run
   record `RUN` (`:62`, set at `:628`) before it takes the lock (`:629`; `take_lock` is defined at `:283`). The
@@ -234,7 +234,7 @@ client session decides the second (`:5-8`).
 - `--recover` installs no signal handler. `install_signal_handlers` is called only from `--apply`
   (`:627`), so an interrupt during `--recover` is not covered by the 130 path. This is a known gap,
   not a designed behaviour.
-- Lock binding: record a run ID and the hostname in the lock so the manual procedure can check which run wrote it. Not in this release.
+- Run-ID binding: record a run ID and the hostname in the lock so the manual procedure can check which run wrote it. Not in this release.
 - Shared-volume and container locks: not detected by the manual procedure.
 
 ## Exit codes
