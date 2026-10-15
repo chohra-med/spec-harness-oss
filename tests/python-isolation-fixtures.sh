@@ -142,10 +142,12 @@ else
   fail "python3 program without -I -B:$py_offenders"
 fi
 
-# The test files run their own Python programs; each carries -I -B like the shipped ones.
+# Every test file runs its own Python programs (this file and run-all hold none); each carries -I -B like the shipped ones.
 # (`python3 -m ...` inside a quoted string is data, not a run; only a leading `python3 -I`-style flag run is matched.)
 pc_offenders=""
-for tf in portable-skills-contract index-fixtures sdd-fixtures synthesis-contract; do
+for tfp in "$ROOT"/tests/*.sh; do
+  tf="$(basename "$tfp" .sh)"
+  case "$tf" in run-all|python-isolation-fixtures) continue ;; esac
   while IFS= read -r hit; do
     flags="$(printf '%s\n' "${hit#*:}" | grep -oE 'python3( +-[A-Za-z]+)+' | head -n 1)"
     [[ " $flags " == *" -I "* && " $flags " == *" -B "* ]] || pc_offenders="$pc_offenders tests/$tf.sh:${hit%%:*}"

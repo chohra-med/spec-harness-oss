@@ -149,7 +149,7 @@ rm "$t/.claude/agents/.init-synthesis.json"; mkfifo "$t/.claude/agents/.init-syn
 out="$(check "$t")"; rc=$?
 if [[ $rc -eq 1 && "$out" == *"PENDING: missing or unsafe synthesis receipt"* ]]; then pass 'check refuses a FIFO receipt without blocking'; else fail "FIFO receipt (rc=$rc): $out"; fi
 rm "$t/.claude/agents/.init-synthesis.json"
-python3 -I -c 'import json,sys; open(sys.argv[1],"w").write(json.dumps({"format":"spec-harness-synthesis","padding":"x"*(1024*1024)}))' "$t/.claude/agents/.init-synthesis.json"
+python3 -I -B -c 'import json,sys; open(sys.argv[1],"w").write(json.dumps({"format":"spec-harness-synthesis","padding":"x"*(1024*1024)}))' "$t/.claude/agents/.init-synthesis.json"
 out="$(check "$t")"; rc=$?
 if [[ $rc -eq 1 && "$out" == *"read limit"* ]]; then pass 'check refuses a receipt over 1 MiB'; else fail "oversized receipt (rc=$rc): $out"; fi
 printf '[]\n' > "$t/.claude/agents/.init-synthesis.json"

@@ -197,8 +197,8 @@ print("PASS: renaming the project folder leaves the inventory bytes unchanged")
 PY
 
 failures=0
-if python3 -I "$ORACLE" "$ROOT" "$TMP" real; then printf 'PASS: stability oracle on the real index\n'; else printf 'FAIL: stability oracle on the real index\n'; failures=$((failures + 1)); fi
-if python3 -I "$ORACLE" "$ROOT" "$TMP" controls; then printf 'PASS: receipt and output controls\n'; else printf 'FAIL: receipt and output controls\n'; failures=$((failures + 1)); fi
+if python3 -I -B "$ORACLE" "$ROOT" "$TMP" real; then printf 'PASS: stability oracle on the real index\n'; else printf 'FAIL: stability oracle on the real index\n'; failures=$((failures + 1)); fi
+if python3 -I -B "$ORACLE" "$ROOT" "$TMP" controls; then printf 'PASS: receipt and output controls\n'; else printf 'FAIL: receipt and output controls\n'; failures=$((failures + 1)); fi
 
 # One read per instruction file: run the index program in-process with the shared reader counted.
 COUNTER="$TMP/count.py"
@@ -229,7 +229,7 @@ t="$TMP/once"; mkdir -p "$t/src" "$t/ai_rules/rules" "$t/.claude/agents"
 printf '{"name":"once"}\n' > "$t/package.json"; printf 'export const a = 1;\n' > "$t/src/index.ts"
 printf '# custom map\n' > "$t/ai_rules/context_map.md"
 printf '# Router\n' > "$t/RULES.md"; printf '# Coding\n' > "$t/ai_rules/rules/coding.md"
-python3 -I -c 'import hashlib, json, sys
+python3 -I -B -c 'import hashlib, json, sys
 t = sys.argv[1]
 h = lambda p: hashlib.sha256(open(t + "/" + p, "rb").read()).hexdigest()
 json.dump({"format": "spec-harness-synthesis", "schema_version": 2, "packages": [{"path": ".", "rules_path": "RULES.md", "sha256": h("RULES.md"), "rule_modules": [{"name": "coding", "path": "ai_rules/rules/coding.md", "sha256": h("ai_rules/rules/coding.md")}]}]}, open(t + "/.claude/agents/.init-synthesis.json", "w"))' "$t"
@@ -240,7 +240,7 @@ mutant() {
   local label=$1 expected=$2 from=$3 to=$4 copy="$TMP/mutant-$1"
   mkdir -p "$copy"
   cp -R "$ROOT/bin" "$copy/bin"
-  python3 -I - "$copy/bin/sh-index.sh" "$from" "$to" <<'PY'
+  python3 -I -B - "$copy/bin/sh-index.sh" "$from" "$to" <<'PY'
 import sys
 path, old, new = sys.argv[1:4]
 text = open(path).read()
@@ -248,7 +248,7 @@ assert text.count(old) == 1, ("mutation anchor not found once", old)
 open(path, "w").write(text.replace(old, new))
 PY
   local out
-  out="$(python3 -I "$ORACLE" "$copy" "$TMP" mutant 2>&1)"
+  out="$(python3 -I -B "$ORACLE" "$copy" "$TMP" mutant 2>&1)"
   if [[ "$out" == *"ASSERTION $expected failed"* ]]; then
     printf 'RED control observed: %s fails at %s\n' "$label" "$expected"
   else
