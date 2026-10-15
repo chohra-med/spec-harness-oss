@@ -272,6 +272,8 @@ try:
 finally:
     os.chmod(partial, 0o755)
 assert failed.returncode == 1, ("apply must fail on the read-only second write", failed.returncode, failed.stdout + failed.stderr)
+assert "Traceback" not in failed.stdout + failed.stderr, ("a read-only write must be a named refusal, not a traceback", failed.stderr)
+assert "PENDING" in failed.stderr and "learning_human.html" in failed.stderr, ("the refusal must be a PENDING line that names the path", failed.stderr)
 assert (partial / ".claude/commands/spec-harness/plan.md").read_bytes() == (harness / "commands/plan.md").read_bytes() != plan_before, "the first planned file was not written before the failure"
 marker = json.loads((partial / ".spec-harness/synthesis-stale.json").read_text())
 assert sorted(marker["paths"]) == planned, ("H6: the marker must list every planned path", marker, planned)

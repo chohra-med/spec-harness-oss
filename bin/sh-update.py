@@ -51,6 +51,14 @@ def sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def write_or_refuse(root, rel, data, executable=False):
+    """write_regular, with an OS failure (a read-only directory, a full disk) named as a refusal."""
+    try:
+        write_regular(root, rel, data, executable)
+    except OSError as error:
+        raise Refused(f"cannot write {rel}: {error.strerror or error}") from None
+
+
 def read_optional(root, rel, limit=MAX_FILE_BYTES):
     """Bytes of a regular in-root file, None when missing; Refused for a link, FIFO or oversize."""
     try:
@@ -247,7 +255,7 @@ def write_stale_marker(root, version, receipt, paths):
     stale = {"format": "spec-harness-synthesis-stale", "schema_version": 1,
              "reason": "a harness update changed installed files after synthesis",
              "harness_version": version, "receipt_sha256": sha(receipt), "paths": paths}
-    write_regular(root, STALE, (json.dumps(stale, indent=2, sort_keys=True) + "\n").encode())
+    write_or_refuse(root, STALE, (json.dumps(stale, indent=2, sort_keys=True) + "\n").encode())
 
 
 def apply_plan(root, record, name, rows, digest):
@@ -264,13 +272,13 @@ def apply_plan(root, record, name, rows, digest):
     for row in rows:
         rel, state = row["path"], row["state"]
         if state in {"UPDATE", "NEW"}:
-            write_regular(root, rel, row["_new"], row["_executable"])
+            write_or_refuse(root, rel, row["_new"], row["_executable"])
             written.append(rel)
         elif state == "MERGE":
-            write_regular(root, rel, row["_merged"], row["_executable"])
+            write_or_refuse(root, rel, row["_merged"], row["_executable"])
             written.append(rel)
         elif state == "CONFLICT":
-            write_regular(root, rel + PROPOSED, row["_merged"])
+            write_or_refuse(root, rel + PROPOSED, row["_merged"])
             proposed.append(rel + PROPOSED)
             continue
         elif state == "UNCHANGED" and rel not in owned:
@@ -279,7 +287,7 @@ def apply_plan(root, record, name, rows, digest):
             continue
         # The record and base copy always hold the pristine harness bytes; a merged file therefore
         # stays "edited locally" for the next update.
-        write_regular(root, f"{STATE}/base/{rel}", row["_new"])
+        write_or_refuse(root, f"{STATE}/base/{rel}", row["_new"])
         files[rel] = {"managed": True, "sha256": row["new_sha256"]}
     record = dict(record or {"format": "spec-harness-install-record", "schema_version": 1, "project_name": name})
     record.update({"harness_version": version, "harness_commit": commit, "files": dict(sorted(files.items()))})
@@ -287,7 +295,7 @@ def apply_plan(root, record, name, rows, digest):
         record["harness_commit_dirty"] = True
     else:
         record.pop("harness_commit_dirty", None)
-    write_regular(root, RECORD, (json.dumps(record, indent=2, sort_keys=True) + "\n").encode())
+    write_or_refuse(root, RECORD, (json.dumps(record, indent=2, sort_keys=True) + "\n").encode())
     if marked:
         write_stale_marker(root, version, receipt, written)
     print(f"UPDATED: {len(written)} file(s) written, {len(proposed)} proposal(s) written; plan {digest[:12]}")
