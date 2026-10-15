@@ -198,7 +198,9 @@ else
   if (cd "$HARNESS_DIR" && npm_config_cache="$TMP_DIR/npm-cache" npm pack --ignore-scripts --pack-destination "$TMP_DIR" >"$pack_log" 2>&1); then
     archive="$(find "$TMP_DIR" -maxdepth 1 -type f -name '*.tgz' -print -quit)"
     if [[ -n "$archive" ]]; then
-      if tar -tzf "$archive" | grep -q '^package/docs/GUARDRAILS\.md$' && tar -tzf "$archive" | grep -q '^package/docs/MCP-SERVERS\.md$'; then
+      # Capture the listing first: with pipefail, grep -q exiting early makes GNU tar die of SIGPIPE.
+      listing="$(tar -tzf "$archive")"
+      if grep -q '^package/docs/GUARDRAILS\.md$' <<<"$listing" && grep -q '^package/docs/MCP-SERVERS\.md$' <<<"$listing"; then
         pass 'consumer package includes README-linked docs'
       else
         fail 'consumer package omits README-linked docs'

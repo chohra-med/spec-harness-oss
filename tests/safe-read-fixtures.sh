@@ -179,8 +179,10 @@ else fail "context map has an em dash or is missing (rc=$em_rc): $(grep -n $'\xe
 pack="$TMP/pack"; mkdir -p "$pack"
 if (cd "$ROOT" && npm_config_cache="$TMP/npm-cache" npm pack --ignore-scripts --pack-destination "$pack" >"$TMP/pack.log" 2>&1); then
   archive="$(find "$pack" -maxdepth 1 -name '*.tgz' -print -quit)"
-  if tar -tzf "$archive" | grep -q '^package/bin/sh_safe_io\.py$'; then pass 'packed tarball ships bin/sh_safe_io.py'; else fail 'packed tarball omits bin/sh_safe_io.py'; fi
-  if tar -tzf "$archive" | grep -q '__pycache__'; then fail 'packed tarball contains __pycache__'; else pass 'packed tarball has no __pycache__'; fi
+  # Capture the listing first: with pipefail, grep -q exiting early makes GNU tar die of SIGPIPE and the pipeline fail.
+  listing="$(tar -tzf "$archive")"
+  if grep -q '^package/bin/sh_safe_io\.py$' <<<"$listing"; then pass 'packed tarball ships bin/sh_safe_io.py'; else fail 'packed tarball omits bin/sh_safe_io.py'; fi
+  if grep -q '__pycache__' <<<"$listing"; then fail 'packed tarball contains __pycache__'; else pass 'packed tarball has no __pycache__'; fi
   mkdir -p "$TMP/unpacked" "$TMP/elsewhere"
   tar -xzf "$archive" -C "$TMP/unpacked"
   t="$TMP/packed-target"; mkdir -p "$t/src" "$t/.claude/agents"
