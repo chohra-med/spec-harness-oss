@@ -440,6 +440,18 @@ if "sdd-merger" in roles:
     if not merger.get("selection_reason") or not merger.get("authority_citation"):
         fail("sdd-merger is selected without a cited explicit merge authority")
 
+# A harness update that changed installed files after this receipt was written leaves a marker.
+# It holds until the receipt itself is rewritten by a guarded refresh.
+stale_marker = safe_file(".spec-harness/synthesis-stale.json")
+if stale_marker is not None:
+    try:
+        stale = json.loads(stale_marker)
+        bound = stale.get("receipt_sha256") if isinstance(stale, dict) else None
+    except (UnicodeDecodeError, ValueError, RecursionError):
+        stale, bound = None, None
+    if not isinstance(stale, dict) or bound is None or bound == digest(raw_receipt):
+        fail("harness update applied after synthesis (.spec-harness/synthesis-stale.json); refresh the synthesis through init before READY")
+
 if errors:
     print("PENDING: synthesis readiness check failed")
     for error in errors:

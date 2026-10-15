@@ -174,6 +174,38 @@ The current procedure and authority map for verification, learning review, and d
 [**docs/MCP-SERVERS.md**](./docs/MCP-SERVERS.md); verify vendor details against current official
 documentation before connecting a tool.
 
+## Updating
+
+Pull the new version of the source, then update the installed target. Nothing is applied until you
+run it with the digest the plan printed:
+
+```sh
+git -C <checkout> pull --ff-only
+spec-harness status <target>                    # installed version and commit, and the source version
+spec-harness update <target>                    # plan only: one state per file, and a digest
+spec-harness update <target> --apply DIGEST     # apply exactly that plan
+```
+
+Each planned file is one of these states:
+
+- `UNCHANGED`: the installed bytes already match the new source.
+- `UPDATE`: you have not edited the file, so it is replaced.
+- `CUSTOMIZED-KEEP`: you edited the file and the source did not change, so your edit is kept.
+- `MERGE`: you edited the file and the source changed without overlap; a clean three-way merge is written.
+- `CONFLICT`: the merge overlaps. `<file>.spec-harness-proposed` is written next to the file, and the
+  file itself is left for you to resolve.
+- `NEW`: a file the new version adds.
+- `REMOVED-UPSTREAM`: a file the new version no longer ships. It is listed, and never deleted.
+
+Generated synthesis outputs are not touched. After an update, `spec-harness generate-agents --check`
+reports them as stale until you run `/sdd init` again.
+
+## Uninstall
+
+`spec-harness uninstall <target>` prints a plan only. It lists exactly what the install record
+(`.spec-harness/install.json`) says the harness wrote, and deletes nothing. A target installed before
+0.4.0 has no record, so `uninstall` exits 1 and says so, and you must check `git status` yourself.
+
 ## Platform support
 
 | Platform | Status |

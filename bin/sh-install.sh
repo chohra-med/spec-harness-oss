@@ -6,7 +6,16 @@ SYS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 ENTRYPOINT=install
 INTERNAL_MODE=
 
-if [ "${1:-}" = "--internal-new" ]; then
+RENDER_DIR=
+if [ "${1:-}" = "--render-plan" ]; then
+  # Internal, used by `spec-harness update`: render the planned file set into an empty directory.
+  [ "$#" -eq 3 ] || { echo "usage: sh-install.sh --render-plan <empty-output-dir> <project-name>" >&2; exit 2; }
+  ENTRYPOINT=render
+  INTERNAL_MODE=render
+  RENDER_DIR=$2
+  TARGET=$2
+  NAME=$3
+elif [ "${1:-}" = "--internal-new" ]; then
   [ "$#" -eq 3 ] || { echo "usage: sh-install.sh --internal-new <target-dir> <project-name>" >&2; exit 2; }
   ENTRYPOINT=init
   INTERNAL_MODE=new
@@ -99,6 +108,7 @@ trap cleanup EXIT HUP INT TERM
 
 PLAN_RELS=()
 PLAN_SRCS=()
+STATE_DIR=.spec-harness
 ADDED=()
 PRESERVED=()
 CONFLICTS=()
@@ -207,6 +217,17 @@ for source in "${PLAN_SRCS[@]}"; do
   if [ ! -f "$source" ]; then echo "missing installer source: $source; no target files were written." >&2; exit 1; fi
 done
 
+if [ -n "$RENDER_DIR" ]; then
+  if [ -n "$(ls -A "$ABS")" ]; then echo "render directory must be empty: $ABS" >&2; exit 2; fi
+  for ((i = 0; i < ${#PLAN_RELS[@]}; i++)); do
+    rel=${PLAN_RELS[$i]}
+    case "$rel" in */*) mkdir -p "$ABS/${rel%/*}" || exit 1 ;; esac
+    cp -p "${PLAN_SRCS[$i]}" "$ABS/$rel" || exit 1
+    printf '%s\n' "$rel"
+  done >"$ABS/.plan-list"
+  exit 0
+fi
+
 check_destination() {
   local rel=$1 current=$ABS component i last
   local -a parts=()
@@ -251,13 +272,16 @@ check_directory() {
   done
 }
 
-# Validate every destination before the first target write.
-for rel in "${INSTALL_DIRS[@]}"; do
+# Validate every destination before the first target write, including the install record and the
+# base copies kept for later three-way updates.
+for rel in "${INSTALL_DIRS[@]}" "$STATE_DIR" "$STATE_DIR/base"; do
   check_directory "$rel" || { echo "preflight failed; target was not modified." >&2; exit 2; }
 done
 for rel in "${PLAN_RELS[@]}"; do
   check_destination "$rel" || { echo "preflight failed; target was not modified." >&2; exit 2; }
+  check_destination "$STATE_DIR/base/$rel" || { echo "preflight failed; target was not modified." >&2; exit 2; }
 done
+check_destination "$STATE_DIR/install.json" || { echo "preflight failed; target was not modified." >&2; exit 2; }
 
 for rel in "${INSTALL_DIRS[@]}"; do
   if ! mkdir -p "$ABS/$rel"; then echo "cannot create $rel; target may be partially staged." >&2; exit 1; fi
@@ -291,6 +315,79 @@ for ((i = 0; i < ${#PLAN_RELS[@]}; i++)); do
   fi
 done
 
+# Install record and base copies: what this install wrote, with hashes, so `spec-harness status`,
+# `update` and `uninstall` can tell harness bytes from local edits later. A rerun only adds the files
+# it added; files that were already there and differ (CONFLICTS) stay the user's and are not managed.
+RECORD_NOTE=
+if command -v python3 >/dev/null 2>&1; then
+  RECORD_LIST="$PLAN_DIR/record-list"
+  : >"$RECORD_LIST"
+  for rel in "${ADDED[@]}"; do printf 'added\t%s\n' "$rel" >>"$RECORD_LIST"; done
+  for rel in "${PRESERVED[@]}"; do
+    state=identical
+    for conflict in "${CONFLICTS[@]}"; do [ "$conflict" = "$rel" ] && state=user; done
+    printf '%s\t%s\n' "$state" "$rel" >>"$RECORD_LIST"
+  done
+  HARNESS_COMMIT=
+  if [ -e "$SYS_DIR/.git" ] && command -v git >/dev/null 2>&1; then
+    HARNESS_COMMIT="$(git -C "$SYS_DIR" rev-parse HEAD 2>/dev/null || true)"
+  fi
+  HARNESS_VERSION="$(sed -n 's/^[[:space:]]*"version":[[:space:]]*"\([^"]*\)".*/\1/p' "$SYS_DIR/package.json" | head -n 1)"
+  mkdir -p "$ABS/$STATE_DIR/base" || { echo "cannot create $STATE_DIR; files are staged but no install record was written." >&2; exit 1; }
+  check_directory "$STATE_DIR/base" || { echo "install record directory changed; files are staged but no install record was written." >&2; exit 2; }
+  RECORD_NOTE="$(python3 -I -B - "$ABS" "$STATE_DIR" "$RECORD_LIST" "$NAME" "$HARNESS_VERSION" "$HARNESS_COMMIT" <<'PYRECORD'
+import hashlib, json, os, shutil, stat, sys
+root, state, listing, name, version, commit = sys.argv[1:7]
+record_path = os.path.join(root, state, "install.json")
+record = None
+if os.path.lexists(record_path):
+    info = os.lstat(record_path)
+    if stat.S_ISREG(info.st_mode) and info.st_size <= 4 * 1024 * 1024:
+        try:
+            with open(record_path, "rb") as handle:
+                record = json.loads(handle.read().decode("utf-8"))
+        except (ValueError, OSError):
+            record = None
+    if not isinstance(record, dict) or record.get("format") != "spec-harness-install-record":
+        sys.stdout.write("existing %s/install.json is not an install record; it was kept and not updated" % state)
+        sys.exit(0)
+if record is None:
+    record = {"format": "spec-harness-install-record", "schema_version": 1, "harness_version": version,
+              "harness_commit": commit or None, "project_name": name, "files": {}}
+files = record.setdefault("files", {})
+added = 0
+with open(listing, encoding="utf-8") as handle:
+    rows = [line.rstrip("\n").split("\t", 1) for line in handle if line.strip()]
+for kind, rel in rows:
+    if rel in files:
+        continue
+    path = os.path.join(root, rel)
+    if kind == "user":
+        files[rel] = {"managed": False}
+        continue
+    with open(path, "rb") as handle:
+        data = handle.read()
+    base = os.path.join(root, state, "base", rel)
+    os.makedirs(os.path.dirname(base), exist_ok=True)
+    if os.path.islink(base) or os.path.islink(os.path.dirname(base)):
+        raise SystemExit("refusing symlink in install record base: " + base)
+    with open(base, "wb") as handle:
+        handle.write(data)
+    files[rel] = {"managed": True, "sha256": hashlib.sha256(data).hexdigest()}
+    added += 1
+record["files"] = dict(sorted(files.items()))
+temporary = record_path + ".tmp"
+with open(temporary, "w", encoding="utf-8") as handle:
+    handle.write(json.dumps(record, indent=2, sort_keys=True) + "\n")
+os.replace(temporary, record_path)
+managed = sum(1 for row in record["files"].values() if row.get("managed"))
+sys.stdout.write("%s/install.json (%d managed files, %d new; base copies under %s/base/)" % (state, managed, added, state))
+PYRECORD
+)" || { echo "install record could not be written; files are staged." >&2; exit 1; }
+else
+  RECORD_NOTE="not written: no Python found (status and update will treat this as an install without a record)"
+fi
+
 for skill in architecture performance packages; do
   rel=".claude/skills/spec-harness-${skill}/SKILL.md"
   if [ -e "$ABS/$rel" ] || [ -L "$ABS/$rel" ]; then
@@ -317,6 +414,7 @@ print_paths ADDED "${ADDED[@]}"
 print_paths PRESERVED "${PRESERVED[@]}"
 print_paths CONFLICTS "${CONFLICTS[@]}"
 print_paths PENDING "${PENDING[@]}"
+printf '  install record: %s\n' "$RECORD_NOTE"
 if [ "${#CONFLICTS[@]}" -gt 0 ]; then
   printf 'CONFLICTS: your existing files were kept unchanged. If AGENTS.md or CLAUDE.md is listed, add the block from step 3 of https://github.com/chohra-med/spec-harness-oss/blob/main/docs/GETTING-STARTED.md so your client loads the harness.\n'
 fi
