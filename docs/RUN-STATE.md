@@ -47,6 +47,8 @@ The stages run in this order and cannot be skipped:
 - `spec_path` is required from the spec stage on. `plan_path` is required from the plan stage on.
 - `checkpoint` is required before implementation. Its `plan_sha256` must match the plan file on disk.
   A plan that changes after approval makes the state invalid, so the approval has to be taken again.
+  The approval is recorded only here, never inside `plan.md`: a file cannot contain its own hash, so
+  `plan.md` carries no approval record and its bytes stay the bytes that were approved.
 - `review` is required before the review stage completes. The verdict must be `APPROVE`, and the
   context must be `fresh`: a separate reviewer that received only the spec, the diff and the rules.
 - `test` is required before the test stage completes. `result` must be `PASS`, and `command` records the
@@ -54,8 +56,9 @@ The stages run in this order and cannot be skipped:
 
 ## Paths
 
-`spec_path` and `plan_path` are relative to the target. A value that is absolute, contains `..`, or
-contains a backslash is refused.
+`spec_path` and `plan_path` are relative to the target. A value that is absolute, contains a backslash, or
+has a `..` segment is refused. A name such as `a..b.md` is not a `..` segment and is allowed. The checker
+checks each path whenever its key is present, at any stage; the stage rules above say which stage requires it.
 
 ## Status
 

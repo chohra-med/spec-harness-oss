@@ -201,7 +201,7 @@
       "source": "commands/sdd.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "06722d622be8552b7fdb3dac47d1c7bf0225603330bac7e68334b6c292781eb7",
+      "sha256": "12e2b34604cdae5a8bc32a6c0d170fddce103617acb14577f0314e02be7f7b06",
       "mode": "0644"
     },
     {
@@ -281,7 +281,7 @@
       "source": "commands/plan.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "7359cc1ca2324647a18d6b07e6ebd5674fc1eed401a6cc07a8f9b915c08703c7",
+      "sha256": "5f8e3015542bd7b417a98e468a809323f100bb0f69a5fbd6fcd290b0a1eadea8",
       "mode": "0644"
     },
     {

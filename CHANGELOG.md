@@ -22,14 +22,16 @@ All notable changes to this project are recorded here. The format follows
   `REMOVED-UPSTREAM`. A conflict writes a `<file>.spec-harness-proposed` beside your file. Update never
   deletes a file. Tests: `tests/update-fixtures.sh`.
 - A stale-synthesis marker, `.spec-harness/synthesis-stale.json`. An update that changes installed files
-  after synthesis writes it. `generate-agents --check` refuses READY while it exists, and init removes it.
+  after synthesis writes it. `generate-agents --check` refuses READY while it exists. The init procedure
+  (`commands/init.md`, step 8) instructs the agent to remove it as the last write of its refresh; no code deletes it.
   Tests: `tests/update-fixtures.sh`, `tests/synthesis-contract.sh`.
 - `spec-harness run-state --check <ticket>` validates `.spec-harness/runs/<ticket>/run-state.json`. The
   schema is in `docs/RUN-STATE.md`. Tests: `tests/run-state-fixtures.sh`.
 - Six method owners, installed into each project: `ponytail`, `grill-me`, `package-finder`, `skill-finder`,
   `conventions` and `technology-profiles`. Tests: `tests/portable-skills-contract.sh`.
-- A Grill Me checkpoint in the plan and SDD procedures. The plan stops for the owner's approval, and the
-  approval records the SHA-256 of the approved `plan.md`. Procedures: `commands/plan.md`, `commands/sdd.md`.
+- A Grill Me checkpoint in the plan and SDD procedures. The plan stops for the owner's approval. The approval
+  is recorded in the run state's `checkpoint` object, with the SHA-256 of the approved `plan.md`, and not in
+  `plan.md` itself, because a file cannot contain its own hash. Procedures: `commands/plan.md`, `commands/sdd.md`.
 - The `/sdd`-first rule. A code ticket is any change to a tracked file outside `specs/` and `.memory/`, and
   it goes through `/sdd` before the first source edit. The same sentence is in five source carriers and in
   the four files an install writes. Test: `tests/sdd-rule-carriers.sh`.
@@ -76,9 +78,10 @@ All notable changes to this project are recorded here. The format follows
   Tests: `tests/update-fixtures.sh`.
 - The stale marker is written before the first file write, never without a receipt, and is cleared only by
   init. Tests: `tests/update-fixtures.sh`.
-- A write refused by the operating system, for example in a read-only folder, is a named `PENDING:` refusal
-  and not a traceback. This applies to install and to update. Tests: `tests/update-fixtures.sh`,
-  `tests/installer-fixtures.sh`.
+- A write refused by the operating system, for example in a read-only folder, is not a traceback. Update
+  prints a named `PENDING:` refusal. Install's install-record step prints a named `install record: cannot write`
+  message. A failed staging write in install prints `cannot create <path>; target may be partially staged.` and
+  exits 1. Tests: `tests/update-fixtures.sh`, `tests/installer-fixtures.sh`.
 - A file that was yours before install is never adopted, flipped to managed, or re-created by update.
   Tests: `tests/update-fixtures.sh`, `tests/installer-fixtures.sh`.
 - The uninstall steps live in the README `## Uninstall` section. The Undo section covers `.spec-harness/`,
@@ -115,7 +118,9 @@ All notable changes to this project are recorded here. The format follows
 
 ### Security
 
-- Generated rules and third-party skills are data. Init does not fetch mutable skills.
+- Generated rules and third-party skills are data. The skill-finder procedure (`commands/skill-finder.md`) runs
+  `npx skills find` only when that discovery route is available, and says discovery never installs a skill.
+  No code enforces either rule. They are procedure text, as the README's Security section says.
 
 ## 0.3.0
 

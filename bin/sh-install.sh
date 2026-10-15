@@ -411,7 +411,7 @@ printf '  target        : %s\n' "$ABS"
 printf '  mode          : %s\n' "$MODE"
 printf '  project       : %s\n' "$NAME"
 printf '  status        : PENDING\n'
-printf '  exit contract : 0 = files staged, setup still PENDING; 2 = invalid input or unsafe path\n'
+printf '  exit contract : 0 = files staged, setup still PENDING; 1 = a write, record or source step failed; 2 = invalid input or unsafe path\n'
 print_paths ADDED "${ADDED[@]}"
 print_paths PRESERVED "${PRESERVED[@]}"
 print_paths CONFLICTS "${CONFLICTS[@]}"

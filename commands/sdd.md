@@ -183,8 +183,9 @@ the procedures; this shared route records their outcomes and does not duplicate 
 
 For LITE and FULL, also ground any branch, commit, pull-request or task-splitting choice in
 `.claude/commands/spec-harness/conventions.md`, and stop at the Grill Me checkpoint described in
-`.claude/commands/spec-harness/plan.md`: the owner approves the plan (recorded with the approved
-`plan.md` hash) before the implementer starts. Without that approval the run stays PENDING.
+`.claude/commands/spec-harness/plan.md`: the owner approves the plan (recorded in the run state's
+`checkpoint`, with the SHA-256 of the approved `plan.md`) before the implementer starts. Without that
+approval the run stays PENDING.
 
 ## 5. Pin a feature-owned packet
 

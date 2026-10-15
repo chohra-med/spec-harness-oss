@@ -42,9 +42,12 @@ These steps sit alongside the Grill Me and Ponytail receipts above; they replace
 2. **Stop at the Grill Me checkpoint.** Before any implementation, present the material decision
    frontier from the Grill Me method, each question with a recommended answer, and the plan summary.
    Wait for the person who owns the ticket to approve the plan or answer the questions. Record the
-   approval in `plan.md`: who approved, when, and the SHA-256 of the `plan.md` bytes they approved.
-   A later edit to `plan.md` needs a new approval. With no approval the ticket stays PENDING at
-   this checkpoint; the implementer does not start.
+   approval in the run state, not in `plan.md`: the `checkpoint` object of
+   `.spec-harness/runs/<ticket>/run-state.json` holds who approved (`approved_by`), when
+   (`approved_at`) and the SHA-256 of the `plan.md` bytes they approved (`plan_sha256`). A file cannot
+   contain its own hash, so the approval stays outside the bytes it approves. A later edit to
+   `plan.md` needs a new approval. With no approval the ticket stays PENDING at this checkpoint; the
+   implementer does not start.
 
 ## `plan.md` must contain
 
@@ -55,7 +58,8 @@ These steps sit alongside the Grill Me and Ponytail receipts above; they replace
 - changed-file outline and the order that protects the accepted goal;
 - the Ponytail receipt and Grill Me rulings/open questions;
 - the conventions relied on, with their labels and sources;
-- the Grill Me checkpoint record: approver, time and the approved plan hash (or PENDING);
+- the Grill Me checkpoint status: approved (its approver, time and plan hash live in the run state
+  `checkpoint`, not in this file) or PENDING;
 - source, rule and goal hashes this plan assumes.
 
 An unanswered material decision or changed input hash returns the packet to PENDING for resolution

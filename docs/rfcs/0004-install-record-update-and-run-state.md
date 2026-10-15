@@ -191,14 +191,16 @@ line was read for this part; elsewhere the function or heading is named, because
 - **The stop.** The plan stops before implementation so that the owner can answer. `commands/plan.md`,
   section "Grill Me checkpoint and grounded conventions", step 2, requires the material decision frontier
   with a recommended answer for each question. It then waits for approval (`commands/plan.md:42`).
-- **The record.** The approval is recorded in `plan.md` with the approver, the time and the SHA-256 of the
-  approved `plan.md` bytes (`commands/plan.md:58`). An edit after approval needs a new approval. With no
-  approval the ticket stays PENDING at this checkpoint.
+- **The record.** The approval is recorded in the run state's `checkpoint` object, with the approver, the time
+  and the SHA-256 of the approved `plan.md` bytes (`plan_sha256`). It is not recorded in `plan.md`: a file cannot
+  contain its own hash, so the record lives outside the bytes it approves (`commands/plan.md`, step 2 of the Grill
+  Me checkpoint section). An edit after approval needs a new approval. With no approval the ticket stays PENDING
+  at this checkpoint.
 - **Which tickets stop.** LITE and FULL tickets stop here (`commands/sdd.md:184-187`). A MICRO ticket does not
   require Grill Me or Ponytail receipts (`commands/sdd.md:167`).
-- **The run-state mirror.** The `checkpoint` object in the run state carries the same three fields, and
-  `check_state()` checks the digest against the plan file. No command checks that a person approved. The
-  approval is a procedure that the run follows.
+- **The run-state checkpoint.** The `checkpoint` object in the run state is the only place the approval is
+  recorded. `check_state()` compares its digest with the plan file on disk. No command checks that a person
+  approved. The approval is a procedure that the run follows.
 - **Conventions.** Before a plan relies on a convention, it labels the convention `EXPLICIT`, `OBSERVED`,
   `ADOPTED BASELINE` or `PROPOSED`, and it names the source. A `PROPOSED` convention is not applied as project
   policy (`commands/plan.md`, step 1 of the same section).
@@ -208,9 +210,11 @@ line was read for this part; elsewhere the function or heading is named, because
 ## 10. The six method owners
 
 Each project receives six method owners under `.claude/commands/spec-harness/`: `ponytail`, `grill-me`,
-`package-finder`, `skill-finder`, `conventions` and `technology-profiles`. The installer copies this set from a
-loop over the six names (`bin/sh-install.sh:197`). `commands/sdd.md:34` names the same six. Tests:
-`tests/portable-skills-contract.sh`.
+`package-finder`, `skill-finder`, `conventions` and `technology-profiles`. Their `.claude/commands/spec-harness/`
+copies come from the commands loop in `bin/sh-install.sh` (the `for source in "$SYS_DIR"/commands/*.md` loop, which
+copies every command file except `sdd.md`). A separate loop over the six names in `bin/sh-install.sh` (the
+`for method in` loop over `ponytail`, `grill-me` and the rest) writes their `.agents/skills/spec-harness-<method>/SKILL.md`
+files, not `.claude/` files. `commands/sdd.md:34` names the same six. Tests: `tests/portable-skills-contract.sh`.
 
 ## 11. The /sdd-first rule
 
