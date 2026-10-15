@@ -524,7 +524,7 @@ then run recovery again. From the target root:
 
    Expect `RECOVERED: prior bytes restored` and exit 0. When recovery takes over the crashed run's lock, that lock is released only after that success, so you do
    not remove it by hand. If you removed the lock before recovery, recovery takes its own lock and releases it
-   when recovery fails too; the message then says `this run's own lock is released`.
+   when recovery fails too; when it leaves a conflict, the message says `this run's own lock is released`.
 
 A hand edit to some other content does not work: recovery accepts only the recorded bytes or a write the run
 made, so any other content stays a conflict.

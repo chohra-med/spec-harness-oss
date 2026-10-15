@@ -122,8 +122,8 @@ the result is the prior bytes. For each file the message names, write the bytes 
 `spec-harness finalize-init <target> --recover --evidence-dir <dir>`. This overwrites a concurrent edit, so save
 that edit first if it matters. The steps are in `docs/GETTING-STARTED.md`.
 
-The conflict message has one of two forms, depending on the path that kept the files. Both end with `; lock kept.`,
-except `--recover` when it took its own lock (the crashed run's lock was removed by hand), which ends with `; this run's own lock is released.`
+The conflict message has one of two forms, depending on the path that kept the files. Both contain `; lock kept.`,
+except `--recover` when it took its own lock (the crashed run's lock was removed by hand), which contains `; this run's own lock is released.`
 
 - From `--apply`, or from an interrupt (`conflict_message`, `:547`, after the failure text): `concurrent edits kept, manual recovery needed: <path>`
 - From `--recover` (`:746`): `concurrent edits kept; manual recovery needed: <path>`, then `; lock kept.` when it adopted the crashed run's lock, or `; this run's own lock is released.` when it took its own
