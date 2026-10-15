@@ -14,7 +14,7 @@ for file in bin/sh-gen-agents.sh bin/sh-make-skills.sh; do
 done
 echo "PASS: generator shell syntax"
 
-python3 - "$ROOT" "$TMP" <<'PY'
+python3 -I -B - "$ROOT" "$TMP" <<'PY'
 import copy
 import hashlib
 import json
