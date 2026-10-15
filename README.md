@@ -197,14 +197,24 @@ Each planned file is one of these states:
 - `NEW`: a file the new version adds.
 - `REMOVED-UPSTREAM`: a file the new version no longer ships. It is listed, and never deleted.
 
-Generated synthesis outputs are not touched. After an update, `spec-harness generate-agents --check`
-reports them as stale until you run `/sdd init` again.
+Generated synthesis outputs are not touched. If the project has a synthesis receipt and the update writes an
+`UPDATE`, `NEW` or `MERGE` file, the update marks synthesis stale, and `spec-harness generate-agents --check`
+reports it until you run `/sdd init` again. An update that writes only `CONFLICT` proposals does not mark it.
 
 ## Uninstall
 
-`spec-harness uninstall <target>` prints a plan only. It lists exactly what the install record
-(`.spec-harness/install.json`) says the harness wrote, and deletes nothing. A target installed before
-0.4.0 has no record, so `uninstall` exits 1 and says so, and you must check `git status` yourself.
+`spec-harness uninstall <target>` prints a plan only. It reads the install record
+(`.spec-harness/install.json`) and sorts each file the harness wrote under one heading. To remove the install:
+
+1. Run `spec-harness uninstall <target>` and read the plan.
+2. Delete only the files under `UNCHANGED since install (safe to delete)`.
+3. Keep the files under `EDITED since install` and `YOURS before install (never delete)`.
+4. Delete the harness state directory, `.spec-harness/`.
+
+`ALREADY GONE` names files that no longer exist, so there is nothing to delete. The plan does not list the
+generated synthesis outputs (rules, skills, role bindings and the receipt), so those stay until you remove them
+yourself. A target installed before 0.4.0 has no record, so `uninstall` exits 1 and says so, and you must check
+`git status` yourself.
 
 ## Platform support
 
