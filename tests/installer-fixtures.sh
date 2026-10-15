@@ -302,6 +302,18 @@ RECORD_VICTIM_AFTER="$(hash_file "$RECORD_VICTIM")"
 if [ "$RECORD_VICTIM_AFTER" = "$RECORD_VICTIM_BEFORE" ]; then pass 'planted install.json.tmp link: outside victim bytes unchanged'; else fail "planted install.json.tmp link: outside victim changed ($RECORD_VICTIM_BEFORE -> $RECORD_VICTIM_AFTER)"; fi
 if [ -f "$RECORD_TMP_ROOT/.spec-harness/install.json" ] && [ ! -L "$RECORD_TMP_ROOT/.spec-harness/install.json" ]; then pass 'planted install.json.tmp link: install.json is a regular file'; else fail 'planted install.json.tmp link: install.json is a regular file'; fi
 
+# A1: a read-only .spec-harness/base is an OS refusal of the record step. It must be a named line that
+# says the record could not be written, with exit 1 and no Python traceback (the update path does the same).
+READONLY_RECORD="$TMP/record-readonly"
+mkdir -p "$READONLY_RECORD/.spec-harness/base"
+chmod 555 "$READONLY_RECORD/.spec-harness/base"
+run_cli "$TMP/record-readonly.log" init "$READONLY_RECORD" integrate ReadOnlyRecord
+chmod 755 "$READONLY_RECORD/.spec-harness/base"
+assert_rc 1 'read-only base directory: the install record step exits 1'
+assert_contains "$TMP/record-readonly.log" 'install record could not be written' 'read-only base directory: the record failure is named'
+assert_contains "$TMP/record-readonly.log" 'install record: cannot write' 'read-only base directory: the refused path is named'
+if grep -Fq 'Traceback' "$TMP/record-readonly.log"; then fail 'read-only base directory: no Python traceback is printed'; cat "$TMP/record-readonly.log"; else pass 'read-only base directory: no Python traceback is printed'; fi
+
 # A link at a base-copy path is refused by the preflight before any file is staged (exit 2).
 BASE_LINK_ROOT="$TMP/base-link"
 BASE_VICTIM="$TMP/base-victim.txt"

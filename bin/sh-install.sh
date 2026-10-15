@@ -357,6 +357,7 @@ if record is None:
               "harness_commit": commit or None, "project_name": name, "files": {}}
 files = record.setdefault("files", {})
 added = 0
+current = record_rel
 try:
     with open(listing, encoding="utf-8") as handle:
         rows = [line.rstrip("\n").split("\t", 1) for line in handle if line.strip()]
@@ -366,14 +367,20 @@ try:
         if kind == "user":
             files[rel] = {"managed": False}
             continue
+        current = rel
         data = read_bounded(rel, MAX_FILE_BYTES, root=root)
-        write_regular(root, state + "/base/" + rel, data)
+        current = state + "/base/" + rel
+        write_regular(root, current, data)
         files[rel] = {"managed": True, "sha256": hashlib.sha256(data).hexdigest()}
         added += 1
     record["files"] = dict(sorted(files.items()))
+    current = record_rel
     write_regular(root, record_rel, (json.dumps(record, indent=2, sort_keys=True) + "\n").encode("utf-8"))
 except (SafeReadError, WriteRefused) as error:
     sys.stderr.write("install record: %s\n" % error)
+    sys.exit(1)
+except OSError as error:
+    sys.stderr.write("install record: cannot write %s: %s\n" % (current, error.strerror or error))
     sys.exit(1)
 managed = sum(1 for row in record["files"].values() if row.get("managed"))
 sys.stdout.write("%s/install.json (%d managed files, %d new; base copies under %s/base/)" % (state, managed, added, state))
