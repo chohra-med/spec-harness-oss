@@ -77,6 +77,9 @@ file must be linked from that package's `RULES.md` (`:190-229`, especially `:225
 
 `bin/sh-finalize-init.py` records a `status` in its journal (`journal.json` in `--evidence-dir`).
 
+The run's **commit point** is the point after which the run has written every new file and its final
+`STRUCTURAL_READY` status, and has released the lock. This section and the guide use the term in that sense only.
+
 Enumerated with `grep -n '"status"\]\s*=\|status": "' bin/sh-finalize-init.py`. COMPLETE: the grep
 returns six write sites, lines 571, 574, 622, 646, 657 and 743. Lines 571 and 743 each set one of two
 values by a conditional, so the set below has seven words.
@@ -85,7 +88,7 @@ values by a conditional, so the set below has seven words.
 |---|---|---|---|
 | `PENDING` | `:622` | journal created before any target write | stays on disk only when the process dies before its next status write |
 | `APPLYING` | `:646` | set before each target file is replaced | stays on disk only after an abrupt stop mid-write |
-| `STRUCTURAL_READY` | `:657` | every write applied; a second index reached the same inventory; the success line prints at `:683` | 0 (`:688`). Kept after the commit when the top-level rollback is refused (another run holds the lock) or its lock step fails (exit 1, `:544`, `:609-610`), or when an interrupt lands in the interpreter's own exit (exit 0; see the lock rule) |
+| `STRUCTURAL_READY` | `:657` | every write applied; a second index reached the same inventory; the success line prints at `:683` | 0 (`:688`). Kept after the commit point when the top-level rollback is refused (another run holds the lock) or its lock step fails (exit 1, `:544`, `:609-610`), or when an interrupt lands in the interpreter's own exit (exit 0; see the lock rule) |
 | `ROLLED_BACK` | `:571` | set by `roll_back` (`:553`) after a complete restore: a refusal (raised at `:671`), a tool step past `TOOL_TIMEOUT` (600 s, `:46`; the refusal is at `:317`), an unnamed failure (re-raised at `:679`), or an interrupt (`interrupted_exit`, `:585`); restore put back every prior byte and found no concurrent edit | 1 for a refusal (`:671`, printed at `:829`), 1 with a traceback for an unnamed failure (`:679`), 130 for an interrupt (`:615`) |
 | `RECOVERY_CONFLICT` | `:571` (from `roll_back`, called by `apply` at `:668` or by `interrupted_exit` at `:596`) or `:743` (recover) | restore found a file whose bytes are neither the prior bytes nor a postimage this run wrote; those files are kept | 1 (raised at `:670` from apply; returned at `:613` from an interrupt; raised at `:746` from recover) |
 | `RECOVERY_FAILED` | `:574` | restore raised partway. The journal's `restored` list (`:475`) names the files it put back; the other written files still hold this run's bytes, so this is not a complete rollback | 1 (raised as `RollbackFailed` at `:576`; an interrupt prints the restored and the unrestored files at `:606`) |
@@ -99,9 +102,14 @@ for retrying them exists. That path is read from code (`bin/sh-finalize-init.py:
 **A lock left after a rollback.** A `ROLLED_BACK` journal is refused (`:708`, `already restored (ROLLED_BACK)`), so
 `--recover` cannot clear a lock that a failed release left behind. `roll_back` ignores an error from its release
 (`:580-581`), and `take_lock` does the same in its cleanup (`:305-307`). The lock then records a process that has
-exited. The manual step is in `docs/GETTING-STARTED.md`, section "Stale lock after a rollback": confirm that the
-journal status is `ROLLED_BACK` and that the recorded PID (process ID: the number the operating system gives a
-running program) is not running, then remove `.claude/agents/.sh-finalize.lock` by hand.
+exited. The manual step is in `docs/GETTING-STARTED.md`, section "Stale lock after a rollback". Before it removes
+`.claude/agents/.sh-finalize.lock` by hand, it confirms four things: the journal status is `ROLLED_BACK`; the journal's
+`target` is the current directory (`pwd -P`); the recorded PID (process ID: the number the operating system gives a
+running program) is digits only and is not running; and the lock still holds that PID just before the removal. The
+check covers processes on this machine only. A lock on a shared volume, or one written by a finalizer in another
+container or on another computer, is not detected by it, so the step must not be used for such a lock. The target
+check shows only that the journal names this directory. The procedure cannot tell which run wrote the lock beyond
+that (named follow-up, "Not in 0.4.0").
 
 **Files this run never wrote.** `restore` skips a journaled file whose `expected_after` is empty (`:477-478`). Such a
 file is neither put back nor a conflict, so a human edit to it is kept and the rollback completes (fixture 6r). Only
@@ -147,7 +155,7 @@ The conflict message has one of two forms, depending on the path that kept the f
   calls `interrupted_exit` (`:585`). That calls `roll_back` (`:553`), the same path `apply` uses on a refusal
   (`:668`). `roll_back`:
   1. ignores both signals (`:560`), so a second signal cannot interrupt the rollback;
-  2. holds the lock before it writes (`hold_lock_for_rollback`, `:530`). If the commit released the lock and
+  2. holds the lock before it writes (`hold_lock_for_rollback`, `:530`). If the run released the lock at its commit point and
      nothing took it, it takes it again with `take_lock` (`:538`), with the same mask and `O_EXCL`. It keeps a
      lock only when this run created it (`LOCK_CREATED`, `:65`, set at `:299`, cleared by `release_lock` at `:280`)
      and the file still records this process. A lock this run did not create is never removed, even when it records
@@ -159,15 +167,15 @@ The conflict message has one of two forms, depending on the path that kept the f
      and `RECOVERY_FAILED`.
   `interrupted_exit` returns 130 when every write is rolled back (`:615`).
 - **Race refused.** When another run holds the lock at the moment the top-level rollback starts (a second
-  finalizer took it after the commit), the rollback refuses (raised at `:541` from `hold_lock_for_rollback`, re-raised at `:568`) and writes nothing.
+  finalizer took it after the commit point), the rollback refuses (raised at `:541` from `hold_lock_for_rollback`, re-raised at `:568`) and writes nothing.
   It leaves the other run's lock alone. The refusal text begins with the original failure, then names the lock
   refusal (`:568`), so a failure whose rollback is refused prints both (fixture 6q). `interrupted_exit` prints the
   refusal and returns 1 (`:609-610`). The
   status stays `STRUCTURAL_READY`, and the journal's `failure` field records `rollback refused`, so the
   completed run is kept. Fixture 6l measures this case.
 - **Four cases where an interrupt after the first target write does not roll back.** (1) A refused rollback:
-  another run holds the lock, or the lock step fails (`:544`, re-raised at `:568`). Nothing is rolled back and the
-  command exits 1. After the commit the completed run is kept; before it, the status stays what it was.
+  another run holds the lock (`:541`), or the lock step fails (`:544`); both are re-raised at `:568`. Nothing is rolled
+  back and the command exits 1. After the commit point the completed run is kept; before it, the status stays what it was.
   (2) A conflict: the rollback finds a file whose bytes are neither the prior bytes nor this run's postimage, keeps that file and the lock, and exits 1 (`interrupted_exit`, `:611-613`). (3) A
   restore that raises partway (`RECOVERY_FAILED`): some files hold the prior bytes and others still hold this run's
   bytes, the lock is kept, and the print names both sets and exits 1 (`:597-607`). (4) The interpreter's own exit,
@@ -226,6 +234,8 @@ client session decides the second (`:5-8`).
 - `--recover` installs no signal handler. `install_signal_handlers` is called only from `--apply`
   (`:627`), so an interrupt during `--recover` is not covered by the 130 path. This is a known gap,
   not a designed behaviour.
+- Lock binding: record a run ID and the hostname in the lock so the manual procedure can check which run wrote it. Not in this release.
+- Shared-volume and container locks: not detected by the manual procedure.
 
 ## Exit codes
 
