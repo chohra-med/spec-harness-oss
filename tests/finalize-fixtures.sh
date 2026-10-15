@@ -439,6 +439,10 @@ for mode, expected_status, label in (("restore-fails", "RECOVERY_FAILED", "rollb
     if mode == "restore-conflict":
         stuck = finalize(target, "--recover", "--evidence-dir", str(evidence), expected=1, label="recover while the conflict stands")
         assert "then run --recover" in stuck and (target / LOCK).exists(), stuck
+        # The crashed run's lock removed by hand: --recover takes its own lock, and releases it when recovery fails.
+        (target / LOCK).unlink()
+        own = finalize(target, "--recover", "--evidence-dir", str(evidence), expected=1, label="recover with its own lock")
+        assert "this run's own lock is released" in own and not (target / LOCK).exists(), own
         # The documented manual step: put the file back to the bytes its journal entry records, then --recover.
         row = json.loads((evidence / "journal.json").read_text())["files"]["ai_rules/project_inventory.json"]
         (target / "ai_rules/project_inventory.json").write_bytes(base64.b64decode(row["before"]))
