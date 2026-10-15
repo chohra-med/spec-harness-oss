@@ -109,7 +109,7 @@ running program) is digits only and is not running; and the lock still holds tha
 check covers processes on this machine only. A lock on a shared volume, or one written by a finalizer in another
 container or on another computer, is not detected by it, so the step must not be used for such a lock. The target
 check shows only that the journal names this directory. The procedure cannot tell which run wrote the lock beyond
-that (named follow-up, "Not in 0.4.0").
+that (named follow-up, "Not in 0.4.0"). This list is a summary. The full set of checks is in `docs/GETTING-STARTED.md`, section "Stale lock after a rollback".
 
 **Files this run never wrote.** `restore` skips a journaled file whose `expected_after` is empty (`:477-478`). Such a
 file is neither put back nor a conflict, so a human edit to it is kept and the rollback completes (fixture 6r). Only
@@ -266,7 +266,7 @@ back first, and the output then depends on the rollback:
   fixture 6p). Exit 1.
 - (c) **The rollback is refused on the lock (`:568`) or a restore fails (`:576`).** Both are raised as a `Refused`
   (`RollbackFailed` is a subclass, `:53`), so `__main__` prints a named `PENDING:` line (`:828-830`), exit 1, and no
-  traceback. A refused rollback writes nothing and does not remove the lock. A failed restore keeps the lock and
+  traceback. A refused rollback does not remove a lock it did not create. A failed restore keeps the lock and
   sets `RECOVERY_FAILED`.
 
 An interrupt that reaches `__main__` (`:831-833`) goes to `interrupted_exit` (`:585`). `roll_back` catches only
