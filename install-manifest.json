@@ -233,7 +233,7 @@
       "source": "commands/init.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "4e7f39ccd3851f64cf42ba0e04a482e964c172d10737aa14aa4517285e7a4897",
+      "sha256": "4c08576e0c0b620cd4cc3d72a9ae3b424ed3d978dcd6830a0429116205e631a7",
       "mode": "0644"
     },
     {
@@ -773,7 +773,7 @@
       "source": "learning_human.html",
       "render": "copy",
       "tokens": [],
-      "sha256": "a5b00cd45d091de64cc1edbe529dddbaed1e9a7d38c022dc3a26f89d738d7de3",
+      "sha256": "f74b91e838524615ed210e89b949e24ab432aa3d8e5cd6fa63826a0872061ee0",
       "mode": "0644"
     },
     {
