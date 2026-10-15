@@ -175,7 +175,7 @@ The conflict message has one of two forms, depending on the path that kept the f
   completed run is kept. Fixture 6l measures this case.
 - **Four cases where an interrupt after the first target write does not roll back.** Three of them exit 1, and one exits 0. (1) A refused rollback, which exits 1 whether or not it passed the commit point:
   another run holds the lock (`:541`), or the lock step fails (`:544`); both are re-raised at `:568`. Nothing is rolled
-  back, nothing is written to the target, and the command exits 1. The status depends on the commit point: after it the completed run is kept (`STRUCTURAL_READY`); before it, the status stays what it was.
+  back, the target's files are as the interrupt left them; the lock step can create and remove the lock file on the way, and the command exits 1. The status depends on the commit point: after it the completed run is kept (`STRUCTURAL_READY`); before it, the status stays what it was.
   (2) A conflict: the rollback finds a file whose bytes are neither the prior bytes nor this run's postimage, keeps that file and the lock, and exits 1 (`interrupted_exit`, `:611-613`). (3) A
   restore that raises partway (`RECOVERY_FAILED`): some files hold the prior bytes and others still hold this run's
   bytes, the lock is kept, and the print names both sets and exits 1 (`:597-607`). (4) The interpreter's own exit,
