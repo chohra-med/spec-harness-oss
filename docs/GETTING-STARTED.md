@@ -388,8 +388,8 @@ Two terms recur below. The run's **commit point** is the point after which the r
 
 **Step 0, the safety question. Answer it before anything else here:** Has any other computer, container or shared mount run `finalize-init` on this target, or is one still running on it? If a run is still in progress, stop and report, and do not run this block. If you do not know, stop and report, and do not run this block.
 
-A `finalize-init` run whose journal reads `ROLLED_BACK` (every write restored) has put back every file it wrote.
-The journal is `journal.json` in your `--evidence-dir`. If removing its lock failed at the same time,
+A `finalize-init` run whose journal (the JSON file, `journal.json`, in its `--evidence-dir`, that records each run's status) reads `ROLLED_BACK` (every write restored) has put back every file it wrote.
+If removing its lock failed at the same time,
 `.claude/agents/.sh-finalize.lock` stays in the target and records the PID (process ID: the number the operating system
 gives a running program) of a process that has exited. `--recover` refuses that journal, so it cannot clear the lock.
 The block below removes the lock only when no process on this machine holds it. It checks processes on this machine
@@ -431,7 +431,7 @@ else echo "PID $PID is still running, or its state is unclear (ps exit $RC, proc
 fi
 ```
 
-A number too large for the operating system is not a process ID. The block prints the "still running, or its state is unclear" line with the process check `no`, and no Python traceback. The operating system's ps command may also print "process id too large" on stderr. Stop and report; do not remove the lock.
+A number above 2147483647 is kept and reported with the still-running line, because the probe cannot represent it. For a number up to 4300 digits there is no Python traceback. A longer number is also kept and reported with the still-running line, and it prints a traceback on stderr. A number the system can hold (2147483647 or below) but that ps rejects is treated as a dead PID, and the lock is removed only when the other conditions hold. For a kept number, stop and report; do not remove the lock.
 
 The block removes the lock only if all of these hold. The journal status is exactly `ROLLED_BACK`. The journal's
 `target` is the current directory (`pwd -P`). The lock holds one line that is a process ID made of digits, not zero, and no leading zero. `ps` exits `1` and
@@ -450,18 +450,18 @@ while another finalizer runs on this target and has not yet passed its commit po
 PID. After the commit point the run releases the lock, so the lock does not record its PID again, unless an interrupt
 after the commit point starts a rollback, which takes the lock again. A dry run writes nothing and takes no lock.
 
-Each printed line tells you which numbered step below applies. Only `is not running: lock removed` means the block removed the lock, and it does so only when the PID is gone. A
+Steps 1 to 3 below cover the two lines that name a live process. Every other printed line, except `is not running: lock removed`, stands alone: read it, and stop and report, keeping the lock. The `lock removed` line removes the lock only when the PID is gone. A
 stale lock whose PID another program now uses stays in place until that program exits.
 
 If the line is `PID <PID> is a running finalizer: <command line>; wait for it, then run this block once more; the lock is
 kept`, or `PID <PID> is still running, or its state is unclear (ps exit <RC>, process check '<GONE>'): command line:
-<command line>; the lock is kept`, the block could not confirm that the recorded process has exited, so the lock stays.
+<command line>; the lock is kept`, the block could not confirm that the recorded process has exited, so the lock stays. A process that has exited but has not been reaped by its parent still counts as running to this check, so its lock is kept with a live line, and the reader stops and reports.
 
-1. If the process named by the lock is a finalizer (its command line names `sh-finalize-init`), wait for that run to finish, then run this block once more.
-2. If the block still prints a live line after that, stop and report the PID and the command line to the person who runs the finalizer. Do not remove the lock.
-3. If the process is not a finalizer, stop and report the PID and the command line to the person who runs the finalizer. Do not remove the lock.
+1. If the line is `PID <PID> is a running finalizer`, wait for that run to finish, then run this block once more.
+2. If the block prints a live line again after step 1, stop and report the PID and the command line to the person who runs the finalizer. Do not remove the lock.
+3. If the line is `PID <PID> is still running, or its state is unclear`, stop and report the PID and the command line to the person who runs the finalizer. Do not remove the lock.
 
-Then start a new run with a new evidence directory outside the target. Route A (`npx`, nothing installed):
+Only after the block prints `lock removed`, start a new run with a new evidence directory outside the target. Route A (`npx`, nothing installed):
 
 ```sh
 npx -y github:chohra-med/spec-harness-oss finalize-init . --apply --source <each path you passed to index in step 4> --evidence-dir <new directory outside the target>
