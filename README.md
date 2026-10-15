@@ -208,7 +208,7 @@ reports it until you run `/sdd init` again. An update that writes only `CONFLICT
 
 1. Run `spec-harness uninstall <target>` and read the plan.
 2. Delete only the files under `UNCHANGED since install (safe to delete)`.
-3. Keep the files under `EDITED since install` and `YOURS before install (never delete)`.
+3. Keep the files under `EDITED since install (review before deleting)` and `YOURS before install (never delete)`.
 4. Delete the harness state directory, `.spec-harness/`.
 
 `ALREADY GONE` names files that no longer exist, so there is nothing to delete. The plan does not list the

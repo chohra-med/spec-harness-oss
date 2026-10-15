@@ -69,16 +69,16 @@ COMPLETE: the planner assigns exactly these seven state words, and no others (`s
 
 | State | When it happens (planner line) | What `--apply` does |
 |---|---|---|
-| `UNCHANGED` | the target already holds the current harness bytes (`bin/sh-update.py:207`); or a synthesis output already equals its rendered bytes (`:191`) | nothing; an unowned file with no record entry is adopted: base copy and record entry written (`:284-285`) |
-| `UPDATE` | managed, and the target bytes still equal the recorded `sha256`, so the file was not edited; the template changed (`:202`) | writes the new harness bytes, then the base copy and record entry (`:275`) |
-| `CUSTOMIZED-KEEP` | several cases, all kept as they are: a synthesis output that differs from its rendering (`:191`); a managed file deleted locally, not restored (`:196`); edited locally while the template did not change, so base equals the new bytes (`:206`); no install record, so a local edit cannot be told from an older template (`:218`); a file that was there before install and is not managed (`:220`) | nothing |
-| `MERGE` | managed, edited locally, and the template changed with no overlap: `git merge-file` against the stored base copy returns a clean result (`:213`) | writes the merged bytes, then the base copy (`:278`) |
-| `CONFLICT` | the three-way merge overlaps (`:210`), or there is no valid base copy to merge with (`:215`) | writes `<file>.spec-harness-proposed` (`PROPOSED`, `:42`) and leaves the file alone (`:281-283`) |
-| `NEW` | not in the record and absent on disk (`:198`) | writes the file, then the base copy and record entry (`:275`) |
-| `REMOVED-UPSTREAM` | in the record as managed, and no longer rendered by the harness (`:222-226`) | nothing; listed only |
+| `UNCHANGED` | the target already holds the current harness bytes (`bin/sh-update.py:206-207`); or a synthesis output already equals its rendered bytes (`:196`) | nothing; an unowned file with no record entry is adopted: base copy and record entry written (`:291-292`, `:297-298`). A record entry marked not managed is never adopted (`:291`) |
+| `UPDATE` | managed, and the target bytes still equal the recorded `sha256`, so the file was not edited; the template changed (`:209`) | writes the new harness bytes, then the base copy and record entry (`:282`, `:297-298`) |
+| `CUSTOMIZED-KEEP` | several cases, all kept as they are: a synthesis output that differs from its rendering (`:196`); a managed file deleted locally, not restored (`:201`); a file that was yours before install, deleted locally, not restored (`:203`); edited locally while the template did not change, so base equals the new bytes (`:213`); no install record, so a local edit cannot be told from an older template (`:225`); a file that was there before install and is not managed (`:227`) | nothing |
+| `MERGE` | managed, edited locally, and the template changed with no overlap: `git merge-file` against the stored base copy returns a clean result (`:220`) | writes the merged bytes, then the base copy (`:285`, `:297`) |
+| `CONFLICT` | the three-way merge overlaps (`:217-218`), or there is no valid base copy to merge with (`:222-223`) | writes `<file>.spec-harness-proposed` (`PROPOSED`, `:42`) and leaves the file alone (`:287-290`) |
+| `NEW` | not in the record and absent on disk (`:205`) | writes the file, then the base copy and record entry (`:282`, `:297-298`) |
+| `REMOVED-UPSTREAM` | in the record as managed, and no longer rendered by the harness (`:229-233`) | nothing; listed only |
 
 **Updates never delete a file.** The planner and the apply step remove no target file. The only `rmtree` calls
-in `bin/sh-update.py` delete the script's own temporary directories (`:104`, `:112`, `:168`). A renamed file is
+in `bin/sh-update.py` delete the script's own temporary directories (`:109`, `:117`, `:173`). A renamed file is
 listed as `REMOVED-UPSTREAM` (its note says "renamed to ...") and its replacement as `NEW`.
 
 **Renames.** `install-migrations.tsv` is read by `load_migrations` (`bin/sh-update.py:121`). Each non-comment
