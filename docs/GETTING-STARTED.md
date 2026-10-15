@@ -120,8 +120,9 @@ git switch -c chore/spec-harness
 git status   # commit or stash first: a clean tree makes the next diff readable
 ```
 
-There is no uninstall command. The branch is your undo: delete it, or see
-[Undo](#undo).
+`spec-harness uninstall <target>` prints what the install record says was written and deletes
+nothing. The branch is your undo: delete it, or see [Undo](#undo). The uninstall steps are in the
+README's `## Uninstall` section.
 
 ### 2. Stage the harness
 
@@ -360,7 +361,7 @@ Do not run this while a finalize-init run may be in progress: it removes untrack
 
 ```sh
 git restore .
-git clean -fd .claude .agents .memory ai_rules specs workflows learning
+git clean -fd .claude .agents .memory .spec-harness ai_rules specs workflows learning
 git clean -f AGENTS.md CLAUDE.md RULES.md SPEC-HARNESS.md constitution.md goal.md loop.sh learning_human.html
 ```
 

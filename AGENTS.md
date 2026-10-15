@@ -55,7 +55,7 @@ default source sample in step 6. Do not edit their instruction files (step 5) an
    unsure which directory they mean, ask.
 2. **Protect their work.** In the target: check `git status`. If it shows modified or staged
    tracked files, stop and tell them; do not stash, commit or discard their work. Create a branch (`git switch -c chore/spec-harness`; pick another name if that one
-   exists). There is no uninstall command; the branch is the undo.
+   exists). `spec-harness uninstall <target>` prints what the install record says was written and deletes nothing; the branch is the undo. The uninstall steps are in the README's `## Uninstall` section.
 3. **Stage the files.** `cd` to the target root first; every command here runs from there. Use
    the checkout you are reading if there is one:
 
