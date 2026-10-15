@@ -165,9 +165,10 @@ The conflict message has one of two forms, depending on the path that kept the f
   refusal and returns 1 (`:609-610`). The
   status stays `STRUCTURAL_READY`, and the journal's `failure` field records `rollback refused`, so the
   completed run is kept. Fixture 6l measures this case.
-- **Four cases where an interrupt after the first target write does not roll back.** (1) The race refusal above:
-  the completed run is kept, exit 1. (2) A conflict: the rollback finds a file whose bytes are neither the prior
-  bytes nor this run's postimage, keeps that file and the lock, and exits 1 (`interrupted_exit`, `:611-613`). (3) A
+- **Four cases where an interrupt after the first target write does not roll back.** (1) A refused rollback:
+  another run holds the lock, or the lock step fails (`:544`, re-raised at `:568`). Nothing is rolled back and the
+  command exits 1. After the commit the completed run is kept; before it, the status stays what it was.
+  (2) A conflict: the rollback finds a file whose bytes are neither the prior bytes nor this run's postimage, keeps that file and the lock, and exits 1 (`interrupted_exit`, `:611-613`). (3) A
   restore that raises partway (`RECOVERY_FAILED`): some files hold the prior bytes and others still hold this run's
   bytes, the lock is kept, and the print names both sets and exits 1 (`:597-607`). (4) The interpreter's own exit,
   below, which exits 0.
@@ -175,8 +176,8 @@ The conflict message has one of two forms, depending on the path that kept the f
   in `__main__` (`:827`, and the exits at `:830` and `:833`), no code in this file is protected. The handler is
   never restored: `install_signal_handlers` (`:497`) runs once and nothing resets the default disposition. So an
   interrupt there raises `Interrupted` in code that does not catch it, on every exit path of `__main__`, not only
-  after a completed run. Measured with a SIGINT sent from an `atexit` hook after a completed run: exit code 0, a
-  traceback ending `Interrupted: SIGINT`, status `STRUCTURAL_READY`, no lock, and every byte equal to the completed
+  after a completed run. Reported at `c01c706`, not covered by a fixture, not re-run: a SIGINT sent from an
+  `atexit` hook after a completed run gave exit code 0, a traceback ending `Interrupted: SIGINT`, status `STRUCTURAL_READY`, no lock, and every byte equal to the completed
   run. The rollback does not cover this window. The exact boundary inside the exit path was not measured. After a
   refusal (exit 1) or a 130 exit, the same window exists; the exit code and output of those paths were not measured
   (UNVERIFIED).
@@ -237,7 +238,7 @@ the dispatcher check in `bin/spec-harness:35-41`.
 | `doctor` | 0 | structural READY | `bin/sh-doctor.py:161` |
 | `doctor` | 1 | structural PENDING | `:161` |
 | `doctor` | 2 | target is missing or a symbolic link | `:127` |
-| `finalize-init` | 0 | dry run; `--apply` reached `STRUCTURAL_READY`; `--recover` reached `RECOVERED`. An interrupt in the interpreter's own exit also exits 0. For an interrupt sent from an `atexit` hook, reproduced at `c01c706`: exit 0, a traceback ending `Interrupted: SIGINT`, journal `STRUCTURAL_READY`, no lock. The other exit points are not measured (UNVERIFIED); see the lock rule in section 3 | `:796`, `:688`, `:752` |
+| `finalize-init` | 0 | dry run; `--apply` reached `STRUCTURAL_READY`; `--recover` reached `RECOVERED`. An interrupt in the interpreter's own exit also exits 0. For an interrupt sent from an `atexit` hook, reported at `c01c706`, not covered by a fixture, not re-run: exit 0, a traceback ending `Interrupted: SIGINT`, journal `STRUCTURAL_READY`, no lock. The other exit points are not measured (UNVERIFIED); see the lock rule in section 3 | `:796`, `:688`, `:752` |
 | `finalize-init` | 1 | a refusal (precondition, busy lock, concurrent edit, failed or conflicted rollback, a rollback refused after an interrupt because another run holds the lock, or a tool step past `TOOL_TIMEOUT`, where only its direct child is stopped and a child process it started may keep running); an unnamed failure whose rollback completes with no conflict, with a traceback | `:829` (refusals from `main`), `:609-610` and `:613` (interrupt paths), `:671` (raised by apply), `:679` (re-raised) |
 | `finalize-init` | 2 | argument error (`argparse`), or Python older than 3.11 | `bin/spec-harness:35-41` |
 | `finalize-init` | 130 | `--apply` interrupted by SIGINT or SIGTERM and rolled back from the top level: every write restored, the lock released (both signals; if the release itself fails, the status is still `ROLLED_BACK` and the lock file is kept, see "Stale lock after a rollback" in `docs/GETTING-STARTED.md`). Not covered: an interrupt in the interpreter's own exit (exit 0, section 3); an interrupt whose rollback is refused because another run holds the lock, or whose lock step fails (exit 1); an interrupt whose rollback finds a conflict (exit 1, conflicting files and lock kept); an interrupt whose restore raises partway (exit 1, `RECOVERY_FAILED`, section 3) | `:615`, `:825-833` |
