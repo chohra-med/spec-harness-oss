@@ -129,7 +129,7 @@ printf 'export const useHomePostList = true;\n' > "$TMP/selected/src/features/pa
 printf '# custom context map\n' > "$TMP/selected/ai_rules/context_map.md"
 bash "$INDEX" "$TMP/selected" > "$TMP/default.out"
 [[ "$(sha256_file "$TMP/selected/ai_rules/project_inventory.json")" == "fa717eda21ffa8581b673b2eff9a0ad0523d070b318fde5e451341a1f8889df5" ]] || fail 'default index output differs from pinned byte baseline'
-python3 - "$TMP/selected/ai_rules/project_inventory.json" <<'PY'
+python3 -I -B - "$TMP/selected/ai_rules/project_inventory.json" <<'PY'
 import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
 sources = [row["path"] for row in data["packages"][0]["representative_sources"]]
@@ -169,7 +169,7 @@ index_selected() {
   bash "$INDEX" "$target" "${args[@]}" "$@"
 }
 bash "$INDEX" "$TMP/selected" > "$TMP/selected-default.out"
-python3 - "$TMP/selected/ai_rules/project_inventory.json" <<'PY'
+python3 -I -B - "$TMP/selected/ai_rules/project_inventory.json" <<'PY'
 import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
 sources = [row["path"] for row in data["packages"][0]["representative_sources"]]
@@ -178,7 +178,7 @@ assert "src/components/templates/HomePostListComponent/useHomePostList.ts" not i
 print(f"Default source sample remains bounded: {sources}")
 PY
 index_selected "$TMP/selected" > "$TMP/selected-explicit.out"
-python3 - "$TMP/selected" "${SELECTED_SOURCES[@]}" <<'PY'
+python3 -I -B - "$TMP/selected" "${SELECTED_SOURCES[@]}" <<'PY'
 import hashlib, json, pathlib, sys
 root = pathlib.Path(sys.argv[1])
 expected = sys.argv[2:]
@@ -218,7 +218,7 @@ done
 index_selected "$TMP/selected" > "$TMP/selected-custom-skill-files.out"
 custom_skill_hash="$(sha256_file "$selected_inventory")"
 [[ "$custom_skill_hash" != "$selected_initial_hash" ]] || fail 'custom files below generated skill leaves did not move inventory identity'
-python3 - "$TMP/selected-inventory.initial" "$selected_inventory" <<'PY'
+python3 -I -B - "$TMP/selected-inventory.initial" "$selected_inventory" <<'PY'
 import json, sys
 before = json.load(open(sys.argv[1], encoding="utf-8"))["scan"]
 after = json.load(open(sys.argv[2], encoding="utf-8"))["scan"]
@@ -249,7 +249,7 @@ printf '# Additional human project instruction\nKeep this policy visible.\n' > "
 index_selected "$TMP/selected" > "$TMP/selected-custom-instruction.out"
 custom_instruction_hash="$(sha256_file "$selected_inventory")"
 [[ "$custom_instruction_hash" != "$selected_initial_hash" ]] || fail 'non-generated custom instruction did not move inventory identity'
-python3 - "$selected_inventory" <<'PY'
+python3 -I -B - "$selected_inventory" <<'PY'
 import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
 assert "ai_rules/rules/custom-note.md" in {row["path"] for row in data["rule_files"]}
@@ -330,7 +330,7 @@ printf '{"name":"budget-a"}\n' > "$TMP/budget/apps/a/package.json"
 printf '{"name":"budget-b"}\n' > "$TMP/budget/apps/b/package.json"
 printf '{"name":"budget-selected"}\n' > "$TMP/budget/z/selected/package.json"
 printf '# custom map\n' > "$TMP/budget/ai_rules/context_map.md"
-python3 - "$TMP/budget" <<'PY'
+python3 -I -B - "$TMP/budget" <<'PY'
 import pathlib, sys
 root = pathlib.Path(sys.argv[1])
 for directory, prefix in ((root / "src", "root"), (root / "apps/a/src", "a"), (root / "apps/b/src", "b")):
@@ -339,7 +339,7 @@ for directory, prefix in ((root / "src", "root"), (root / "apps/a/src", "a"), (r
 (root / "z/selected/src/chosen.ts").write_bytes(b"chosen\n".ljust(131072, b"x"))
 PY
 bash "$INDEX" "$TMP/budget" --source z/selected/src/chosen.ts > "$TMP/budget.out"
-python3 - "$TMP/budget/ai_rules/project_inventory.json" <<'PY'
+python3 -I -B - "$TMP/budget/ai_rules/project_inventory.json" <<'PY'
 import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
 selected = next(package for package in data["packages"] if package["path"] == "z/selected")["representative_sources"]
@@ -372,7 +372,7 @@ grep -Fq 'src/main.py' "$TMP/python/ai_rules/context_map.md" || fail 'Python sou
 ! grep -Fq 'react-native' "$TMP/python/ai_rules/context_map.md" || fail 'mobile dependency leaked into Python inventory'
 grep -Fq 'zod' "$TMP/library/ai_rules/context_map.md" || fail 'TS library dependency missing'
 grep -Fq 'src/index.ts' "$TMP/library/ai_rules/context_map.md" || fail 'TS library entrypoint missing'
-python3 - "$TMP/expo/ai_rules/context_map.md" "$TMP/python/ai_rules/context_map.md" "$TMP/library/ai_rules/context_map.md" <<'PY'
+python3 -I -B - "$TMP/expo/ai_rules/context_map.md" "$TMP/python/ai_rules/context_map.md" "$TMP/library/ai_rules/context_map.md" <<'PY'
 import re, sys
 for label, path in zip(("Expo", "Python", "TypeScript"), sys.argv[1:]):
     text = open(path, encoding="utf-8").read()
@@ -385,7 +385,7 @@ for label, path in zip(("Expo", "Python", "TypeScript"), sys.argv[1:]):
 PY
 pass 'Expo, Python, and TypeScript fixtures have separate manifest and source inventories'
 
-python3 - "$TMP/mixed/ai_rules/project_inventory.json" <<'PY'
+python3 -I -B - "$TMP/mixed/ai_rules/project_inventory.json" <<'PY'
 import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
 packages = {package["path"]: package for package in data["packages"]}
@@ -437,7 +437,7 @@ def run():
     return None
 PY
 bash "$INDEX" "$TMP/mixed" > "$TMP/mixed-second.out"
-python3 - "$TMP/mixed/ai_rules/project_inventory.json" <<'PY'
+python3 -I -B - "$TMP/mixed/ai_rules/project_inventory.json" <<'PY'
 import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
 package_paths = sorted(package["path"] for package in data["packages"])
@@ -490,7 +490,7 @@ pass 'same content under two folder names produces byte-identical index output'
 mkdir -p "$TMP/overcap/src" "$TMP/overcap/ai_rules"
 printf '{"name":"overcap-fixture"}\n' > "$TMP/overcap/package.json"
 printf 'export const small = 1;\n' > "$TMP/overcap/src/small.js"
-python3 -I -c 'import sys; open(sys.argv[1], "wb").write(b"// big\n".ljust(180000, b"x"))' "$TMP/overcap/src/big.js"
+python3 -I -B -c 'import sys; open(sys.argv[1], "wb").write(b"// big\n".ljust(180000, b"x"))' "$TMP/overcap/src/big.js"
 bash "$INDEX" "$TMP/overcap" > "$TMP/overcap.out"
 overcap_map="$TMP/overcap/ai_rules/context_map.md"
 overcap_rep="$(grep -F -- '- Representative first-party source:' "$overcap_map" || true)"

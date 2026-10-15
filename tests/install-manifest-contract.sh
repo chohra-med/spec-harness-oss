@@ -204,7 +204,7 @@ for NAME in "${NAMES[@]}"; do
   i=$((i + 1))
   work="$TMP/real$i"
   mkdir -p "$work"
-  if python3 -I "$CHECKER" real "$HARNESS_DIR" "$work" "$NAME" >"$TMP/real$i.log" 2>&1; then
+  if python3 -I -B "$CHECKER" real "$HARNESS_DIR" "$work" "$NAME" >"$TMP/real$i.log" 2>&1; then
     pass "installed set equals manifest, bytes and modes match (name case $i)"
   else
     cat "$TMP/real$i.log"
@@ -215,7 +215,7 @@ done
 
 work="$TMP/controls"
 mkdir -p "$work"
-if python3 -I "$CHECKER" controls "$HARNESS_DIR" "$work" 'plain-name' >"$TMP/controls.log" 2>&1; then
+if python3 -I -B "$CHECKER" controls "$HARNESS_DIR" "$work" 'plain-name' >"$TMP/controls.log" 2>&1; then
   cat "$TMP/controls.log"
   pass 'planted-fault controls all turn the checker red'
 else

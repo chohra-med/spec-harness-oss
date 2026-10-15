@@ -71,7 +71,7 @@ if [[ -f "$HARNESS_DIR/commands/sdd.md" ]]; then
 fi
 
 if [[ -f "$HARNESS_DIR/commands/sdd.md" && -f "$HARNESS_DIR/commands/build.md" ]]; then
-  if ! python3 - "$HARNESS_DIR/commands/sdd.md" "$HARNESS_DIR/commands/build.md" <<'PYCONTRACT'
+  if ! python3 -I -B - "$HARNESS_DIR/commands/sdd.md" "$HARNESS_DIR/commands/build.md" <<'PYCONTRACT'
 from pathlib import Path
 import sys, tempfile
 sdd, build = (Path(p).read_text() for p in sys.argv[1:])
@@ -330,7 +330,7 @@ fi
 
 # The Python fixture state check runs on the synthetic fixture shipped in tests/fixtures unless
 # argument 2 or TASK06_PYTHON_FIXTURE names another root, so it never skips silently.
-python3 - "$HARNESS_DIR" "${2:-${TASK06_PYTHON_FIXTURE:-$SCRIPT_DIR/fixtures/python-state/targets/python/app}}" "$packed_consumer" "$packed_consumer_ready" <<'PY'
+python3 -I -B - "$HARNESS_DIR" "${2:-${TASK06_PYTHON_FIXTURE:-$SCRIPT_DIR/fixtures/python-state/targets/python/app}}" "$packed_consumer" "$packed_consumer_ready" <<'PY'
 from pathlib import Path
 import hashlib
 import re
