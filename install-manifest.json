@@ -52,7 +52,7 @@
       "source": "skills/spec-harness-grill-me/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "56c9456dd72a7a891caf1c8005bb1c6e7d72c47327c48fe067a87a4c1a351b5d",
+      "sha256": "718137de87532b69c6a9478d9d21c002e30a8c31ed57c2570b03499e7c553c6d",
       "mode": "0644"
     },
     {
@@ -60,7 +60,7 @@
       "source": "skills/spec-harness-package-finder/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "607aea125a03c183129e060935e2b9f276abfcba16e3cb7e5fec4a9d2ab62c29",
+      "sha256": "978625d7a5042741985062d3a19b0fe2465e2e5973343b243e78cba7bffa7514",
       "mode": "0644"
     },
     {
@@ -68,7 +68,7 @@
       "source": "skills/spec-harness-ponytail/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "7ca469897b3f85c984182d96f805af31b61374ad457b9dee354ae0293bd50ec1",
+      "sha256": "bbd3c11de689bd0b7fedf98e50b67d28153074ba577841e913c2812080b4443b",
       "mode": "0644"
     },
     {
@@ -76,7 +76,7 @@
       "source": "skills/spec-harness-skill-finder/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "b8a8e214bc373cceb3dde9bb6f670291689febffb520454f428baf868bba3f8d",
+      "sha256": "eec1198e5045fa5184993f7fb28704895290c52a36772ca909ccf91824caf095",
       "mode": "0644"
     },
     {
@@ -180,7 +180,7 @@
       "source": "commands/sdd.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "baf398b6b735c7fe905ad0f42fd1de0e42b7322f2bdf47fcbe87c42f6f9d70c9",
+      "sha256": "36b4b82d39257aeebebcf744f27c55e72f9ffae04d2b436006ae17afa94f2d4b",
       "mode": "0644"
     },
     {
@@ -212,7 +212,7 @@
       "source": "commands/generate-agents.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "26305dce4f9bdb447bbfade55b45ab8f562e86a9bf21d4fcb14a8ef3828a1ff3",
+      "sha256": "415b09d29010d3d9a93eee97fdb42a5ac3a24ff8193e9e0ae857a8ea49bb0d3e",
       "mode": "0644"
     },
     {
@@ -228,7 +228,7 @@
       "source": "commands/init.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "4cf8907214bbe2cfa65bd7c0500ff101522aeb61d0628fe07c7995f2731459ea",
+      "sha256": "4e7f39ccd3851f64cf42ba0e04a482e964c172d10737aa14aa4517285e7a4897",
       "mode": "0644"
     },
     {
@@ -348,7 +348,7 @@
       "source": "skills/spec-harness-audit/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "20a019c4bff8da3ffd0bb454b744a2f7d5458e7459855eabba03c0d28152e66c",
+      "sha256": "0b6c32a2e499f310bbdfe14543c505574e0e779b3f6ef245a163d1ef335df96e",
       "mode": "0644"
     },
     {
@@ -356,7 +356,7 @@
       "source": "skills/spec-harness-build/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "f9fb57493b6b8bcb396bebed5c56ad3e0e108104f9194cdf47157a9bf31df694",
+      "sha256": "9cb6640b565b9a0009720135a79636788e81ecf23c352d8434bc6b83533ae6e1",
       "mode": "0644"
     },
     {
@@ -364,7 +364,7 @@
       "source": "skills/spec-harness-generate-agents/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "6e3d48866e940ad2f398a1cfa0a705a17219db55ed84ebbeb919617319b2d85e",
+      "sha256": "94cf46ef8d203b47b6afaae6fbb1ac2afb7f97aa5a6c48f258dc28e6805f3d6a",
       "mode": "0644"
     },
     {
@@ -372,7 +372,7 @@
       "source": "skills/spec-harness-grill-me/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "56c9456dd72a7a891caf1c8005bb1c6e7d72c47327c48fe067a87a4c1a351b5d",
+      "sha256": "718137de87532b69c6a9478d9d21c002e30a8c31ed57c2570b03499e7c553c6d",
       "mode": "0644"
     },
     {
@@ -380,7 +380,7 @@
       "source": "skills/spec-harness-install/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "b66be5232c8f44812da935751ec2f8feabd92311230ed2c779ed9c5873641c78",
+      "sha256": "39cc29c93730ef89e5700345da7ded70d08b7a9f9f6d26a458c89530cd6046cd",
       "mode": "0644"
     },
     {
@@ -388,7 +388,7 @@
       "source": "skills/spec-harness-learn/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "cbc2fb894a242c0b07123051d7259457cdf0542f594a570e32f0cdab6410e282",
+      "sha256": "60b548fc0ce07e765c7b08a74bdaea79c8a0c9e8587e308efe40a3b00d18b54c",
       "mode": "0644"
     },
     {
@@ -396,7 +396,7 @@
       "source": "skills/spec-harness-package-finder/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "607aea125a03c183129e060935e2b9f276abfcba16e3cb7e5fec4a9d2ab62c29",
+      "sha256": "978625d7a5042741985062d3a19b0fe2465e2e5973343b243e78cba7bffa7514",
       "mode": "0644"
     },
     {
@@ -404,7 +404,7 @@
       "source": "skills/spec-harness-plan/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "37f9d97cc5ee1f809c903ca5ca4dd607ba9a62fc09fbca8741646107eead1375",
+      "sha256": "bf3a2ffdd27083f8cf0e35022b7e809363c6600ec58fef8679b6765c162ff5fd",
       "mode": "0644"
     },
     {
@@ -412,7 +412,7 @@
       "source": "skills/spec-harness-ponytail/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "7ca469897b3f85c984182d96f805af31b61374ad457b9dee354ae0293bd50ec1",
+      "sha256": "bbd3c11de689bd0b7fedf98e50b67d28153074ba577841e913c2812080b4443b",
       "mode": "0644"
     },
     {
@@ -420,7 +420,7 @@
       "source": "skills/spec-harness-rules/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "2eb212e10840a99b184592b00fca198b60396bccf7ec8435232937172bb5eb63",
+      "sha256": "158cdd51adc0cedda88df602709b57e4587c7212f4260f68144de31b5b9f79dc",
       "mode": "0644"
     },
     {
@@ -428,7 +428,7 @@
       "source": "skills/spec-harness-skill-finder/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "b8a8e214bc373cceb3dde9bb6f670291689febffb520454f428baf868bba3f8d",
+      "sha256": "eec1198e5045fa5184993f7fb28704895290c52a36772ca909ccf91824caf095",
       "mode": "0644"
     },
     {
@@ -436,7 +436,7 @@
       "source": "skills/spec-harness-spec/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "d31683ee73903f7154660bddf4871cc36e8bef2ec99c04390dfc391cefdaecde",
+      "sha256": "a29ddfaffd693515c18d40276a9e21c07fc45ec2b2efbafca4ab1f794d752d55",
       "mode": "0644"
     },
     {
@@ -444,7 +444,7 @@
       "source": "skills/spec-harness-tasks/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "940ed845775c1ee2be438ff8b4ce192ea1983a1ae9d9bf5fa3ec1799f019c380",
+      "sha256": "f66dfe9fe20033beb0a813de35eb863574b068a40f931ac16a6a6f283aae9ab4",
       "mode": "0644"
     },
     {
@@ -452,7 +452,7 @@
       "source": "skills/spec-harness-teach/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "87e894e0ab2e41f649e7d24bb7fbdffb749581e4c1f0a847e03791ccc49c57c4",
+      "sha256": "1f7d01f3275370d7348d957e0d5df7280a7dddebf0f45bd7e5135159356006ac",
       "mode": "0644"
     },
     {
@@ -460,7 +460,7 @@
       "source": "skills/spec-harness-tester/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "afe3c47371c5d4e661bbfd114bf331cf6f41a193b276549d40220b62e6bab169",
+      "sha256": "3682f43525470837a5f43447316eefa316eb7b291ca829201a986f5464726c1e",
       "mode": "0644"
     },
     {
@@ -468,7 +468,7 @@
       "source": "skills/spec-harness-tickets/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "216d6fe60efc1a750b0ebebf8391c47740014f87e858384c5705e171443d37a8",
+      "sha256": "03ddee75207191baa675272fb83cd9046aaac7422f9f3ce8430f915c9a46ca39",
       "mode": "0644"
     },
     {
@@ -476,7 +476,7 @@
       "source": "skills/spec-harness-verify/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "557a1ed330c6cf55373b3d0d00c7cee813ab1af52372ee62dfc494f6ae6c20ed",
+      "sha256": "bb80fc7a80e4afb0102308f22044121361fa3c1734d2973320c5a251b0d1abc3",
       "mode": "0644"
     },
     {
@@ -484,7 +484,7 @@
       "source": "skills/spec-harness/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "2bf1b4a219fd94993886854484ac990a19583ce586eb2920377be22a67bee7cc",
+      "sha256": "7b18b73eb40bce9da864a7803260642a2f3d6016859c9bd59454986106f86ec0",
       "mode": "0644"
     },
     {

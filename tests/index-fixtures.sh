@@ -3,6 +3,11 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 INDEX="$ROOT/bin/sh-index.sh"
+PORTABLE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/lib/portable.sh"
+# shellcheck source=lib/portable.sh
+. "$PORTABLE"
+require_tools bash cmp
+require_python311
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/sh-index-fixtures.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 
@@ -123,7 +128,7 @@ done
 printf 'export const useHomePostList = true;\n' > "$TMP/selected/src/features/pagination/useHomePostList.ts"
 printf '# custom context map\n' > "$TMP/selected/ai_rules/context_map.md"
 bash "$INDEX" "$TMP/selected" > "$TMP/default.out"
-[[ "$(shasum -a 256 "$TMP/selected/ai_rules/project_inventory.json" | awk '{print $1}')" == "fa717eda21ffa8581b673b2eff9a0ad0523d070b318fde5e451341a1f8889df5" ]] || fail 'default index output differs from pinned byte baseline'
+[[ "$(sha256_file "$TMP/selected/ai_rules/project_inventory.json")" == "fa717eda21ffa8581b673b2eff9a0ad0523d070b318fde5e451341a1f8889df5" ]] || fail 'default index output differs from pinned byte baseline'
 python3 - "$TMP/selected/ai_rules/project_inventory.json" <<'PY'
 import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
@@ -191,11 +196,11 @@ PY
 source_hashes() {
   local base="$1"
   find "$base" -type f ! -path "$base/ai_rules/*" -print0 \
-    | sort -z | xargs -0 shasum -a 256
+    | sort -z | xargs -0 bash -c '. "$0"; sha256_lines "$@"' "$PORTABLE"
 }
 
 selected_inventory="$TMP/selected/ai_rules/project_inventory.json"
-selected_initial_hash="$(shasum -a 256 "$selected_inventory" | awk '{print $1}')"
+selected_initial_hash="$(sha256_file "$selected_inventory")"
 cp "$selected_inventory" "$TMP/selected-inventory.initial"
 printf '{"format":"spec-harness-synthesis","status":"PENDING"}\n' > "$TMP/selected/.claude/agents/.init-synthesis.json"
 for skill in architecture performance packages; do
@@ -211,7 +216,7 @@ for skill in architecture performance packages; do
   printf '# Custom nested project file\n' > "$TMP/selected/.claude/skills/spec-harness-$skill/local-context/README.md"
 done
 index_selected "$TMP/selected" > "$TMP/selected-custom-skill-files.out"
-custom_skill_hash="$(shasum -a 256 "$selected_inventory" | awk '{print $1}')"
+custom_skill_hash="$(sha256_file "$selected_inventory")"
 [[ "$custom_skill_hash" != "$selected_initial_hash" ]] || fail 'custom files below generated skill leaves did not move inventory identity'
 python3 - "$TMP/selected-inventory.initial" "$selected_inventory" <<'PY'
 import json, sys
@@ -232,7 +237,7 @@ selected_source="$TMP/selected/src/hooks/usePaginatedAccumulator.ts"
 cp "$selected_source" "$TMP/selected-source.initial"
 printf 'export const changed = true;\n' >> "$selected_source"
 index_selected "$TMP/selected" > "$TMP/selected-source-change.out"
-changed_inventory_hash="$(shasum -a 256 "$selected_inventory" | awk '{print $1}')"
+changed_inventory_hash="$(sha256_file "$selected_inventory")"
 [[ "$changed_inventory_hash" != "$selected_initial_hash" ]] || fail 'selected source mutation did not move inventory identity'
 mv "$TMP/selected-source.initial" "$selected_source"
 index_selected "$TMP/selected" > "$TMP/selected-source-restore.out"
@@ -242,7 +247,7 @@ pass 'selected-source mutation moves inventory identity and restoring bytes rest
 mkdir -p "$TMP/selected/ai_rules/rules"
 printf '# Additional human project instruction\nKeep this policy visible.\n' > "$TMP/selected/ai_rules/rules/custom-note.md"
 index_selected "$TMP/selected" > "$TMP/selected-custom-instruction.out"
-custom_instruction_hash="$(shasum -a 256 "$selected_inventory" | awk '{print $1}')"
+custom_instruction_hash="$(sha256_file "$selected_inventory")"
 [[ "$custom_instruction_hash" != "$selected_initial_hash" ]] || fail 'non-generated custom instruction did not move inventory identity'
 python3 - "$selected_inventory" <<'PY'
 import json, sys
@@ -267,11 +272,11 @@ reject_source() {
   local label="$1"
   shift
   local before after output="$TMP/reject-$label.out"
-  before="$(shasum -a 256 "$selected_inventory" | awk '{print $1}')"
+  before="$(sha256_file "$selected_inventory")"
   if bash "$INDEX" "$TMP/selected" "$@" > "$output" 2>&1; then
     fail "$label selection unexpectedly succeeded"
   fi
-  after="$(shasum -a 256 "$selected_inventory" | awk '{print $1}')"
+  after="$(sha256_file "$selected_inventory")"
   [[ "$after" == "$before" ]] || fail "$label selection changed the prior inventory"
   printf 'Rejected %s: ' "$label"
   sed -n '1p' "$output"
@@ -308,12 +313,12 @@ pass 'unsafe, absent, private, non-regular, unsupported, unreadable and excessiv
 mkdir -p "$TMP/first-invalid/ai_rules"
 printf '{"name":"invalid-first-run-fixture"}\n' > "$TMP/first-invalid/package.json"
 printf '# custom map stays as supplied\n' > "$TMP/first-invalid/ai_rules/context_map.md"
-first_invalid_map_hash="$(shasum -a 256 "$TMP/first-invalid/ai_rules/context_map.md" | awk '{print $1}')"
+first_invalid_map_hash="$(sha256_file "$TMP/first-invalid/ai_rules/context_map.md")"
 if bash "$INDEX" "$TMP/first-invalid" --source src/not-present.ts > "$TMP/first-invalid.out" 2>&1; then
   fail 'invalid first-run selection unexpectedly succeeded'
 fi
 [[ ! -e "$TMP/first-invalid/ai_rules/project_inventory.json" ]] || fail 'invalid first-run selection wrote a misleading inventory'
-[[ "$(shasum -a 256 "$TMP/first-invalid/ai_rules/context_map.md" | awk '{print $1}')" == "$first_invalid_map_hash" ]] || fail 'invalid first-run selection changed the custom map'
+[[ "$(sha256_file "$TMP/first-invalid/ai_rules/context_map.md")" == "$first_invalid_map_hash" ]] || fail 'invalid first-run selection changed the custom map'
 pass 'invalid first-run selection writes no inventory and preserves the custom map'
 
 # Explicit bytes are reserved before defaults are sampled, even when the
@@ -351,8 +356,8 @@ before_mixed="$(source_hashes "$TMP/mixed")"
 before_expo="$(source_hashes "$TMP/expo")"
 before_python="$(source_hashes "$TMP/python")"
 before_library="$(source_hashes "$TMP/library")"
-custom_map_hash="$(shasum -a 256 "$TMP/mixed/ai_rules/context_map.md")"
-outside_hash="$(shasum -a 256 "$TMP/outside-sentinel.txt")"
+custom_map_hash="$(sha256_lines "$TMP/mixed/ai_rules/context_map.md")"
+outside_hash="$(sha256_lines "$TMP/outside-sentinel.txt")"
 
 bash "$INDEX" "$TMP/expo" > "$TMP/expo.out"
 bash "$INDEX" "$TMP/python" > "$TMP/python.out"
@@ -373,7 +378,7 @@ for label, path in zip(("Expo", "Python", "TypeScript"), sys.argv[1:]):
     text = open(path, encoding="utf-8").read()
     packages = re.findall(r"^### `([^`]+)`$", text, re.M)
     section = text.split("## Excluded paths and limitations\n", 1)[1]
-    exclusions = re.findall(r"^- `([^`]+)` —", section, re.M)
+    exclusions = re.findall(r"^- `([^`]+)`: ", section, re.M)
     assert packages == ["."], (label, packages)
     assert exclusions == [], (label, exclusions)
     print(f"{label} fixture: packages={packages}; exclusions={exclusions}")
@@ -411,8 +416,8 @@ print(f"Mixed fixture exclusions: {sorted(excluded)}")
 PY
 pass 'mixed packages, applicable instructions, unsupported manifests, and exclusions are enumerated'
 
-[[ "$(shasum -a 256 "$TMP/mixed/ai_rules/context_map.md")" == "$custom_map_hash" ]] || fail 'custom map changed'
-[[ "$(shasum -a 256 "$TMP/outside-sentinel.txt")" == "$outside_hash" ]] || fail 'outside sentinel changed'
+[[ "$(sha256_lines "$TMP/mixed/ai_rules/context_map.md")" == "$custom_map_hash" ]] || fail 'custom map changed'
+[[ "$(sha256_lines "$TMP/outside-sentinel.txt")" == "$outside_hash" ]] || fail 'outside sentinel changed'
 [[ "$(source_hashes "$TMP/mixed")" == "$before_mixed" ]] || fail 'fixture source, manifest, or instruction bytes changed'
 [[ "$(source_hashes "$TMP/expo")" == "$before_expo" ]] || fail 'Expo fixture source or manifest bytes changed'
 [[ "$(source_hashes "$TMP/python")" == "$before_python" ]] || fail 'Python fixture source or manifest bytes changed'
@@ -439,26 +444,26 @@ package_paths = sorted(package["path"] for package in data["packages"])
 assert "services/worker" in package_paths
 print(f"Mixed live-rescan packages: {package_paths}")
 PY
-[[ "$(shasum -a 256 "$TMP/mixed/ai_rules/context_map.md")" == "$custom_map_hash" ]] || fail 'custom map changed on refresh'
+[[ "$(sha256_lines "$TMP/mixed/ai_rules/context_map.md")" == "$custom_map_hash" ]] || fail 'custom map changed on refresh'
 pass 'a newly added package appears on the next scan'
 
 printf '\nuser customization\n' >> "$TMP/mixed/ai_rules/project_inventory.json"
-custom_inventory_hash="$(shasum -a 256 "$TMP/mixed/ai_rules/project_inventory.json")"
+custom_inventory_hash="$(sha256_lines "$TMP/mixed/ai_rules/project_inventory.json")"
 if bash "$INDEX" "$TMP/mixed" > "$TMP/conflict.out" 2>&1; then
   fail 'modified companion inventory was overwritten'
 fi
-[[ "$(shasum -a 256 "$TMP/mixed/ai_rules/project_inventory.json")" == "$custom_inventory_hash" ]] || fail 'customized companion inventory changed after conflict'
+[[ "$(sha256_lines "$TMP/mixed/ai_rules/project_inventory.json")" == "$custom_inventory_hash" ]] || fail 'customized companion inventory changed after conflict'
 pass 'modified companion inventory fails closed without overwriting user bytes'
 
 mkdir -p "$TMP/map-link/ai_rules"
 printf '# external custom map\n' > "$TMP/external-map.md"
 ln -s "$TMP/external-map.md" "$TMP/map-link/ai_rules/context_map.md"
 link_target="$(readlink "$TMP/map-link/ai_rules/context_map.md")"
-external_map_hash="$(shasum -a 256 "$TMP/external-map.md")"
+external_map_hash="$(sha256_lines "$TMP/external-map.md")"
 bash "$INDEX" "$TMP/map-link" > "$TMP/map-link.out"
 [[ -L "$TMP/map-link/ai_rules/context_map.md" ]] || fail 'context-map symlink was replaced'
 [[ "$(readlink "$TMP/map-link/ai_rules/context_map.md")" == "$link_target" ]] || fail 'context-map symlink target changed'
-[[ "$(shasum -a 256 "$TMP/external-map.md")" == "$external_map_hash" ]] || fail 'symlink target bytes changed'
+[[ "$(sha256_lines "$TMP/external-map.md")" == "$external_map_hash" ]] || fail 'symlink target bytes changed'
 [[ -f "$TMP/map-link/ai_rules/project_inventory.json" ]] || fail 'symlink map did not route to companion inventory'
 pass 'map symlink remains intact and inventory stays inside the selected root'
 
@@ -481,5 +486,18 @@ for clone in "$TMP/name-a/clone-alpha" "$TMP/name-b/other-name"; do
 done
 diff -r "$TMP/name-a/clone-alpha/ai_rules" "$TMP/name-b/other-name/ai_rules" > "$TMP/name-diff.out" || fail 'index output depends on the checkout folder name'
 pass 'same content under two folder names produces byte-identical index output'
+
+mkdir -p "$TMP/overcap/src" "$TMP/overcap/ai_rules"
+printf '{"name":"overcap-fixture"}\n' > "$TMP/overcap/package.json"
+printf 'export const small = 1;\n' > "$TMP/overcap/src/small.js"
+python3 -I -c 'import sys; open(sys.argv[1], "wb").write(b"// big\n".ljust(180000, b"x"))' "$TMP/overcap/src/big.js"
+bash "$INDEX" "$TMP/overcap" > "$TMP/overcap.out"
+overcap_map="$TMP/overcap/ai_rules/context_map.md"
+overcap_rep="$(grep -F -- '- Representative first-party source:' "$overcap_map" || true)"
+[[ -n "$overcap_rep" ]] || fail 'representative source line missing from over-cap map'
+grep -Fq 'small.js' <<<"$overcap_rep" || fail 'readable source missing from representative list'
+! grep -Fq 'big.js' <<<"$overcap_rep" || fail 'over-cap source listed as representative (read) source'
+grep -Fq -- '- `src/big.js`: source not sampled:' "$overcap_map" || fail 'over-cap source missing from excluded section'
+pass 'over-cap source is excluded, not listed as representative'
 
 printf 'All index fixtures passed.\n'
