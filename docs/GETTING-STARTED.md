@@ -413,6 +413,8 @@ try:
 except ProcessLookupError:
     print("yes")
 except PermissionError:
+    print("no")
+except OverflowError:
     print("no")' "$PID")
        ARGS=$(ps -p "$PID" -o args=); RC=$?
      fi ;;
@@ -429,7 +431,7 @@ else echo "PID $PID is still running, or its state is unclear (ps exit $RC, proc
 fi
 ```
 
-A number too large for the operating system is not a process ID. The block prints the "still running, or its state is unclear" line with an empty process check, and a traceback goes to stderr. Stop and report; do not remove the lock.
+A number too large for the operating system is not a process ID. The block prints the "still running, or its state is unclear" line with the process check `no`, and no Python traceback. The operating system's ps command may also print "process id too large" on stderr. Stop and report; do not remove the lock.
 
 The block removes the lock only if all of these hold. The journal status is exactly `ROLLED_BACK`. The journal's
 `target` is the current directory (`pwd -P`). The lock holds one line that is a process ID made of digits, not zero, and no leading zero. `ps` exits `1` and
