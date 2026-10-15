@@ -14,8 +14,9 @@ update    : plan, then apply. Without --apply it prints one state per planned fi
                                 that path only and the file itself is left alone
               NEW               a new harness file; added
               REMOVED-UPSTREAM  the harness no longer ships it; listed only, never deleted
-            Synthesis outputs named by the receipt are never written. After an apply that wrote a file,
-            synthesis is marked stale so `generate-agents --check` reports it until init refreshes it.
+            Synthesis outputs named by the receipt are never written. After an apply that wrote a file and
+            a receipt exists, synthesis is marked stale (the marker is written before the first write) so
+            `generate-agents --check` refuses READY until init removes the marker.
 uninstall : plan only. Lists exactly what the install record says the harness wrote, and which of
             those files were edited since. It deletes nothing.
 """
@@ -242,10 +243,23 @@ def print_plan(root, record, rows, digest):
         print("Nothing to apply.")
 
 
+def write_stale_marker(root, version, receipt, paths):
+    stale = {"format": "spec-harness-synthesis-stale", "schema_version": 1,
+             "reason": "a harness update changed installed files after synthesis",
+             "harness_version": version, "receipt_sha256": sha(receipt), "paths": paths}
+    write_regular(root, STALE, (json.dumps(stale, indent=2, sort_keys=True) + "\n").encode())
+
+
 def apply_plan(root, record, name, rows, digest):
     receipt = read_optional(root, RECEIPT, MAX_RECEIPT_BYTES)
     files = dict((record or {}).get("files", {}))
     owned = synthesis_outputs(root)
+    version, commit, dirty = source_identity()
+    # No receipt means nothing was synthesised, so nothing can be stale: no marker. With a receipt, the
+    # marker is written before the first file write, so a write that fails partway leaves it behind.
+    marked = receipt is not None and any(row["state"] in {"UPDATE", "NEW", "MERGE"} for row in rows)
+    if marked:
+        write_stale_marker(root, version, receipt, [row["path"] for row in rows if row["state"] in {"UPDATE", "NEW", "MERGE"}])
     written, proposed = [], []
     for row in rows:
         rel, state = row["path"], row["state"]
@@ -267,7 +281,6 @@ def apply_plan(root, record, name, rows, digest):
         # stays "edited locally" for the next update.
         write_regular(root, f"{STATE}/base/{rel}", row["_new"])
         files[rel] = {"managed": True, "sha256": row["new_sha256"]}
-    version, commit, dirty = source_identity()
     record = dict(record or {"format": "spec-harness-install-record", "schema_version": 1, "project_name": name})
     record.update({"harness_version": version, "harness_commit": commit, "files": dict(sorted(files.items()))})
     if dirty:
@@ -275,17 +288,13 @@ def apply_plan(root, record, name, rows, digest):
     else:
         record.pop("harness_commit_dirty", None)
     write_regular(root, RECORD, (json.dumps(record, indent=2, sort_keys=True) + "\n").encode())
-    if written:
-        stale = {"format": "spec-harness-synthesis-stale", "schema_version": 1,
-                 "reason": "a harness update changed installed files after synthesis",
-                 "harness_version": version, "receipt_sha256": sha(receipt) if receipt is not None else None,
-                 "paths": written}
-        write_regular(root, STALE, (json.dumps(stale, indent=2, sort_keys=True) + "\n").encode())
+    if marked:
+        write_stale_marker(root, version, receipt, written)
     print(f"UPDATED: {len(written)} file(s) written, {len(proposed)} proposal(s) written; plan {digest[:12]}")
     for path in proposed:
         print(f"  CONFLICT: resolve {path} by hand; the file it proposes for was left as it was")
-    if written:
-        print(f"  synthesis is now marked stale ({STALE}); run /sdd init (guarded refresh) and generate-agents --check")
+    if marked:
+        print(f"  synthesis is now marked stale ({STALE}); run /sdd init (guarded refresh), which removes the marker, then generate-agents --check")
     return 0
 
 

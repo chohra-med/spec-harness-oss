@@ -16,7 +16,7 @@ TMP="$(mktemp -d "${TMPDIR:-/tmp}/sh-update.XXXXXX")" || exit 1
 trap 'rm -rf "$TMP"' EXIT
 
 python3 -I -B - "$ROOT" "$TMP" <<'PY'
-import json, os, re, shutil, subprocess, sys
+import hashlib, json, os, re, shutil, subprocess, sys
 from pathlib import Path
 
 root, tmp = Path(sys.argv[1]), Path(sys.argv[2])
@@ -149,7 +149,7 @@ assert (target / ".claude/commands/spec-harness/teach-human.md").is_file()
 assert (target / ".claude/commands/spec-harness/audit.md").is_file() and (target / ".claude/commands/spec-harness/teach.md").is_file()
 record = json.loads((target / ".spec-harness/install.json").read_text())
 assert record["harness_commit"] != commit and (target / ".spec-harness/base/.claude/commands/spec-harness/build.md").read_bytes() == (harness / "commands/build.md").read_bytes()
-assert json.loads((target / ".spec-harness/synthesis-stale.json").read_text())["receipt_sha256"] is None
+assert not (target / ".spec-harness/synthesis-stale.json").exists(), "H1: an update with no receipt wrote a stale marker"
 print("PASS: apply wrote UPDATE/MERGE/NEW, kept CUSTOMIZED-KEEP and the CONFLICT file, wrote one proposal, deleted nothing")
 
 # 5. A second update is idempotent: nothing actionable except the unresolved conflict.
@@ -182,10 +182,15 @@ assert reviewer.read_bytes() == reviewer_bytes, "update wrote a synthesis output
 stale = run(CLI + ["generate-agents", "--check", str(ready)], 1, "check after update")
 assert "harness update applied after synthesis" in stale, stale
 print("RED control observed: after an update, generate-agents --check reports stale synthesis; the role binding was not touched")
+# H8: a byte-only rewrite of the receipt (a re-indent) must not clear the marker. Only its removal does.
 receipt = ready / ".claude/agents/.init-synthesis.json"
-receipt.write_text(json.dumps(json.loads(receipt.read_text()), indent=1) + "\n")
-assert "READY:" in run(CLI + ["generate-agents", "--check", str(ready)], 0, "a rewritten receipt supersedes the marker")
-print("PASS: a receipt rewritten by a later refresh supersedes the stale marker")
+receipt.write_text(json.dumps(json.loads(receipt.read_text()), indent=4) + "\n")
+blocked = run(CLI + ["generate-agents", "--check", str(ready)], 1, "re-indented receipt while marked")
+assert "READY:" not in blocked and ".spec-harness/synthesis-stale.json" in blocked and "removes" in blocked, blocked
+print("RED control observed (H8): a re-indented receipt does not clear the marker; the check names the file and says init removes it")
+(ready / ".spec-harness/synthesis-stale.json").unlink()
+assert "READY:" in run(CLI + ["generate-agents", "--check", str(ready)], 0, "READY once init removes the marker")
+print("PASS: READY needs the marker removed by init, whatever the receipt bytes")
 
 # 7. An install without a record (installed before 0.4.0): status says so; update adopts.
 legacy = tmp / "legacy"
@@ -246,5 +251,31 @@ assert result.returncode == 1 and "git merge-file failed" in output, ("a merge-f
 assert "conflicting hunk" not in output and "CONFLICT" not in output, output
 assert fx.snapshot(merge) == before, "a refused plan wrote a byte"
 print("PASS: git merge-file exit 255 refuses the plan with 'git merge-file failed' (exit 1); no CONFLICT and no byte written")
+
+# 11. H6: a write that fails partway leaves the stale marker behind, listing every planned path, so a
+#     later READY cannot pass over the files that did change. The first planned file is written; the
+#     second is not (its parent directory is read-only), so apply fails with the marker already on disk.
+partial = tmp / "partial"
+fx.build(partial, harness)
+install(partial, "partial")
+edit_source("commands/plan.md", "\n", "\nUpstream plan change for the partial write.\n")
+edit_source("learning_human.html", "\n", "\nUpstream explainer change for the partial write.\n")
+subprocess.run(git + ["add", "-A"], check=True)
+commit_source("two upstream files for the partial write case")
+states, digest, out = plan(partial)
+planned = sorted(path for path, state in states.items() if state in {"UPDATE", "NEW", "MERGE"})
+assert planned == [".claude/commands/spec-harness/plan.md", "learning_human.html"], ("positive control: two planned writes in two directories", planned, out)
+plan_before = (partial / ".claude/commands/spec-harness/plan.md").read_bytes()
+os.chmod(partial, 0o555)
+try:
+    failed = subprocess.run(CLI + ["update", str(partial), "--apply", digest], capture_output=True, text=True)
+finally:
+    os.chmod(partial, 0o755)
+assert failed.returncode == 1, ("apply must fail on the read-only second write", failed.returncode, failed.stdout + failed.stderr)
+assert (partial / ".claude/commands/spec-harness/plan.md").read_bytes() == (harness / "commands/plan.md").read_bytes() != plan_before, "the first planned file was not written before the failure"
+marker = json.loads((partial / ".spec-harness/synthesis-stale.json").read_text())
+assert sorted(marker["paths"]) == planned, ("H6: the marker must list every planned path", marker, planned)
+assert marker["receipt_sha256"] == hashlib.sha256((partial / ".claude/agents/.init-synthesis.json").read_bytes()).hexdigest(), "marker binds the receipt bytes as information"
+print("PASS: a write that fails at file 2 leaves file 1 written and the stale marker listing both planned paths")
 print("All update fixtures passed.")
 PY
