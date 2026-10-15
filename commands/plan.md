@@ -58,8 +58,8 @@ These steps sit alongside the Grill Me and Ponytail receipts above; they replace
 - changed-file outline and the order that protects the accepted goal;
 - the Ponytail receipt and Grill Me rulings/open questions;
 - the conventions relied on, with their labels and sources;
-- the Grill Me checkpoint status: approved (its approver, time and plan hash live in the run state
-  `checkpoint`, not in this file) or PENDING;
+- no approval status: the Grill Me approval (approver, time and plan hash) is recorded only in the run
+  state `checkpoint`, so the approved bytes of this file never change after approval;
 - source, rule and goal hashes this plan assumes.
 
 An unanswered material decision or changed input hash returns the packet to PENDING for resolution

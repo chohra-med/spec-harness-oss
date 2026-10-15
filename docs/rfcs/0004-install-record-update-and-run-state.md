@@ -164,8 +164,8 @@ line was read for this part; elsewhere the function or heading is named, because
   dispatcher `bin/spec-harness` runs `bin/sh-run-state.py` with `python3 -I -B` for `run-state`. The
   command is `spec-harness run-state --check <ticket> [target]`.
 - **Exit codes.** `main()` in `bin/sh-run-state.py` returns 2 when the target is not a directory
-  (`bin/sh-run-state.py:148`) or the ticket is not a slug (`:151`). It returns 1 when `check_state()` reports
-  any defect, and 0 when the state is valid (`:157`, `:159`). A missing state file is a defect, so it exits 1.
+  (`bin/sh-run-state.py:151`) or the ticket is not a slug (`:154`). It returns 1 when `check_state()` reports
+  any defect, and 0 when the state is valid (`:160`, `:162`). A missing state file is a defect, so it exits 1.
 - **Reading.** The file is read through `load_json_object` and `read_bounded` in `bin/sh_safe_io.py`, with a
   256 KiB limit (`MAX_STATE_BYTES`). A symbolic link, a FIFO, a device, an oversized file or a JSON value
   that is not an object is refused.
@@ -182,7 +182,7 @@ line was read for this part; elsewhere the function or heading is named, because
   `fresh`. From the test stage on, `test.result` must be `PASS` and `test.command` must name the command that
   ran.
 - **Who writes it.** No harness command writes the file. The run writes it when each stage completes, as
-  `commands/sdd.md` section "Resumable run state" directs (`commands/sdd.md:285-292`). The checker only reads
+  `commands/sdd.md` section "Resumable run state" directs (`commands/sdd.md:286-293`). The checker only reads
   it. It repairs nothing.
 - **Tests.** `tests/run-state-fixtures.sh`.
 
@@ -196,7 +196,7 @@ line was read for this part; elsewhere the function or heading is named, because
   contain its own hash, so the record lives outside the bytes it approves (`commands/plan.md`, step 2 of the Grill
   Me checkpoint section). An edit after approval needs a new approval. With no approval the ticket stays PENDING
   at this checkpoint.
-- **Which tickets stop.** LITE and FULL tickets stop here (`commands/sdd.md:184-187`). A MICRO ticket does not
+- **Which tickets stop.** LITE and FULL tickets stop here (`commands/sdd.md:184-188`). A MICRO ticket does not
   require Grill Me or Ponytail receipts (`commands/sdd.md:167`).
 - **The run-state checkpoint.** The `checkpoint` object in the run state is the only place the approval is
   recorded. `check_state()` compares its digest with the plan file on disk. No command checks that a person

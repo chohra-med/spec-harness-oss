@@ -140,6 +140,11 @@ dotted = good("spec")
 dotted["spec_path"] = "docs/a..b.md"
 write(dotted)
 check("a name with two dots inside a segment is allowed", 0, "VALID (stage spec)")
+# A state at the spec stage has no plan yet: an absent plan_path is not a defect before the plan stage.
+no_plan = good("spec")
+del no_plan["plan_path"]
+write(no_plan)
+check("a spec-stage state with no plan_path yet is valid", 0, "VALID (stage spec)")
 
 def raw_check(label, expect_rc, needle):
     # Target-controlled text may not put a raw ESC byte on the terminal; the escaped form must appear.
@@ -152,6 +157,16 @@ def raw_check(label, expect_rc, needle):
     else:
         failures.append(label)
         print(f"FAIL: {label}: exit {proc.returncode}, wanted {expect_rc}; output: {out.encode('unicode_escape').decode()}")
+
+# A target path given on the command line is echoed escaped too.
+proc = subprocess.run([sys.executable, "-I", "-B", str(checker), "--check", "PROJ-7", str(tmp / "no\x1b[2Jdir")],
+                      capture_output=True, text=True)
+out = proc.stdout + proc.stderr
+if proc.returncode == 2 and "\x1b" not in out and "\\x1b" in out:
+    print("PASS: a target path with an escape sequence prints no raw ESC byte (exit 2)")
+else:
+    failures.append("target path escape")
+    print(f"FAIL: a target path with an escape sequence prints no raw ESC byte: exit {proc.returncode}; output: {out.encode('unicode_escape').decode()}")
 
 hostile = good("test")
 hostile["\x1b[2J"] = True

@@ -80,8 +80,8 @@ All notable changes to this project are recorded here. The format follows
   init. Tests: `tests/update-fixtures.sh`.
 - A write refused by the operating system, for example in a read-only folder, is not a traceback. Update
   prints a named `PENDING:` refusal. Install's install-record step prints a named `install record: cannot write`
-  message. A failed staging write in install prints `cannot create <path>; target may be partially staged.` and
-  exits 1. Tests: `tests/update-fixtures.sh`, `tests/installer-fixtures.sh`.
+  message. A failed staging write in install prints `cannot create <path>; target may be partially staged.` for a
+  folder or `copy failed for <path>; target may be partially staged.` for a file, and exits 1. Tests: `tests/update-fixtures.sh`, `tests/installer-fixtures.sh`.
 - A file that was yours before install is never adopted, flipped to managed, or re-created by update.
   Tests: `tests/update-fixtures.sh`, `tests/installer-fixtures.sh`.
 - The uninstall steps live in the README `## Uninstall` section. The Undo section covers `.spec-harness/`,

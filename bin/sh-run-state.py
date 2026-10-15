@@ -67,9 +67,10 @@ def check_state(target, ticket):
     if state.get("ticket") != ticket:
         defects.add("ticket field must equal the ticket directory name")
 
-    # The stored paths are checked whatever the stage, before the stage gate can return early.
-    spec_path = _relative_in_root(state.get("spec_path"), "spec_path", defects)
-    plan_path = _relative_in_root(state.get("plan_path"), "plan_path", defects)
+    # A stored path is checked whenever its key is present, before the stage gate can return early;
+    # the stage rules below say from which stage each path is required.
+    spec_path = _relative_in_root(state["spec_path"], "spec_path", defects) if "spec_path" in state else None
+    plan_path = _relative_in_root(state["plan_path"], "plan_path", defects) if "plan_path" in state else None
 
     stage = state.get("stage")
     if stage not in STAGES:
@@ -105,7 +106,7 @@ def check_state(target, ticket):
             if not isinstance(checkpoint.get("approved_at"), str) or not checkpoint.get("approved_at"):
                 defects.add("checkpoint.approved_at is required")
             digest = checkpoint.get("plan_sha256")
-            if not isinstance(digest, str) or not SHA256.match(digest):
+            if not isinstance(digest, str) or not SHA256.fullmatch(digest):
                 defects.add("checkpoint.plan_sha256 must be a lowercase SHA-256 hex digest")
             elif plan_path is not None:
                 try:
@@ -146,7 +147,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     target = os.path.realpath(args.target)
     if not os.path.isdir(target):
-        print(f"run-state: target is not a directory: {args.target}", file=sys.stderr)
+        print(f"run-state: target is not a directory: {args.target!r}", file=sys.stderr)
         return 2
     if not TICKET.fullmatch(args.check):
         print("run-state: ticket must be a slug of letters, digits, '.', '_' or '-' (max 64)", file=sys.stderr)
