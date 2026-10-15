@@ -743,7 +743,7 @@ def recover(root, evidence):
         journal["status"] = "RECOVERY_CONFLICT" if conflicts else "RECOVERED"
         store_journal(evidence, journal)
         if conflicts:
-            raise Refused("concurrent edits kept; manual recovery needed: " + ", ".join(conflicts) + "; lock kept. "
+            raise Refused("concurrent edits kept; manual recovery needed: " + ", ".join(conflicts) + ("; lock kept. " if adopted else "; this run's own lock is released. ") +
                           f"Restore each of those files to the bytes its \"before\" entry records in {evidence}/journal.json "
                           "(base64-decoded), then run --recover again with the same --evidence-dir")
         removed = journal.get("removed_temporaries", [])
