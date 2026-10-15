@@ -219,5 +219,32 @@ install(linked)
 out = run(CLI + ["update", str(linked)], 1, "symlinked record")
 assert "PENDING" in out and "not a regular" in out, out
 print("RED control observed: a symlinked install record is refused")
+
+# 10. A git merge-file error (exit 255) is not a conflict count. The update must refuse the plan.
+#     The stub sits first on PATH and sends every other git call to the real binary.
+merge = tmp / "merge-error"
+install(merge)
+build_local = merge / ".claude/commands/spec-harness/build.md"
+build_local.write_text("Local preface line.\n" + build_local.read_text())
+(harness / "commands/build.md").write_text((harness / "commands/build.md").read_text() + "\nSecond upstream appendix.\n")
+subprocess.run(git + ["add", "-A"], check=True)
+commit_source("build change for the merge error case")
+states, _, out = plan(merge)
+assert states[".claude/commands/spec-harness/build.md"] == "MERGE", ("positive control: the scenario must need a merge", out)
+print("PASS positive control: the scenario needs a three-way merge (build.md is MERGE with the real git)")
+
+real_git = shutil.which("git")
+stub_dir = tmp / "git-stub"
+stub_dir.mkdir()
+(stub_dir / "git").write_text('#!/bin/bash\nif [ "$1" = merge-file ]; then echo "simulated merge-file error" >&2; exit 255; fi\nexec "%s" "$@"\n' % real_git)
+os.chmod(stub_dir / "git", 0o755)
+stub_env = dict(os.environ, PATH=str(stub_dir) + os.pathsep + os.environ["PATH"])
+before = fx.snapshot(merge)
+result = subprocess.run(CLI + ["update", str(merge)], capture_output=True, text=True, env=stub_env)
+output = result.stdout + result.stderr
+assert result.returncode == 1 and "git merge-file failed" in output, ("a merge-file error must refuse the plan", result.returncode, output)
+assert "conflicting hunk" not in output and "CONFLICT" not in output, output
+assert fx.snapshot(merge) == before, "a refused plan wrote a byte"
+print("PASS: git merge-file exit 255 refuses the plan with 'git merge-file failed' (exit 1); no CONFLICT and no byte written")
 print("All update fixtures passed.")
 PY

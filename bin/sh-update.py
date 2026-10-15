@@ -25,14 +25,13 @@ import json
 import os
 import re
 import shutil
-import stat
 import subprocess
 import sys
 import tempfile
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-from sh_safe_io import MAX_FILE_BYTES, MAX_RECEIPT_BYTES, SafeReadError, load_json_object, read_bounded, safe_relative  # noqa: E402
+from sh_safe_io import MAX_FILE_BYTES, MAX_RECEIPT_BYTES, SafeReadError, WriteRefused, load_json_object, read_bounded, safe_relative, write_regular  # noqa: E402
 
 HARNESS = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 STATE = ".spec-harness"
@@ -153,8 +152,8 @@ def merge3(local, base, theirs):
             paths.append(path)
         result = subprocess.run(["git", "merge-file", "-p", "-L", "local", "-L", "base", "-L", "harness", *paths],
                                 capture_output=True)
-        if result.returncode < 0:
-            raise Refused("git merge-file failed: " + result.stderr.decode("utf-8", "replace"))
+        if result.returncode < 0 or result.returncode > 127:
+            raise Refused(f"git merge-file failed (exit {result.returncode}): " + result.stderr.decode("utf-8", "replace"))
         return result.stdout, result.returncode
     finally:
         shutil.rmtree(work, ignore_errors=True)
@@ -221,54 +220,6 @@ def build_plan(root, name_override=None):
     return record, name, rows, digest
 
 
-def write_file(root, rel, data, executable=False):
-    """Create or atomically replace one file without following a link on the way."""
-    if not safe_relative(rel):
-        raise Refused(f"unsafe write path: {rel!r}")
-    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
-    descriptors = [os.open(root, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))]
-    temporary = None
-    try:
-        for part in rel.split("/")[:-1]:
-            try:
-                os.mkdir(part, 0o755, dir_fd=descriptors[-1])
-            except FileExistsError:
-                pass
-            try:
-                descriptors.append(os.open(part, flags, dir_fd=descriptors[-1]))
-            except OSError:
-                raise Refused(f"refusing a link or non-directory on the way to {rel}") from None
-        name = rel.split("/")[-1]
-        directory = descriptors[-1]
-        try:
-            info = os.stat(name, dir_fd=directory, follow_symlinks=False)
-            if not stat.S_ISREG(info.st_mode):
-                raise Refused(f"refusing to replace a non-regular file: {rel}")
-        except FileNotFoundError:
-            pass
-        temporary = f".spec-harness-update-{os.getpid()}-{os.urandom(6).hex()}"
-        fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
-                     0o755 if executable else 0o644, dir_fd=directory)
-        try:
-            view = memoryview(data)
-            while view:
-                view = view[os.write(fd, view):]
-            os.fsync(fd)
-        finally:
-            os.close(fd)
-        os.replace(temporary, name, src_dir_fd=directory, dst_dir_fd=directory)
-        temporary = None
-        os.fsync(directory)
-    finally:
-        if temporary:
-            try:
-                os.unlink(temporary, dir_fd=descriptors[-1])
-            except FileNotFoundError:
-                pass
-        for fd in reversed(descriptors):
-            os.close(fd)
-
-
 def print_plan(root, record, rows, digest):
     version, commit, _ = source_identity()
     installed = (record or {}).get("harness_version") or "unknown (no install record)"
@@ -299,13 +250,13 @@ def apply_plan(root, record, name, rows, digest):
     for row in rows:
         rel, state = row["path"], row["state"]
         if state in {"UPDATE", "NEW"}:
-            write_file(root, rel, row["_new"], row["_executable"])
+            write_regular(root, rel, row["_new"], row["_executable"])
             written.append(rel)
         elif state == "MERGE":
-            write_file(root, rel, row["_merged"], row["_executable"])
+            write_regular(root, rel, row["_merged"], row["_executable"])
             written.append(rel)
         elif state == "CONFLICT":
-            write_file(root, rel + PROPOSED, row["_merged"])
+            write_regular(root, rel + PROPOSED, row["_merged"])
             proposed.append(rel + PROPOSED)
             continue
         elif state == "UNCHANGED" and rel not in owned:
@@ -314,7 +265,7 @@ def apply_plan(root, record, name, rows, digest):
             continue
         # The record and base copy always hold the pristine harness bytes; a merged file therefore
         # stays "edited locally" for the next update.
-        write_file(root, f"{STATE}/base/{rel}", row["_new"])
+        write_regular(root, f"{STATE}/base/{rel}", row["_new"])
         files[rel] = {"managed": True, "sha256": row["new_sha256"]}
     version, commit, dirty = source_identity()
     record = dict(record or {"format": "spec-harness-install-record", "schema_version": 1, "project_name": name})
@@ -323,13 +274,13 @@ def apply_plan(root, record, name, rows, digest):
         record["harness_commit_dirty"] = True
     else:
         record.pop("harness_commit_dirty", None)
-    write_file(root, RECORD, (json.dumps(record, indent=2, sort_keys=True) + "\n").encode())
+    write_regular(root, RECORD, (json.dumps(record, indent=2, sort_keys=True) + "\n").encode())
     if written:
         stale = {"format": "spec-harness-synthesis-stale", "schema_version": 1,
                  "reason": "a harness update changed installed files after synthesis",
                  "harness_version": version, "receipt_sha256": sha(receipt) if receipt is not None else None,
                  "paths": written}
-        write_file(root, STALE, (json.dumps(stale, indent=2, sort_keys=True) + "\n").encode())
+        write_regular(root, STALE, (json.dumps(stale, indent=2, sort_keys=True) + "\n").encode())
     print(f"UPDATED: {len(written)} file(s) written, {len(proposed)} proposal(s) written; plan {digest[:12]}")
     for path in proposed:
         print(f"  CONFLICT: resolve {path} by hand; the file it proposes for was left as it was")
@@ -425,6 +376,6 @@ def main(argv=None):
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except Refused as error:
+    except (Refused, WriteRefused) as error:
         print(f"PENDING: {error}", file=sys.stderr)
         sys.exit(1)

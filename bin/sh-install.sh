@@ -335,51 +335,46 @@ if command -v python3 >/dev/null 2>&1; then
   HARNESS_VERSION="$(sed -n 's/^[[:space:]]*"version":[[:space:]]*"\([^"]*\)".*/\1/p' "$SYS_DIR/package.json" | head -n 1)"
   mkdir -p "$ABS/$STATE_DIR/base" || { echo "cannot create $STATE_DIR; files are staged but no install record was written." >&2; exit 1; }
   check_directory "$STATE_DIR/base" || { echo "install record directory changed; files are staged but no install record was written." >&2; exit 2; }
-  RECORD_NOTE="$(python3 -I -B - "$ABS" "$STATE_DIR" "$RECORD_LIST" "$NAME" "$HARNESS_VERSION" "$HARNESS_COMMIT" <<'PYRECORD'
-import hashlib, json, os, shutil, stat, sys
+  RECORD_NOTE="$(python3 -I -B - "$SYS_DIR/bin" "$ABS" "$STATE_DIR" "$RECORD_LIST" "$NAME" "$HARNESS_VERSION" "$HARNESS_COMMIT" <<'PYRECORD'
+import hashlib, json, sys
+# Isolated mode leaves bin/ off sys.path; the shared safe reader and writer are imported by explicit path.
+sys.path.insert(0, sys.argv.pop(1))
+from sh_safe_io import MAX_FILE_BYTES, SafeReadError, WriteRefused, load_json_object, read_bounded, write_regular
 root, state, listing, name, version, commit = sys.argv[1:7]
-record_path = os.path.join(root, state, "install.json")
+record_rel = state + "/install.json"
 record = None
-if os.path.lexists(record_path):
-    info = os.lstat(record_path)
-    if stat.S_ISREG(info.st_mode) and info.st_size <= 4 * 1024 * 1024:
-        try:
-            with open(record_path, "rb") as handle:
-                record = json.loads(handle.read().decode("utf-8"))
-        except (ValueError, OSError):
-            record = None
-    if not isinstance(record, dict) or record.get("format") != "spec-harness-install-record":
+try:
+    record = load_json_object(record_rel, 4 * 1024 * 1024, root=root, what="install record")
+except SafeReadError as error:
+    if error.reason != "missing":
         sys.stdout.write("existing %s/install.json is not an install record; it was kept and not updated" % state)
         sys.exit(0)
+if record is not None and record.get("format") != "spec-harness-install-record":
+    sys.stdout.write("existing %s/install.json is not an install record; it was kept and not updated" % state)
+    sys.exit(0)
 if record is None:
     record = {"format": "spec-harness-install-record", "schema_version": 1, "harness_version": version,
               "harness_commit": commit or None, "project_name": name, "files": {}}
 files = record.setdefault("files", {})
 added = 0
-with open(listing, encoding="utf-8") as handle:
-    rows = [line.rstrip("\n").split("\t", 1) for line in handle if line.strip()]
-for kind, rel in rows:
-    if rel in files:
-        continue
-    path = os.path.join(root, rel)
-    if kind == "user":
-        files[rel] = {"managed": False}
-        continue
-    with open(path, "rb") as handle:
-        data = handle.read()
-    base = os.path.join(root, state, "base", rel)
-    os.makedirs(os.path.dirname(base), exist_ok=True)
-    if os.path.islink(base) or os.path.islink(os.path.dirname(base)):
-        raise SystemExit("refusing symlink in install record base: " + base)
-    with open(base, "wb") as handle:
-        handle.write(data)
-    files[rel] = {"managed": True, "sha256": hashlib.sha256(data).hexdigest()}
-    added += 1
-record["files"] = dict(sorted(files.items()))
-temporary = record_path + ".tmp"
-with open(temporary, "w", encoding="utf-8") as handle:
-    handle.write(json.dumps(record, indent=2, sort_keys=True) + "\n")
-os.replace(temporary, record_path)
+try:
+    with open(listing, encoding="utf-8") as handle:
+        rows = [line.rstrip("\n").split("\t", 1) for line in handle if line.strip()]
+    for kind, rel in rows:
+        if rel in files:
+            continue
+        if kind == "user":
+            files[rel] = {"managed": False}
+            continue
+        data = read_bounded(rel, MAX_FILE_BYTES, root=root)
+        write_regular(root, state + "/base/" + rel, data)
+        files[rel] = {"managed": True, "sha256": hashlib.sha256(data).hexdigest()}
+        added += 1
+    record["files"] = dict(sorted(files.items()))
+    write_regular(root, record_rel, (json.dumps(record, indent=2, sort_keys=True) + "\n").encode("utf-8"))
+except (SafeReadError, WriteRefused) as error:
+    sys.stderr.write("install record: %s\n" % error)
+    sys.exit(1)
 managed = sum(1 for row in record["files"].values() if row.get("managed"))
 sys.stdout.write("%s/install.json (%d managed files, %d new; base copies under %s/base/)" % (state, managed, added, state))
 PYRECORD
