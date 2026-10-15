@@ -42,7 +42,7 @@
     "baseDir": ".spec-harness/base",
     "note": "The installer also writes this record of what it staged (format spec-harness-install-record) and one base copy of every file it added, under baseDir at the same relative path. status, update and uninstall read them. A file that already existed and differs from the harness file is recorded as not managed and has no base copy. A file that already existed and is byte-identical to the harness file is recorded as managed and gets a base copy."
   },
-  "loaderBlock": "## Spec Harness\n\n- Setup status: `SPEC-HARNESS.md`. Keep PENDING items PENDING until they are checked.\n- Before code edits read `ai_rules/rules/frequent_rules.md`, `.memory/40-active.md` and the nearest `RULES.md`.\n- Feature work goes through `/sdd <ticket text>`. The procedure is `.claude/commands/sdd.md`.\n- A task is done when a fresh verifier returns PASS against the ticket's own goal, not when tests pass.\n- Rules change only through `.claude/commands/spec-harness/learn.md`, after review.\n",
+  "loaderBlock": "## Spec Harness\n\n- Setup status: `SPEC-HARNESS.md`. Keep PENDING items PENDING until they are checked.\n- Before code edits read `ai_rules/rules/frequent_rules.md`, `.memory/40-active.md` and the nearest `RULES.md`.\n- Feature work goes through `/sdd <ticket text>`. The procedure is `.claude/commands/sdd.md`.\n- A code ticket is any change to a tracked file outside `specs/` and `.memory/`. It goes through `/sdd` before the first source edit, even when it looks small: the light route is still `/sdd`. Keep the ticket's code inside this repository: no worktree, clone or copy elsewhere unless the user asks for one.\n- A task is done when a fresh verifier returns PASS against the ticket's own goal, not when tests pass.\n- Rules change only through `.claude/commands/spec-harness/learn.md`, after review.\n",
   "entries": [
     {
       "destination": ".agents/skills/sdd/SKILL.md",
@@ -201,7 +201,7 @@
       "source": "commands/sdd.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "846c8fdf73738e650058ae872df5a094568c3e58c33b6d1de35a759003842207",
+      "sha256": "06722d622be8552b7fdb3dac47d1c7bf0225603330bac7e68334b6c292781eb7",
       "mode": "0644"
     },
     {
@@ -537,7 +537,7 @@
       "source": "skills/spec-harness/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "7b18b73eb40bce9da864a7803260642a2f3d6016859c9bd59454986106f86ec0",
+      "sha256": "335ca8be1300fe8ad5f3320ab32a6dd91e08a9bc51e24677ac62e723a6230e54",
       "mode": "0644"
     },
     {
@@ -695,7 +695,7 @@
       "tokens": [
         "{{PROJECT_NAME}}"
       ],
-      "sha256": "c07856be21e42dbe5bad3f63e524df60f4183c43c4d34eb4f2ee3354d026f877",
+      "sha256": "c393222f4b2d8f02aa34c82a1d442e44fb3264a62bd9fc26701b1a0878f94706",
       "mode": "0644"
     },
     {
@@ -705,7 +705,7 @@
       "tokens": [
         "{{PROJECT_NAME}}"
       ],
-      "sha256": "bd3e1cb2f0e1b7372d77ed40b66f1c84232e89cc566d33848233c323e68a7247",
+      "sha256": "6780ce611082d2bcdf1c9d103658691307efff1110416eab8f2f93942798f456",
       "mode": "0644"
     },
     {
@@ -725,7 +725,7 @@
       "tokens": [
         "{{PROJECT_NAME}}"
       ],
-      "sha256": "2efa853ae1bfab2b9afd0956facd1d09fe3b23909699f906dbdc754c97ea5d1f",
+      "sha256": "e7034605e2dc104566b3f7b34775ab87fb9ab7a508e9a0a599a33f4cdf064f74",
       "mode": "0644"
     },
     {

@@ -85,9 +85,6 @@ Five steps, from the root of an existing project. You need Bash, git and Python 
 5. Run one small ticket with `/sdd <ticket text>`. Check its resumable state with
    `spec-harness run-state --check <ticket>` (see [docs/RUN-STATE.md](./docs/RUN-STATE.md)).
 
-Then open the project in Claude Code and run `/sdd init`. The first command stages the harness and
-reports `PENDING`. The second reads the codebase and writes its rules, skills and roles.
-
 **New here? Read the ten-minute explainer first.** [`learning_human.html`](./learning_human.html) is
 one interactive page: what Spec Harness is, how a ticket moves through it, which model does what,
 what lands in your repository and how it improves over time. It is copied into every project you

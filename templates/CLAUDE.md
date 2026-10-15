@@ -27,9 +27,7 @@ work. The shared procedure is `.claude/commands/sdd.md`; it creates a ticket-spe
 the light route instead: one `specs/<feature>/ticket.md`, an implementer and one fresh verifier. Never substitute
 the unrelated root `goal.md`. Tests passing is necessary, not sufficient.
 
-A code ticket goes through `/sdd` before any source edit, even when the change looks small: the
-light route is still `/sdd`. Keep the ticket's code inside this repository: no worktree, clone or
-copy elsewhere unless the user asks for one.
+A code ticket is any change to a tracked file outside `specs/` and `.memory/`. It goes through `/sdd` before the first source edit, even when it looks small: the light route is still `/sdd`. Keep the ticket's code inside this repository: no worktree, clone or copy elsewhere unless the user asks for one.
 
 ## ⚖️ The non-negotiables
 - `constitution.md`, SDD articles (TDD, minimalism, type-safety, harness-around-the-dev).

@@ -31,7 +31,7 @@ initialization is READY. Missing evidence or an unavailable reviewer leaves it P
 `spec-harness` is not on `PATH`, run the same subcommand through
 `npx -y github:chohra-med/spec-harness-oss <subcommand> ...`. If neither is available, report that limitation and keep initialization PENDING. If `init` also carries optional ticket text or a connected reference, continue through input resolution and the ticket steps after initialization. If no optional ticket is present, complete the initialization gates and return; init-only work does not request ticket content or classify a ticket.
 
-Initialization reads project rules, structure, manifests/lockfiles, representative source and project-local installed skills before selecting reusable methods. The portable method owners at `.claude/commands/spec-harness/{ponytail,grill-me,package-finder,skill-finder,conventions,technology-profiles}.md` are usable before synthesis or a feature goal exists. Keep the project-specific outputs and schema-1 receipt unchanged.
+Initialization reads project rules, structure, manifests/lockfiles, representative source and project-local installed skills before selecting reusable methods. The portable method owners at `.claude/commands/spec-harness/{ponytail,grill-me,package-finder,skill-finder,conventions,technology-profiles}.md` are usable before synthesis or a feature goal exists. Receipt schemas 1 and 2 keep their meaning and are not asked for a policy ledger; schema 3 adds the ledger (`policy_sources` and `policy_coverage`; RFC 0003 in the Spec Harness repository).
 
 For ticket work, record the current source state before planning:
 

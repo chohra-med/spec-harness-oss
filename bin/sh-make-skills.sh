@@ -60,7 +60,7 @@ emit() {
 
 emit spec-harness "build" "" \
 "The Spec Harness orchestrator. Spec-driven development wrapped in a harness (reviewed ratchet + independent verifier + learning loop) over a persistent memory bank. Use when the user says 'use spec harness', 'run the spec harness', 'spec-harness this feature', or wants the full /sdd init or ticket → feature spec/goal → plan → tasks → independent gates flow. Routes to the sub-skills and enforces the 3 pillars (Memory bank · SDD · Harness)." \
-"You are the orchestrator for a Spec Harness project. Read the shared \`sdd\` procedure first, then route initialization or ticket work through the appropriate stage skill. Resolve every project-specific role from the synthesis receipt. The implementer does not own acceptance." yes
+"You are the orchestrator for a Spec Harness project. Read the shared \`sdd\` procedure first, then route initialization or ticket work through the appropriate stage skill. Resolve every project-specific role from the synthesis receipt. The implementer does not own acceptance. A code ticket is any change to a tracked file outside \`specs/\` and \`.memory/\`. It goes through \`/sdd\` before the first source edit, even when it looks small: the light route is still \`/sdd\`. Keep the ticket's code inside this repository: no worktree, clone or copy elsewhere unless the user asks for one." yes
 
 emit spec-harness-install "init" "researcher" \
 "Add or refresh Spec Harness in a repo, greenfield or existing. Use when the user asks to install or initialize Spec Harness. The shell stages files and leaves project synthesis PENDING." \
