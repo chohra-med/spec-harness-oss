@@ -93,7 +93,7 @@ check("a failing test result is refused", 1, "test.result must be PASS")
 extra = good("test")
 extra["surprise"] = True
 write(extra)
-check("an unknown top-level key is refused", 1, "unknown top-level key: surprise")
+check("an unknown top-level key is refused", 1, "unknown top-level key: 'surprise'")
 
 escaping = good("spec")
 escaping["spec_path"] = "../outside.md"
@@ -118,6 +118,61 @@ state_path.unlink()
 
 check("a bad ticket name exits 2", 2, ticket="../PROJ")
 check("a missing run state for a ticket is named", 1, "no run state for ticket", ticket="PROJ-9")
+
+# A ticket with a trailing newline is not a slug: the pattern must match the whole string.
+check("a ticket ending in a newline exits 2", 2, "ticket must be a slug", ticket="PROJ-7\n")
+
+# Paths: a backslash is refused at the stage that holds the path; a '..' segment is refused, but
+# a file name that only contains two dots is not a segment and stays allowed.
+backslash_spec = good("spec")
+backslash_spec["spec_path"] = "docs\\spec.md"
+write(backslash_spec)
+check("a backslash in spec_path is refused", 1, "spec_path must be a relative path inside the target")
+backslash_plan = good("plan")
+backslash_plan["plan_path"] = "docs\\plan.md"
+write(backslash_plan)
+check("a backslash in plan_path is refused", 1, "plan_path must be a relative path inside the target")
+escaping_plan = good("plan")
+escaping_plan["plan_path"] = "docs/../../outside.md"
+write(escaping_plan)
+check("a plan path that leaves the target is refused", 1, "plan_path must be a relative path inside the target")
+dotted = good("spec")
+dotted["spec_path"] = "docs/a..b.md"
+write(dotted)
+check("a name with two dots inside a segment is allowed", 0, "VALID (stage spec)")
+
+def raw_check(label, expect_rc, needle):
+    # Target-controlled text may not put a raw ESC byte on the terminal; the escaped form must appear.
+    proc = subprocess.run([sys.executable, "-I", "-B", str(checker), "--check", "PROJ-7", str(target)],
+                          capture_output=True, text=True)
+    out = proc.stdout + proc.stderr
+    ok = proc.returncode == expect_rc and "\x1b" not in out and needle in out
+    if ok:
+        print(f"PASS: {label} (exit {proc.returncode})")
+    else:
+        failures.append(label)
+        print(f"FAIL: {label}: exit {proc.returncode}, wanted {expect_rc}; output: {out.encode('unicode_escape').decode()}")
+
+hostile = good("test")
+hostile["\x1b[2J"] = True
+write(hostile)
+raw_check("an unknown key with an escape sequence prints no raw ESC byte", 1, "unknown top-level key: '\\x1b[2J'")
+hostile_plan = good("checkpoint")
+hostile_plan["plan_path"] = "docs/\x1b[2Jplan.md"
+write(hostile_plan)
+raw_check("a plan path with an escape sequence prints no raw ESC byte", 1, "docs/\\x1b[2Jplan.md")
+
+# Plan approval (docs/RUN-STATE.md, commands/plan.md): plan.md holds no hash. The approver, the time
+# and the SHA-256 of the plan.md bytes live in the run state checkpoint, which the checker reads.
+approved = b"# Plan\n- approved step\n"
+(target / "docs" / "plan.md").write_bytes(approved)
+recorded = good("checkpoint")
+recorded["checkpoint"]["plan_sha256"] = hashlib.sha256(approved).hexdigest()
+write(recorded)
+check("an approval recorded in the run state for the plan.md bytes is VALID", 0, "VALID (stage checkpoint)")
+(target / "docs" / "plan.md").write_bytes(approved + b"- edited after approval\n")
+check("editing plan.md after the recorded approval is refused", 1, "changed after approval")
+(target / "docs" / "plan.md").write_bytes(plan_bytes)
 
 if failures:
     print(f"RED: {len(failures)} run-state check(s) failed")

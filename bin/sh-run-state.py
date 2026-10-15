@@ -35,11 +35,11 @@ class Defects:
 
 
 def _relative_in_root(value, label, defects):
-    """A stored path must be relative, have no parent segment and stay under the target root."""
+    """A stored path must be relative, have no backslash, no '..' segment and stay under the target root."""
     if not isinstance(value, str) or not value:
         defects.add(f"{label} must be a non-empty relative path")
         return None
-    if os.path.isabs(value) or ".." in value.replace("\\", "/").split("/") or "\x00" in value:
+    if os.path.isabs(value) or "\\" in value or ".." in value.split("/") or "\x00" in value:
         defects.add(f"{label} must be a relative path inside the target: {value!r}")
         return None
     return value
@@ -47,7 +47,7 @@ def _relative_in_root(value, label, defects):
 
 def check_state(target, ticket):
     defects = Defects()
-    if not TICKET.match(ticket):
+    if not TICKET.fullmatch(ticket):
         return None, ["ticket must be a slug of letters, digits, '.', '_' or '-' (max 64)"]
     state_rel = f".spec-harness/runs/{ticket}/run-state.json"
     try:
@@ -59,13 +59,17 @@ def check_state(target, ticket):
 
     unknown = sorted(set(state) - TOP_KEYS)
     for key in unknown:
-        defects.add(f"unknown top-level key: {key}")
+        defects.add(f"unknown top-level key: {key!r}")
     if state.get("format") != FORMAT:
         defects.add(f"format must be {FORMAT!r}")
     if state.get("schema_version") != SCHEMA_VERSION or isinstance(state.get("schema_version"), bool):
         defects.add(f"schema_version must be {SCHEMA_VERSION}")
     if state.get("ticket") != ticket:
         defects.add("ticket field must equal the ticket directory name")
+
+    # The stored paths are checked whatever the stage, before the stage gate can return early.
+    spec_path = _relative_in_root(state.get("spec_path"), "spec_path", defects)
+    plan_path = _relative_in_root(state.get("plan_path"), "plan_path", defects)
 
     stage = state.get("stage")
     if stage not in STAGES:
@@ -85,8 +89,6 @@ def check_state(target, ticket):
         else:
             defects.add(f"completed must list the earlier stages in order: {expected}")
 
-    spec_path = _relative_in_root(state.get("spec_path"), "spec_path", defects)
-    plan_path = _relative_in_root(state.get("plan_path"), "plan_path", defects)
     needs_plan = index >= STAGES.index("plan")
     if needs_plan and plan_path is None:
         defects.add("plan_path is required from the plan stage on")
@@ -109,7 +111,7 @@ def check_state(target, ticket):
                 try:
                     actual = hashlib.sha256(read_bounded(plan_path, MAX_FILE_BYTES, root=target)).hexdigest()
                 except SafeReadError as error:
-                    defects.add(f"plan_path {plan_path}: {error.reason}")
+                    defects.add(f"plan_path {plan_path!r}: {error.reason}")
                 else:
                     if actual != digest:
                         defects.add("checkpoint.plan_sha256 does not match the plan file on disk; the plan changed after approval")
@@ -146,7 +148,7 @@ def main(argv=None):
     if not os.path.isdir(target):
         print(f"run-state: target is not a directory: {args.target}", file=sys.stderr)
         return 2
-    if not TICKET.match(args.check):
+    if not TICKET.fullmatch(args.check):
         print("run-state: ticket must be a slug of letters, digits, '.', '_' or '-' (max 64)", file=sys.stderr)
         return 2
     state, defects = check_state(target, args.check)
