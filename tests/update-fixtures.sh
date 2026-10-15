@@ -279,5 +279,35 @@ marker = json.loads((partial / ".spec-harness/synthesis-stale.json").read_text()
 assert sorted(marker["paths"]) == planned, ("H6: the marker must list every planned path", marker, planned)
 assert marker["receipt_sha256"] == hashlib.sha256((partial / ".claude/agents/.init-synthesis.json").read_bytes()).hexdigest(), "marker binds the receipt bytes as information"
 print("PASS: a write that fails at file 2 leaves file 1 written and the stale marker listing both planned paths")
+
+# 12. N1: a file the user owned before install (recorded managed: false) stays theirs. Once the user makes
+#     it byte-identical to the template, update must not adopt it (no flag flip, no base copy). Uninstall
+#     lists it under YOURS. If the user deletes it, update does not restore it into a path they own.
+owned = tmp / "owned"
+owned.mkdir()
+(owned / "goal.md").write_text("# My own goal, written before the harness\n")
+install(owned, "owned")
+record = json.loads((owned / ".spec-harness/install.json").read_text())
+assert record["files"]["goal.md"] == {"managed": False}, ("positive control: goal.md is recorded as the user's", record["files"].get("goal.md"))
+scratch = tmp / "scratch-goal"
+install(scratch, "owned")
+shutil.copyfile(scratch / "goal.md", owned / "goal.md")
+states, digest, out = plan(owned)
+assert states.get("goal.md") == "UNCHANGED", ("positive control: the user's goal.md now matches the template", states.get("goal.md"), out)
+run(CLI + ["update", str(owned), "--apply", digest], 0, "apply on a user-owned file that now matches the template")
+record = json.loads((owned / ".spec-harness/install.json").read_text())
+assert record["files"]["goal.md"] == {"managed": False}, ("N1: update flipped a user-owned record entry", record["files"]["goal.md"])
+assert not (owned / ".spec-harness/base/goal.md").exists(), "N1: update wrote a base copy for a user-owned file"
+kept = run(CLI + ["uninstall", str(owned)], 0, "uninstall after the no-op apply")
+removable_part, yours_part = kept.split("YOURS before install (never delete):", 1)
+assert "    - goal.md" in yours_part.split("\n  then delete", 1)[0], ("N1: goal.md must be listed under YOURS", kept)
+assert "    - goal.md" not in removable_part, ("N1: goal.md was listed as safe to delete", kept)
+(owned / "goal.md").unlink()
+states, digest, out = plan(owned)
+assert states.get("goal.md") == "CUSTOMIZED-KEEP" and "not restored" in out, ("N1: a deleted user-owned file must not be restored", states.get("goal.md"), out)
+run(CLI + ["update", str(owned), "--apply", digest], 0, "apply after the user deleted their own file")
+assert not (owned / "goal.md").exists(), "N1: update restored a file the record says is the user's"
+assert json.loads((owned / ".spec-harness/install.json").read_text())["files"]["goal.md"] == {"managed": False}
+print("PASS: a user-owned record entry is never adopted, flipped or restored by update; uninstall lists it under YOURS")
 print("All update fixtures passed.")
 PY

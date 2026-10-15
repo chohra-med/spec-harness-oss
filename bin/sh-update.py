@@ -51,6 +51,11 @@ def sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def user_owned(files, rel):
+    """A record entry the install wrote as the user's own file (managed: false). Update never adopts it."""
+    return rel in files and not files[rel].get("managed")
+
+
 def write_or_refuse(root, rel, data, executable=False):
     """write_regular, with an OS failure (a read-only directory, a full disk) named as a refusal."""
     try:
@@ -194,6 +199,8 @@ def build_plan(root, name_override=None):
         elif disk is None:
             if managed:
                 row.update(state="CUSTOMIZED-KEEP", note="deleted locally; not restored")
+            elif entry is not None:
+                row.update(state="CUSTOMIZED-KEEP", note="your file from before the install; deleted locally, not restored")
             else:
                 row["state"] = "NEW"
         elif disk == new:
@@ -281,7 +288,7 @@ def apply_plan(root, record, name, rows, digest):
             write_or_refuse(root, rel + PROPOSED, row["_merged"])
             proposed.append(rel + PROPOSED)
             continue
-        elif state == "UNCHANGED" and rel not in owned:
+        elif state == "UNCHANGED" and rel not in owned and not user_owned(files, rel):
             pass  # adopt: record the current harness bytes (an install without a record gains one)
         else:
             continue
