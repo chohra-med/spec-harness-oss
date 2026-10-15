@@ -20,8 +20,8 @@ require_tools() {
 
 require_python311() {
   require_tools python3
-  if ! python3 -I -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' >/dev/null 2>&1; then
-    printf 'FAIL: missing tool: python3 >= 3.11 (found %s; no content check ran)\n' "$(python3 -I -c 'import platform; print(platform.python_version())' 2>/dev/null || echo unknown)" >&2
+  if ! python3 -I -B -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' >/dev/null 2>&1; then
+    printf 'FAIL: missing tool: python3 >= 3.11 (found %s; no content check ran)\n' "$(python3 -I -B -c 'import platform; print(platform.python_version())' 2>/dev/null || echo unknown)" >&2
     exit 1
   fi
 }
@@ -32,7 +32,7 @@ sha256_lines() {
   elif command -v sha256sum >/dev/null 2>&1; then
     sha256sum "$@"
   elif command -v python3 >/dev/null 2>&1; then
-    python3 -I -c 'import hashlib, sys
+    python3 -I -B -c 'import hashlib, sys
 for name in sys.argv[1:]:
     with open(name, "rb") as handle:
         print(hashlib.sha256(handle.read()).hexdigest() + "  " + name)' "$@"

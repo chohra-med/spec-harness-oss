@@ -12,7 +12,7 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
-python3 -I - "$HARNESS_DIR" <<'PYEOF'
+python3 -I -B - "$HARNESS_DIR" <<'PYEOF'
 import hashlib, json, os, sys
 
 root = sys.argv[1]
