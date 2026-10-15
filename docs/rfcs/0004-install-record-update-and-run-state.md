@@ -1,6 +1,6 @@
 # RFC 0004: install record, update states, stale marker and uninstall plan
 
-Status: Accepted. Implemented in 0.4.0 (part 1; part 2 added by the workflow PR).
+Status: Accepted. Implemented in 0.4.0 (parts 1 and 2).
 
 ## Problem
 
@@ -151,3 +151,93 @@ The branch the user created before install is the undo for the rest (see the Und
 
 This RFC covers the `update`, `status` and `uninstall` routes and the seven state words. Changing any of them
 starts a new RFC (`CONTRIBUTING.md`, "Proposals"). The receipt schema is RFC 0003.
+
+## Part 2: run state, the Grill Me checkpoint and the /sdd-first rule
+
+Part 2 records the workflow routes that the run-state method added. Like part 1, it proposes nothing new.
+Each fact is taken from the code or the document named beside it. A line number appears only where the
+line was read for this part; elsewhere the function or heading is named, because line numbers move.
+
+## 8. Run state
+
+- **Location and command.** The state is `.spec-harness/runs/<ticket>/run-state.json` under the target. The
+  dispatcher `bin/spec-harness` runs `bin/sh-run-state.py` with `python3 -I -B` for `run-state`. The
+  command is `spec-harness run-state --check <ticket> [target]`.
+- **Exit codes.** `main()` in `bin/sh-run-state.py` returns 2 when the target is not a directory
+  (`bin/sh-run-state.py:151`) or the ticket is not a slug (`:154`). It returns 1 when `check_state()` reports
+  any defect, and 0 when the state is valid (`:160`, `:162`). A missing state file is a defect, so it exits 1.
+- **Reading.** The file is read through `load_json_object` and `read_bounded` in `bin/sh_safe_io.py`, with a
+  256 KiB limit (`MAX_STATE_BYTES`). A symbolic link, a FIFO, a device, an oversized file or a JSON value
+  that is not an object is refused.
+- **Shape.** The only top-level keys are the ten in `TOP_KEYS`: `format`, `schema_version`, `ticket`, `stage`,
+  `completed`, `spec_path`, `plan_path`, `checkpoint`, `review` and `test`. An unknown key is a defect. The
+  format is `spec-harness-run-state` at schema version 1.
+- **Stage order.** The stages are `spec`, `plan`, `checkpoint`, `implement`, `review`, `test` and `summary`
+  (`STAGES`, `bin/sh-run-state.py:22`). `completed` must list every earlier stage in order. A state that
+  reaches a stage without completing an earlier one is a defect that names the missing stage.
+- **Plan approval.** From the checkpoint stage on, `checkpoint` needs `approved_by`, `approved_at` and
+  `plan_sha256`. The digest must equal the SHA-256 of the plan file on disk, so a plan that changes after
+  approval makes the state invalid until the approval is taken again.
+- **Evidence.** From the review stage on, `review.verdict` must be `APPROVE` and `review.context` must be
+  `fresh`. From the test stage on, `test.result` must be `PASS` and `test.command` must name the command that
+  ran.
+- **Who writes it.** No harness command writes the file. The run writes it when each stage completes, as
+  `commands/sdd.md` section "Resumable run state" directs (`commands/sdd.md:286-293`). The checker only reads
+  it. It repairs nothing.
+- **Tests.** `tests/run-state-fixtures.sh`.
+
+## 9. Grill Me checkpoint
+
+- **The stop.** The plan stops before implementation so that the owner can answer. `commands/plan.md`,
+  section "Grill Me checkpoint and grounded conventions", step 2, requires the material decision frontier
+  with a recommended answer for each question. It then waits for approval (`commands/plan.md:42`).
+- **The record.** The approval is recorded in the run state's `checkpoint` object, with the approver, the time
+  and the SHA-256 of the approved `plan.md` bytes (`plan_sha256`). It is not recorded in `plan.md`: a file cannot
+  contain its own hash, so the record lives outside the bytes it approves (`commands/plan.md`, step 2 of the Grill
+  Me checkpoint section). An edit after approval needs a new approval. With no approval the ticket stays PENDING
+  at this checkpoint.
+- **Which tickets stop.** LITE and FULL tickets stop here (`commands/sdd.md:184-188`). A MICRO ticket does not
+  require Grill Me or Ponytail receipts (`commands/sdd.md:167`).
+- **The run-state checkpoint.** The `checkpoint` object in the run state is the only place the approval is
+  recorded. `check_state()` compares its digest with the plan file on disk. No command checks that a person
+  approved. The approval is a procedure that the run follows.
+- **Conventions.** Before a plan relies on a convention, it labels the convention `EXPLICIT`, `OBSERVED`,
+  `ADOPTED BASELINE` or `PROPOSED`, and it names the source. A `PROPOSED` convention is not applied as project
+  policy (`commands/plan.md`, step 1 of the same section).
+- **Tests.** The checkpoint text is a procedure, so no test reads it. The digest check is covered by
+  `tests/run-state-fixtures.sh`.
+
+## 10. The six method owners
+
+Each project receives six method owners under `.claude/commands/spec-harness/`: `ponytail`, `grill-me`,
+`package-finder`, `skill-finder`, `conventions` and `technology-profiles`. Their `.claude/commands/spec-harness/`
+copies come from the commands loop in `bin/sh-install.sh` (the `for source in "$SYS_DIR"/commands/*.md` loop, which
+copies every command file except `sdd.md`). A separate loop over the six names in `bin/sh-install.sh` (the
+`for method in` loop over `ponytail`, `grill-me` and the rest) writes their `.agents/skills/spec-harness-<method>/SKILL.md`
+files, not `.claude/` files. `commands/sdd.md:34` names the same six. Tests: `tests/portable-skills-contract.sh`.
+
+## 11. The /sdd-first rule
+
+**The definition.** The rule is one sentence block, identical in every carrier:
+
+> A code ticket is any change to a tracked file outside `specs/` and `.memory/`. It goes through `/sdd` before the first source edit, even when it looks small: the light route is still `/sdd`. Keep the ticket's code inside this repository: no worktree, clone or copy elsewhere unless the user asks for one.
+
+**The carriers.** `tests/sdd-rule-carriers.sh` checks that this block is a substring of one line in each of
+these source files: `templates/CLAUDE.md`, `templates/AGENTS.md`, `templates/install/SPEC-HARNESS.md`,
+`skills/spec-harness/SKILL.md` (generated from the `emit` text in `bin/sh-make-skills.sh`) and
+`docs/GETTING-STARTED.md` (the step-3 block that users paste into an existing instruction file). It checks the
+same block in the four files an install writes into a target: `CLAUDE.md`, `AGENTS.md`, `SPEC-HARNESS.md` and
+`.claude/skills/spec-harness/SKILL.md`. A carrier that drops the sentence fails the test by name.
+
+**Not in 0.4.0: runtime enforcement of the rule.** The rule is prose that agents load, plus the presence check
+above. A runtime check, such as `doctor` or `run-state` flagging source edits that have no packet, is deferred.
+The reasons, recorded in the 0.4.0 planning record: such a check would run after the edit it is meant to
+prevent; nothing calls `doctor` during a ticket; and git-state heuristics misfire on edits that are not
+tickets.
+
+## 12. Routes and words
+
+Part 2 adds these public words: the `run-state --check` results `VALID` and `INVALID`; the Grill Me checkpoint
+record and its `PENDING` state; the six method names; and the `/sdd`-first sentence. Changing any of them starts
+a new RFC (`CONTRIBUTING.md`, "Proposals"). The run-state schema is version 1 and is described in
+`docs/RUN-STATE.md`.

@@ -9,7 +9,20 @@ require_python311
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/sh-portable-skills.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 CLI="$ROOT/bin/spec-harness"
-METHODS=(ponytail grill-me package-finder skill-finder)
+# The method list has one owner: the installer's loop in bin/sh-install.sh. The generator's loop in
+# bin/sh-make-skills.sh must name the same methods. Both are read here, so a method dropped from
+# either loop fails by name instead of silently shrinking this contract.
+method_loop() {
+  local lines
+  lines="$(grep -E '^for method in ponytail .*; do$' "$1")" || { echo "no method loop found in $1" >&2; exit 1; }
+  [ "$(printf '%s\n' "$lines" | wc -l | tr -d ' ')" -eq 1 ] || { echo "expected exactly one method loop in $1" >&2; exit 1; }
+  printf '%s\n' "$lines" | sed -e 's/^for method in //' -e 's/; do$//'
+}
+INSTALLER_METHODS="$(method_loop "$ROOT/bin/sh-install.sh")"
+GENERATOR_METHODS="$(method_loop "$ROOT/bin/sh-make-skills.sh")"
+[ "$INSTALLER_METHODS" = "$GENERATOR_METHODS" ] || { echo "method lists differ: bin/sh-install.sh [$INSTALLER_METHODS] vs bin/sh-make-skills.sh [$GENERATOR_METHODS]" >&2; exit 1; }
+read -r -a METHODS <<<"$INSTALLER_METHODS"
+test "${#METHODS[@]}" -gt 0 || { echo "no methods derived from bin/sh-install.sh" >&2; exit 1; }
 
 for method in "${METHODS[@]}"; do
   owner="$ROOT/commands/$method.md"
@@ -76,9 +89,9 @@ from pathlib import Path
 import sys
 before = {line.split(None, 1)[1].removeprefix('./'): line.split(None, 1)[0] for line in Path(sys.argv[1]).read_text().splitlines()}
 after = {line.split(None, 1)[1].removeprefix('./'): line.split(None, 1)[0] for line in Path(sys.argv[2]).read_text().splitlines()}
-assert len(before) == len(after) == 18, f"expected 18 generated skill files, got {len(before)} and {len(after)}"
+assert len(before) == len(after) == 20, f"expected 20 generated skill files, got {len(before)} and {len(after)}"
 round3 = {
-    "spec-harness/SKILL.md": "7b18b73eb40bce9da864a7803260642a2f3d6016859c9bd59454986106f86ec0",
+    "spec-harness/SKILL.md": "335ca8be1300fe8ad5f3320ab32a6dd91e08a9bc51e24677ac62e723a6230e54",
     "spec-harness-audit/SKILL.md": "0b6c32a2e499f310bbdfe14543c505574e0e779b3f6ef245a163d1ef335df96e",
     "spec-harness-build/SKILL.md": "9cb6640b565b9a0009720135a79636788e81ecf23c352d8434bc6b83533ae6e1",
     "spec-harness-generate-agents/SKILL.md": "94cf46ef8d203b47b6afaae6fbb1ac2afb7f97aa5a6c48f258dc28e6805f3d6a",
@@ -97,12 +110,19 @@ round3 = {
     "spec-harness-tickets/SKILL.md": "03ddee75207191baa675272fb83cd9046aaac7422f9f3ce8430f915c9a46ca39",
     "spec-harness-verify/SKILL.md": "bb80fc7a80e4afb0102308f22044121361fa3c1734d2973320c5a251b0d1abc3",
 }
-assert set(round3) == set(before) == set(after), "generated skill path set differs from frozen round 3"
+# Two method adapters were added after round 3 (conventions, technology profiles); they are frozen too.
+added = {
+    "spec-harness-conventions/SKILL.md": "1569ea984ed5bc9e6acdebaf4106c06b02fd11514b500eac19acec4488097840",
+    "spec-harness-technology-profiles/SKILL.md": "55da510c4e8b61cf5e034fbc6cef6460e91eae78b3b3f5cff9b3973e7c6e9527",
+}
+assert set(round3) | set(added) == set(before) == set(after), "generated skill path set differs from frozen round 3 plus the two added methods"
+for path, digest in added.items():
+    assert after[path] == digest, f"added method adapter changed: {path}"
 trigger = Path(sys.argv[3]).read_text().splitlines()[2]
 assert "implementation work" in trigger and "code" in trigger, "generated Ponytail trigger omits implementation/code work"
 # round3 is the frozen generated-skill map. A deliberate generator change moves it in the same commit.
 # 2026-10-14: the generator's em dashes became ':' or '.', so the entries were re-frozen from the new output.
-changed = sorted(path for path in after if round3[path] != after[path])
+changed = sorted(path for path in round3 if round3[path] != after[path])
 assert changed == [], f"generated skill text differs from frozen round 3: {changed}"
 assert not any("Malik" in (Path(sys.argv[3]).parents[1] / path).read_text() for path in round3), "generated skill names the author"
 for path in round3:
@@ -205,4 +225,4 @@ for kind in symlink directory; do
   test -z "$(find "$outside" -mindepth 1 -print -quit)"
 done
 
-echo 'PASS: four method owners, pre-init thin routes, generator stability, new/integrate/rerun, preservation and collision preflight'
+echo "PASS: ${#METHODS[@]} method owners, pre-init thin routes, generator stability, new/integrate/rerun, preservation and collision preflight"

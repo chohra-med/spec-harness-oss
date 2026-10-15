@@ -186,7 +186,7 @@ suite locally before you push, and report the exit lines and the failing log as 
   regenerated `skills/`.
 - **After editing any file that gets staged** (anything under `agents/`, `commands/`, `skills/`,
   `templates/`), run `bash tests/tools/update-install-manifest.sh`. It rewrites every `sha256` in
-  `install-manifest.json` and sets `harnessVersion` from `package.json`, and changes nothing else.
+  `install-manifest.json`, sets `harnessVersion` from `package.json` and `loaderBlock` from the step-3 fenced block in `docs/GETTING-STARTED.md`, and changes nothing else.
   `tests/install-manifest-contract.sh` names the entry when you forget.
 - **Keep the docs true.** If you change install behaviour, a count, a prerequisite or an exit code,
   update `README.md` and `docs/GETTING-STARTED.md` in the same change.

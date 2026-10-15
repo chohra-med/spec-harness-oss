@@ -194,7 +194,7 @@ for source in "$SYS_DIR"/commands/*.md; do
 done
 plan_copy .claude/commands/sdd.md "$SYS_DIR/commands/sdd.md"
 plan_copy .agents/skills/sdd/SKILL.md "$SYS_DIR/templates/install/agents-skill-sdd.md"
-for method in ponytail grill-me package-finder skill-finder; do
+for method in ponytail grill-me package-finder skill-finder conventions technology-profiles; do
   plan_copy ".agents/skills/spec-harness-$method/SKILL.md" "$SYS_DIR/skills/spec-harness-$method/SKILL.md"
 done
 for method in architecture performance packages tech quality conduct; do
@@ -411,7 +411,7 @@ printf '  target        : %s\n' "$ABS"
 printf '  mode          : %s\n' "$MODE"
 printf '  project       : %s\n' "$NAME"
 printf '  status        : PENDING\n'
-printf '  exit contract : 0 = files staged, setup still PENDING; 2 = invalid input or unsafe path\n'
+printf '  exit contract : 0 = files staged, setup still PENDING; 1 = a write, record or source step failed; 2 = invalid input or unsafe path\n'
 print_paths ADDED "${ADDED[@]}"
 print_paths PRESERVED "${PRESERVED[@]}"
 print_paths CONFLICTS "${CONFLICTS[@]}"

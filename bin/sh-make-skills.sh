@@ -60,7 +60,7 @@ emit() {
 
 emit spec-harness "build" "" \
 "The Spec Harness orchestrator. Spec-driven development wrapped in a harness (reviewed ratchet + independent verifier + learning loop) over a persistent memory bank. Use when the user says 'use spec harness', 'run the spec harness', 'spec-harness this feature', or wants the full /sdd init or ticket → feature spec/goal → plan → tasks → independent gates flow. Routes to the sub-skills and enforces the 3 pillars (Memory bank · SDD · Harness)." \
-"You are the orchestrator for a Spec Harness project. Read the shared \`sdd\` procedure first, then route initialization or ticket work through the appropriate stage skill. Resolve every project-specific role from the synthesis receipt. The implementer does not own acceptance." yes
+"You are the orchestrator for a Spec Harness project. Read the shared \`sdd\` procedure first, then route initialization or ticket work through the appropriate stage skill. Resolve every project-specific role from the synthesis receipt. The implementer does not own acceptance. A code ticket is any change to a tracked file outside \`specs/\` and \`.memory/\`. It goes through \`/sdd\` before the first source edit, even when it looks small: the light route is still \`/sdd\`. Keep the ticket's code inside this repository: no worktree, clone or copy elsewhere unless the user asks for one." yes
 
 emit spec-harness-install "init" "researcher" \
 "Add or refresh Spec Harness in a repo, greenfield or existing. Use when the user asks to install or initialize Spec Harness. The shell stages files and leaves project synthesis PENDING." \
@@ -78,8 +78,14 @@ emit spec-harness-plan "plan" "planner" \
 "Plan a ticket against actual source and target rules. Use when the user says 'plan the implementation', 'how should we build this', or 'design this'. Apply full Ponytail and source-grounded Grill Me before finalizing the plan." \
 "Use the bound planner. Record source-backed decisions, the highest successful Ponytail rung, reuse and exclusions, and only material unresolved Grill Me choices. Keep the plan tied to the feature goal and source/rule hashes." yes
 
-for method in ponytail grill-me package-finder skill-finder; do
+for method in ponytail grill-me package-finder skill-finder conventions technology-profiles; do
   description="Use the portable Spec Harness $method method when initializing a project or planning a ticket that needs this method. Read actual target evidence first; do not install third-party skills or dependencies automatically."
+  if [ "$method" = conventions ]; then
+    description="Use the portable Spec Harness conventions method to find the repository's branch, commit, pull-request and task-splitting conventions from its own policy and bounded Git history, during initialization or when a ticket touches them. Read actual target evidence first; never create branches or commits."
+  fi
+  if [ "$method" = technology-profiles ]; then
+    description="Use the portable Spec Harness technology-profiles method to select a technology profile and give every package and direct dependency a disposition from manifests, lockfiles and imports, during initialization or planning. Read actual target evidence first; do not install packages or third-party skills."
+  fi
   if [ "$method" = ponytail ]; then
     description="Use the portable Spec Harness Ponytail method for code or implementation work, project initialization, or ticket planning that needs this method. Read actual target evidence first; do not install third-party skills or dependencies automatically."
   fi

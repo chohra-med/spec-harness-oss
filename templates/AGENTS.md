@@ -22,6 +22,7 @@ or acceptance work remains.
 - Never invent an import, function, type, or component. Confirm it exists (grep/Read/index)
   before you call it. If you can't cite it, you don't use it.
 - Stop and flag a human if: `{{STOP_CONDITIONS}}`.
+- A code ticket is any change to a tracked file outside `specs/` and `.memory/`. It goes through `/sdd` before the first source edit, even when it looks small: the light route is still `/sdd`. Keep the ticket's code inside this repository: no worktree, clone or copy elsewhere unless the user asks for one.
 
 ## Definition of done
 

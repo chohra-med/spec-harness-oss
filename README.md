@@ -69,16 +69,21 @@ The harness has four moving parts that together make the system *converge* inste
 - **It runs the dev, not the product.** The harness guides the development workflow; the shipped
   application remains yours.
 
-## Quick start
+## Quickstart
 
-From the root of an existing project, with Node (only for `npx`), Bash and Python 3.11+ available:
+Five steps, from the root of an existing project. You need Bash, git and Python 3.11+; Node is needed only for `npx`.
 
-```sh
-npx -y github:chohra-med/spec-harness-oss init . integrate
-```
+1. Start on a clean branch: `git switch -c spec-harness-setup`.
+2. Stage the harness. This copies files and reports `PENDING`; it does not write project rules:
 
-Then open the project in Claude Code and run `/sdd init`. The first command stages the harness and
-reports `PENDING`. The second reads the codebase and writes its rules, skills and roles.
+   ```sh
+   npx -y github:chohra-med/spec-harness-oss init . integrate
+   ```
+
+3. Review what it wrote with `git status` and `git diff`, then commit it on the branch.
+4. In Claude Code, run `/sdd init`. It reads the codebase and writes the project's rules, skills and roles.
+5. Run one small ticket with `/sdd <ticket text>`. Check its resumable state with
+   `spec-harness run-state --check <ticket>` (see [docs/RUN-STATE.md](./docs/RUN-STATE.md)).
 
 **New here? Read the ten-minute explainer first.** [`learning_human.html`](./learning_human.html) is
 one interactive page: what Spec Harness is, how a ticket moves through it, which model does what,
@@ -112,7 +117,7 @@ To install the CLI from a local tarball instead, run `npm pack` from the checkou
 filename it prints. For the current version, that is:
 
 ```sh
-npm install --global ./spec-harness-0.3.0.tgz
+npm install --global ./spec-harness-0.4.0.tgz
 ```
 
 Staging reports `PENDING`. It copies a scaffold; it does not synthesize project rules, run agents,
@@ -155,9 +160,10 @@ Every command is also a **model-invocable skill** (`skills/spec-harness*`, gener
 [`bin/sh-make-skills.sh`](./bin/sh-make-skills.sh)): an umbrella `spec-harness` orchestrator +
 one skill per command (`spec-harness-build`, `spec-harness-learn`, `spec-harness-tickets`, …),
 each with trigger phrases. `install` stages them in a repo's `.claude/skills/`; each routes through
-the shared SDD procedure. Four reusable methods have the exact skill identifiers
-`spec-harness-ponytail`, `spec-harness-grill-me`, `spec-harness-package-finder` and
-`spec-harness-skill-finder`. Each has a thin Claude route under `.claude/skills/` and Codex route
+the shared SDD procedure. Six reusable methods have the exact skill identifiers
+`spec-harness-ponytail`, `spec-harness-grill-me`, `spec-harness-package-finder`,
+`spec-harness-skill-finder`, `spec-harness-conventions` and `spec-harness-technology-profiles`.
+Each has a thin Claude route under `.claude/skills/` and Codex route
 under `.agents/skills/`; both point to the same installed command owner. Native discovery remains
 client-dependent and unverified until measured in that client. The shell `loop.sh` is a legacy illustrative placeholder, separate from
 the supported ticket entrypoint.

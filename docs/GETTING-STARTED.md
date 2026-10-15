@@ -175,6 +175,7 @@ the harness yet, so your client will not load the harness rules. Add this block 
 - Setup status: `SPEC-HARNESS.md`. Keep PENDING items PENDING until they are checked.
 - Before code edits read `ai_rules/rules/frequent_rules.md`, `.memory/40-active.md` and the nearest `RULES.md`.
 - Feature work goes through `/sdd <ticket text>`. The procedure is `.claude/commands/sdd.md`.
+- A code ticket is any change to a tracked file outside `specs/` and `.memory/`. It goes through `/sdd` before the first source edit, even when it looks small: the light route is still `/sdd`. Keep the ticket's code inside this repository: no worktree, clone or copy elsewhere unless the user asks for one.
 - A task is done when a fresh verifier returns PASS against the ticket's own goal, not when tests pass.
 - Rules change only through `.claude/commands/spec-harness/learn.md`, after review.
 ```
