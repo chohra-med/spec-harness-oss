@@ -358,10 +358,10 @@ Two terms recur below. The run's **commit point** is the point after which the r
 
 | Code | Meaning |
 |---|---|
-| `0` | The shell step finished. The status may still be PENDING. `finalize-init --apply` also exits `0` when an interrupt lands while Python itself is exiting after the run has finished. Reported for an interrupt sent from an `atexit` hook (code Python runs as it exits), not covered by a test in the repository, not re-run: a traceback on stderr ending `Interrupted: SIGINT`, the journal reads `STRUCTURAL_READY`, and the completed run stays in place. Other exit points are not measured (RFC 0003, section 3). |
+| `0` | The shell step finished. The status may still be PENDING. `finalize-init --apply` also exits `0` in the one measured case (an interrupt from an exit hook, a function Python calls as it shuts down, after a completed run). Reported for that case, not covered by a test in the repository, not re-run: a traceback on stderr ending `Interrupted: SIGINT`, the journal reads `STRUCTURAL_READY`, and the completed run stays in place. Other exit points are not measured (RFC 0003, section 3). |
 | `1` | A check failed and printed what is missing or stale. `index` or `finalize-init` refused an argument, a precondition or a busy lock (the lock is `.claude/agents/.sh-finalize.lock` in the target: a file that stops a second `finalize-init` from running at the same time). A `finalize-init` tool step (`generate-agents --check` or `index --preview`) that runs longer than 600 seconds has its direct child process stopped and is refused, and the run is rolled back. A child process that the step started may keep running. `doctor` reports structural PENDING. A `finalize-init` rollback that could not finish keeps the lock. |
 | `2` | A missing target or unknown command, a bad argument, or a command that only prints a procedure for a model to follow. `doctor`, `index`, `finalize-init` and `generate-agents` also exit 2 on Python older than 3.11. |
-| `130` | The rollback case: `finalize-init --apply` was interrupted by Ctrl-C or SIGTERM, and the rollback finished. The journal (`journal.json` in the `--evidence-dir`) reads `ROLLED_BACK`, which means every write was restored. The lock is released. If the release itself fails, the status is still `ROLLED_BACK` and the lock file is kept (see [Stale lock after a rollback](#stale-lock-after-a-rollback)). Three other interrupt outcomes exit `1`: a refused rollback (before or after the commit point), a conflict, and a failed restore. A refused rollback, because another finalize-init holds the lock or because the lock step fails, writes nothing to the target. After the commit point, the completed run stays in place (status `STRUCTURAL_READY`). Before the commit point, the status stays what it was (`APPLYING`, or `PENDING` before the first write), the target keeps the writes already made, and the command exits `1`. A rollback that finds a changed file (status `RECOVERY_CONFLICT`) keeps that file and the lock. A restore that fails partway (status `RECOVERY_FAILED`) means some files still hold this run's bytes, and keeps the lock. An interrupt that lands while Python is exiting is a different path and is not rolled back: it can exit `0` (see the `0` row, and RFC 0003, section 3). |
+| `130` | The rollback case: `finalize-init --apply` was interrupted by Ctrl-C or SIGTERM, and the rollback finished. The journal (`journal.json` in the `--evidence-dir`) reads `ROLLED_BACK`, which means every write was restored. The lock is released. If the release itself fails, the status is still `ROLLED_BACK` and the lock file is kept (see [Stale lock after a rollback](#stale-lock-after-a-rollback)). Three other interrupt outcomes exit `1`: a refused rollback (before or after the commit point), a conflict, and a failed restore. A refused rollback, because another finalize-init holds the lock or because the lock step fails, leaves the target as it was. After the commit point, the completed run stays in place (status `STRUCTURAL_READY`). Before the commit point, the status stays what it was (`APPLYING`, or `PENDING` before the first write), the target keeps the writes already made, and the command exits `1`. A rollback that finds a changed file (status `RECOVERY_CONFLICT`) keeps that file and the lock. A restore that fails partway (status `RECOVERY_FAILED`) means some files still hold this run's bytes, and keeps the lock. An interrupt that lands while Python is exiting is a different path and is not rolled back: it can exit `0` (see the `0` row, and RFC 0003, section 3). |
 
 ## When something looks wrong
 
@@ -429,8 +429,10 @@ else echo "PID $PID is still running, or its state is unclear (ps exit $RC, proc
 fi
 ```
 
+A number too large for the operating system to hold is reported with the same stop-and-report line.
+
 The block removes the lock only if all of these hold. The journal status is exactly `ROLLED_BACK`. The journal's
-`target` is the current directory (`pwd -P`). The lock holds one line that is a process ID made of digits, not zero. `ps` exits `1` and
+`target` is the current directory (`pwd -P`). The lock holds one line that is a process ID made of digits, not zero, and no leading zero. `ps` exits `1` and
 the operating system also reports that process as gone. The lock still holds the same process ID just before the
 removal. The operating system check sends signal 0, which delivers nothing; it only asks whether the process exists. A
 process that is still running keeps the lock whatever its name, so a `ps` that exits `1` for a live process, or any
@@ -452,13 +454,11 @@ stale lock whose PID another program now uses stays in place until that program 
 
 If the line is `PID <PID> is a running finalizer: <command line>; wait for it, then run this block once more; the lock is
 kept`, or `PID <PID> is still running, or its state is unclear (ps exit <RC>, process check '<GONE>'): command line:
-<command line>; the lock is kept`, a live process holds the lock. Then do this: run the block once more; if it still prints a live line, stop.
+<command line>; the lock is kept`, a live process holds the lock.
 
-1. If the command line names `sh-finalize-init`, wait for that run to finish, then run this block once more.
-2. If it does not, run `pgrep -fl sh-finalize-init`. If that finds nothing, stop and report the PID and the command line
-   to the person who runs the finalizer. Do not remove the lock. If it finds a finalizer, wait for it, then run this block once more.
-3. If the block prints a live line again, stop and report the PID and the command line to the person who runs the
-   finalizer. Do not remove the lock.
+1. If the process is a finalizer for another run (its command line names `sh-finalize-init`, or `pgrep -fl sh-finalize-init` finds one), wait for that run to finish, then run this block once more.
+2. If the block still prints a live line after that, stop and report the PID and the command line to the person who runs the finalizer. Do not remove the lock.
+3. If the process is not a finalizer, stop and report the PID and the command line to the person who runs the finalizer. Do not remove the lock.
 
 Then start a new run with a new evidence directory outside the target. Route A (`npx`, nothing installed):
 
