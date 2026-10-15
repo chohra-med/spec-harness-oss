@@ -30,6 +30,22 @@ skills may apply. Check available Context7/Vercel discovery capability and inspe
 contents. Record selected/excluded evidence; unavailable tools, docs or compatibility remain
 PENDING for the affected decision. Do not install packages or third-party skills during planning.
 
+## Grill Me checkpoint and grounded conventions
+
+These steps sit alongside the Grill Me and Ponytail receipts above; they replace neither.
+
+1. **Ground the conventions.** When the ticket touches branch names, commits, pull requests, task
+   splitting or code style, follow `.claude/commands/spec-harness/conventions.md` (source checkout
+   fallback: `commands/conventions.md`). Record each convention the plan relies on with its label
+   (`EXPLICIT`, `OBSERVED`, `ADOPTED BASELINE` or `PROPOSED`) and its source. A `PROPOSED` convention
+   is not applied as if it were project policy.
+2. **Stop at the Grill Me checkpoint.** Before any implementation, present the material decision
+   frontier from the Grill Me method, each question with a recommended answer, and the plan summary.
+   Wait for the person who owns the ticket to approve the plan or answer the questions. Record the
+   approval in `plan.md`: who approved, when, and the SHA-256 of the `plan.md` bytes they approved.
+   A later edit to `plan.md` needs a new approval. With no approval the ticket stays PENDING at
+   this checkpoint; the implementer does not start.
+
 ## `plan.md` must contain
 
 - a source-grounded architecture/data-flow map;
@@ -38,6 +54,8 @@ PENDING for the affected decision. Do not install packages or third-party skills
 - reused source paths/symbols and package boundaries;
 - changed-file outline and the order that protects the accepted goal;
 - the Ponytail receipt and Grill Me rulings/open questions;
+- the conventions relied on, with their labels and sources;
+- the Grill Me checkpoint record: approver, time and the approved plan hash (or PENDING);
 - source, rule and goal hashes this plan assumes.
 
 An unanswered material decision or changed input hash returns the packet to PENDING for resolution

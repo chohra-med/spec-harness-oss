@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "harnessVersion": "0.3.0",
+  "harnessVersion": "0.4.0",
   "description": "Record of the file set bin/sh-install.sh stages into a target. The installer does not read this file; tests/install-manifest-contract.sh proves a real install produces exactly this set, byte for byte.",
   "substitutions": {
     "placeholder": "{name}",
@@ -85,6 +85,22 @@
       "mode": "0644"
     },
     {
+      "destination": ".agents/skills/spec-harness-technology-profiles/SKILL.md",
+      "source": "skills/spec-harness-technology-profiles/SKILL.md",
+      "render": "copy",
+      "tokens": [],
+      "sha256": "55da510c4e8b61cf5e034fbc6cef6460e91eae78b3b3f5cff9b3973e7c6e9527",
+      "mode": "0644"
+    },
+    {
+      "destination": ".agents/skills/spec-harness-conventions/SKILL.md",
+      "source": "skills/spec-harness-conventions/SKILL.md",
+      "render": "copy",
+      "tokens": [],
+      "sha256": "1569ea984ed5bc9e6acdebaf4106c06b02fd11514b500eac19acec4488097840",
+      "mode": "0644"
+    },
+    {
       "destination": ".claude/agents/sdd-architect.md",
       "source": "agents/sdd-architect.md",
       "render": "copy",
@@ -153,7 +169,7 @@
       "source": "agents/sdd-reviewer.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "94fdcdd418e2c106694ab15b47adb27687bde8e259618efd06ab7edb74c51b5a",
+      "sha256": "5ca154315967f5e544e6a57f6e75a875a05591db037a6edfa622ca4111c76858",
       "mode": "0644"
     },
     {
@@ -185,7 +201,7 @@
       "source": "commands/sdd.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "36b4b82d39257aeebebcf744f27c55e72f9ffae04d2b436006ae17afa94f2d4b",
+      "sha256": "846c8fdf73738e650058ae872df5a094568c3e58c33b6d1de35a759003842207",
       "mode": "0644"
     },
     {
@@ -233,7 +249,7 @@
       "source": "commands/init.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "4c08576e0c0b620cd4cc3d72a9ae3b424ed3d978dcd6830a0429116205e631a7",
+      "sha256": "ff14c480599edf46beb977654c03c96b8e877a6b9cacdc7f95ebb3279b50242f",
       "mode": "0644"
     },
     {
@@ -265,7 +281,7 @@
       "source": "commands/plan.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "722215f9d3fd52043a6868a7af83cf019cce6fcb0fa74bf8356bae144655cca8",
+      "sha256": "7359cc1ca2324647a18d6b07e6ebd5674fc1eed401a6cc07a8f9b915c08703c7",
       "mode": "0644"
     },
     {
@@ -298,6 +314,22 @@
       "render": "copy",
       "tokens": [],
       "sha256": "b919c2e0315ad8c9baa080d373fd211da038b9e7da5c6b9a89173c14a360d69d",
+      "mode": "0644"
+    },
+    {
+      "destination": ".claude/commands/spec-harness/technology-profiles.md",
+      "source": "commands/technology-profiles.md",
+      "render": "copy",
+      "tokens": [],
+      "sha256": "9a5a9ba0165f005bfa009592af64183aec483dec7d4eed4cdad9ac5d4c248725",
+      "mode": "0644"
+    },
+    {
+      "destination": ".claude/commands/spec-harness/conventions.md",
+      "source": "commands/conventions.md",
+      "render": "copy",
+      "tokens": [],
+      "sha256": "3cb12ed6375879ed72ca3d4382004272a1a7b8d16e27734a73cc86f67df9c7e6",
       "mode": "0644"
     },
     {
@@ -434,6 +466,22 @@
       "render": "copy",
       "tokens": [],
       "sha256": "eec1198e5045fa5184993f7fb28704895290c52a36772ca909ccf91824caf095",
+      "mode": "0644"
+    },
+    {
+      "destination": ".claude/skills/spec-harness-technology-profiles/SKILL.md",
+      "source": "skills/spec-harness-technology-profiles/SKILL.md",
+      "render": "copy",
+      "tokens": [],
+      "sha256": "55da510c4e8b61cf5e034fbc6cef6460e91eae78b3b3f5cff9b3973e7c6e9527",
+      "mode": "0644"
+    },
+    {
+      "destination": ".claude/skills/spec-harness-conventions/SKILL.md",
+      "source": "skills/spec-harness-conventions/SKILL.md",
+      "render": "copy",
+      "tokens": [],
+      "sha256": "1569ea984ed5bc9e6acdebaf4106c06b02fd11514b500eac19acec4488097840",
       "mode": "0644"
     },
     {
@@ -647,7 +695,7 @@
       "tokens": [
         "{{PROJECT_NAME}}"
       ],
-      "sha256": "640a3266c43a099ecf1202b3dc558dceb965b3d1c3b05a8d4574d1261dacae36",
+      "sha256": "c07856be21e42dbe5bad3f63e524df60f4183c43c4d34eb4f2ee3354d026f877",
       "mode": "0644"
     },
     {
@@ -657,7 +705,7 @@
       "tokens": [
         "{{PROJECT_NAME}}"
       ],
-      "sha256": "1537aac58501a6241cc120e7ad154f0a6a6a54ce2feaf4f51c620a859b5d4003",
+      "sha256": "bd3e1cb2f0e1b7372d77ed40b66f1c84232e89cc566d33848233c323e68a7247",
       "mode": "0644"
     },
     {

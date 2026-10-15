@@ -194,7 +194,7 @@ for source in "$SYS_DIR"/commands/*.md; do
 done
 plan_copy .claude/commands/sdd.md "$SYS_DIR/commands/sdd.md"
 plan_copy .agents/skills/sdd/SKILL.md "$SYS_DIR/templates/install/agents-skill-sdd.md"
-for method in ponytail grill-me package-finder skill-finder; do
+for method in ponytail grill-me package-finder skill-finder conventions technology-profiles; do
   plan_copy ".agents/skills/spec-harness-$method/SKILL.md" "$SYS_DIR/skills/spec-harness-$method/SKILL.md"
 done
 for method in architecture performance packages tech quality conduct; do
