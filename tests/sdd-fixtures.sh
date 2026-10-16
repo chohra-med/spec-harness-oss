@@ -70,33 +70,43 @@ if [[ -f "$HARNESS_DIR/commands/sdd.md" ]]; then
   done
 fi
 
-# Dirty-tree rule (commands/sdd.md section 3) and its init sentence (commands/init.md, Output). Each
-# sentence is matched on whitespace-flattened text. A planted run replaces one sentence in memory and must
-# report it missing: a check that cannot fail is not evidence.
+# Dirty-tree rule (commands/sdd.md section 3), its init sentences (commands/init.md, Output) and the verifier
+# clause (agents/sdd-verifier.md). Each sentence is matched on whitespace-flattened text. A planted run replaces
+# one sentence in memory and must report it missing: a check that cannot fail is not evidence.
 RULE_LABELS=(
   "class-first dirty-tree check"
   "MICRO stops on other uncommitted paths"
-  "same-run init paths recorded before the ticket"
+  "sdd: pre-init baseline before init's first write"
+  "sdd: same-run init paths exempt only when absent from the baseline"
   "same-run init paths exempt from the verifier"
   "recorded path changed further still fails"
+  "init: pre-init baseline before the first write"
   "init: same-run paths exempt"
   "init: later run still stops MICRO"
+  "verifier: baseline clause"
+  "verifier: hash clause"
+  "verifier: absent clause"
 )
-dirty_rule_missing() { # [SDD_FILE] [INIT_FILE]: prints "MISSING: <label>" for each absent sentence
-  python3 -I -B - "${1:-$HARNESS_DIR/commands/sdd.md}" "${2:-$HARNESS_DIR/commands/init.md}" <<'PYDIRTY'
+dirty_rule_missing() { # [SDD_FILE] [INIT_FILE] [VERIFIER_FILE]: prints "MISSING: <label>" per absent sentence
+  python3 -I -B - "${1:-$HARNESS_DIR/commands/sdd.md}" "${2:-$HARNESS_DIR/commands/init.md}" "${3:-$HARNESS_DIR/agents/sdd-verifier.md}" <<'PYDIRTY'
 import os, sys
 def flat(path):
     return " ".join(open(path, encoding="utf-8").read().split())
-texts = {"sdd": flat(sys.argv[1]), "init": flat(sys.argv[2])}
+texts = {"sdd": flat(sys.argv[1]), "init": flat(sys.argv[2]), "verifier": flat(sys.argv[3])}
 plant = os.environ.get("PLANT_RULE", "")
 RULES = [
     ("sdd", "class-first dirty-tree check", "Uncommitted changes, checked once the class is recorded."),
     ("sdd", "MICRO stops on other uncommitted paths", "Any other listed path stops a MICRO run with `PENDING: uncommitted changes; commit or stash them first`"),
-    ("sdd", "same-run init paths recorded before the ticket", "when `init` carries a ticket, the ticket records those paths as present before the ticket"),
+    ("sdd", "sdd: pre-init baseline before init's first write", "record `git status --porcelain --untracked-files=all` as the pre-init baseline before init's first write"),
+    ("sdd", "sdd: same-run init paths exempt only when absent from the baseline", "Only the paths that `init` wrote in the same run are exempt, and only those that are absent from the pre-init baseline (section 1)."),
     ("sdd", "same-run init paths exempt from the verifier", 'Pre-ticket paths that `ticket.md` records from same-run `init` output are exempt from the "changed path it did not expect" check'),
-    ("sdd", "recorded path changed further still fails", "a recorded path changed further than its recorded state fails"),
-    ("init", "init: same-run paths exempt", "When `init` and a ticket run in the same invocation, the ticket records the paths `init` wrote as present and its verifier exempts them"),
+    ("sdd", "recorded path changed further still fails", "A recorded path changed further than its recorded state fails"),
+    ("init", "init: pre-init baseline before the first write", "the ticket takes a pre-init baseline (`git status --porcelain --untracked-files=all`) before init's first write"),
+    ("init", "init: same-run paths exempt", "only the paths `init` wrote that are absent from that baseline, and its verifier exempts them"),
     ("init", "init: later run still stops MICRO", "When the ticket is a later run, uncommitted init output still makes a MICRO ticket stop"),
+    ("verifier", "verifier: baseline clause", "Only the paths `init` wrote are exempt, those absent from the pre-init baseline."),
+    ("verifier", "verifier: hash clause", "An exempt path stays exempt only while its current SHA-256 still equals its recorded hash"),
+    ("verifier", "verifier: absent clause", "a path recorded as `absent` (deleted) stays exempt only while it is still absent"),
 ]
 for key, label, needle in RULES:
     text = texts[key]
@@ -106,10 +116,13 @@ for key, label, needle in RULES:
         print("MISSING: " + label)
 PYDIRTY
 }
-rule_missing="$(dirty_rule_missing)"
-if [[ -z "$rule_missing" ]]; then pass "dirty-tree rule and init sentence are in the real text"; else fail "dirty-tree rule text: ${rule_missing//$'\n'/; }"; fi
+rule_missing="$(dirty_rule_missing)"; rule_status=$?
+if [[ "$rule_status" -ne 0 ]]; then
+  fail "dirty-tree rule check could not read its sources (python exit $rule_status)"
+elif [[ -z "$rule_missing" ]]; then pass "dirty-tree rule, init sentences and verifier clause are in the real text"; else fail "dirty-tree rule text: ${rule_missing//$'\n'/; }"; fi
 for label in "${RULE_LABELS[@]}"; do
-  planted="$(PLANT_RULE="$label" dirty_rule_missing)"
+  planted="$(PLANT_RULE="$label" dirty_rule_missing)"; planted_status=$?
+  if [[ "$planted_status" -ne 0 ]]; then fail "planted break could not run: $label (python exit $planted_status)"; continue; fi
   if [[ "$planted" == *"MISSING: $label"* ]]; then pass "planted break caught: $label"; else fail "planted break not caught: $label"; fi
 done
 

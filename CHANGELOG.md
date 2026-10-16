@@ -22,7 +22,8 @@ All notable changes to this project are recorded here. The format follows
   the role row's exact shape, and the check names which of status, path or `package_paths` is wrong.
 - The first ticket after `/sdd init` failed its verifier on the uncommitted init output. Init now
   ends by asking the user to review and commit it. A MICRO ticket stops with a named PENDING on a
-  dirty tree instead of failing later; LITE and FULL record the pre-existing paths in `input.md`.
+  dirty tree instead of failing later; LITE and FULL record the pre-existing paths in `input.md`. A
+  same-run `init`'s own paths are exempt, and a path already dirty before `init` ran is not.
 
 ### Changed
 
