@@ -525,7 +525,7 @@ def learner_contract(d):
 
 TIER_ROLES = {
     "strong": ("planner", "merger"),
-    "fast": ("implementer", "tester", "researcher", "documenter"),
+    "fast": ("implementer", "tester", "researcher", "documenter", "router"),
     "review": ("verifier", "reviewer", "architect", "learner", "design-verifier", "workflow-tester"),
 }
 

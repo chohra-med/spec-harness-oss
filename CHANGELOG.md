@@ -5,6 +5,16 @@ All notable changes to this project are recorded here. The format follows
 
 ## Unreleased
 
+### Added
+
+- `sdd-router`, a read-only role on the fast tier's smallest model (`haiku` on Claude). `/sdd`
+  dispatches it first; it reads the ticket, the startup rules and file names (never source contents)
+  and returns a `## Route` block: class, the tier for each stage, whether to ask Grill Me and the
+  files to load first. The orchestrator may raise its class, never lower it. Low confidence, a
+  malformed block or no separate context falls back to the orchestrator's own classification.
+- Size picks the tiers: a table in `commands/sdd.md` that maps MICRO, LITE and FULL to the tier that
+  plans, implements and accepts. A MICRO ticket's single verifier runs on the fast tier.
+
 ### Fixed
 
 - First `/sdd init` could not pass `generate-agents --check`: a role row needs `status: "BOUND"`
@@ -16,6 +26,8 @@ All notable changes to this project are recorded here. The format follows
 
 ### Changed
 
+- The fast tier's cell names the router's model after a semicolon, so any provider column can give
+  the router a smaller model than the implementer.
 - `AGENTS.md`: run the tests as a normal user; the permission fixtures fail under root.
 
 ## 0.4.0 - 2026-10-15

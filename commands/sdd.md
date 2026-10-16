@@ -103,9 +103,12 @@ provider means filling one column. A `Model tiers` table in the target's own `AG
 | Tier | Roles | Claude | Codex/OpenAI |
 |---|---|---|---|
 | strong | planner, finisher, merger | `opus` | `gpt-6-sol` |
-| fast | implementer, tester, researcher, documenter | `sonnet`; `haiku` for the tester and the MICRO verifier | `gpt-6-luna` |
+| fast | implementer, tester, researcher, documenter, router | `sonnet`; `haiku` for the tester, the router and the MICRO verifier | `gpt-6-luna` |
 | review | verifier (fast on MICRO, see `Size picks the tiers`), reviewer, architect, learner, design and workflow testers | strong when budget allows, otherwise fast | same rule |
 
+- **Route small.** `sdd-router` runs on the smallest model in the fast cell: the model named after
+  the semicolon, or the only one when the cell names one. To give another provider a smaller router,
+  write it the same way: `<fast model>; <small model> for the router`.
 - **Plan strong, implement fast.** The plan carries the detail, so a cheaper model can execute it.
 - **Budget picks the review tier.** Review on the strong tier when the token budget allows. Drop to
   the fast tier when the user says the budget is low or the client reports it. A MICRO ticket's
@@ -148,8 +151,24 @@ reference`. Do not invent requirements or write back to the provider.
 ## 3. Classify after resolving ticket input
 
 For ticket runs only, after the exact inline text or connected-reference body is resolved and hashed,
-complete classification before optional history, research or broad package recall. Use the exact input,
-touched scope and risk:
+complete classification before optional history, research or broad package recall.
+
+**Route first.** Dispatch `sdd-router` (`.claude/agents/sdd-router.md`) in a fresh context on its
+fast-tier model, with the exact input. It reads startup rules and file names, never source contents,
+and returns a `## Route` block: class, reason, the tier for each stage, whether to ask Grill Me, and
+the files to load first. Copy that block into the class record (`ticket.md` for MICRO, `input.md`
+for LITE and FULL) and follow it:
+
+- **Raise, never lower.** Keep the router's class unless the input or the startup rules show a risk
+  it missed; then raise it and record why. Nothing lowers a class below what the definitions below
+  give. The user may raise any stage's tier.
+- **Low confidence or no router.** When the block says `confidence: low`, is missing or malformed, or
+  no separate small-model context can be dispatched, classify here yourself as below and record that
+  the router did not decide. A missing router never stops the run.
+- **`load` guides reading, it does not limit it.** Give the list to the implementer as its first
+  reads. Required startup rules and security constraints are read whatever the list says.
+
+Use the exact input, touched scope and risk:
 
 - **MICRO:** one bounded, reversible local change with no shared contract or security-sensitive effect.
 - **LITE:** a small multi-file change or one contained behavior change with declared local dependencies.

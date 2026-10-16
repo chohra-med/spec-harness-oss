@@ -560,7 +560,7 @@
   /* 5. Layers */
   var LAYERS = [
     { k: "roles", idx: "L4", name: "Roles", path: ".claude/agents/sdd-*.md", cls: "", title: "Roles: who does what, with which tools",
-      text: "Twelve small files, one per job. Each lists the tools it may use. The core ones (planner, implementer, tester, verifier, reviewer) also carry a block of rules taken from your project. The verifier, for example, can run commands and read files but cannot edit.", read: "The agent, when it is dispatched in that role", yours: "Yes, after setup. They are plain markdown." },
+      text: "Thirteen small files, one per job. Each lists the tools it may use. The core ones (planner, implementer, tester, verifier, reviewer) also carry a block of rules taken from your project. The verifier, for example, can run commands and read files but cannot edit.", read: "The agent, when it is dispatched in that role", yours: "Yes, after setup. They are plain markdown." },
     { k: "proc", idx: "L3", name: "Procedures", path: ".claude/commands/sdd.md", cls: "", title: "Procedures: the workflow itself",
       text: "The steps for setup and for running a ticket, the three ticket sizes, the model tiers table, and what each gate must record. This is what /sdd runs.", read: "The orchestrating agent, at the start of every run", yours: "Only the model tiers, through your own AGENTS.md" },
     { k: "rules", idx: "L2", name: "Rules", path: "RULES.md · ai_rules/", cls: "focal", title: "Rules: what is true of this codebase",
