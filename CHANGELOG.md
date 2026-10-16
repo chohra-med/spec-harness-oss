@@ -11,8 +11,8 @@ All notable changes to this project are recorded here. The format follows
   (packages and skills say `"READY"`), and nothing said so. `commands/generate-agents.md` now shows
   the role row's exact shape, and the check names which of status, path or `package_paths` is wrong.
 - The first ticket after `/sdd init` failed its verifier on the uncommitted init output. Init now
-  ends by asking the user to review and commit it, and `/sdd` stops with a named PENDING on a dirty
-  tree instead of failing later.
+  ends by asking the user to review and commit it. A MICRO ticket stops with a named PENDING on a
+  dirty tree instead of failing later; LITE and FULL record the pre-existing paths in `input.md`.
 
 ### Changed
 
