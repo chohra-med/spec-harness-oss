@@ -177,7 +177,7 @@
       "source": "agents/sdd-router.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "9fe13b88a54b0b96694e385c411c4a53c54445965aed8bec4b07a78225567b09",
+      "sha256": "18e47e9a374d6e479d3ed42f19af1c3db5159a74d539d8830222808fb6521782",
       "mode": "0644"
     },
     {
@@ -209,7 +209,7 @@
       "source": "commands/sdd.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "46b1418d88323d94c97d4374cd1add2190f0b87181f5a78443f2f8815ba91a0e",
+      "sha256": "7eb65648f1f37f736278ed3ad75ac76c7f9d21b84b3b1fa004d82c48a851ad75",
       "mode": "0644"
     },
     {

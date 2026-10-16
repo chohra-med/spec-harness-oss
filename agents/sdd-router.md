@@ -64,6 +64,6 @@ confidence: high | low
   `review`.
 - `verify`: `fast` for MICRO, `review` for LITE and FULL.
 - `grill-me`: `ask` when the goal has no checkable end state or the ticket leaves a real choice open;
-  otherwise `skip`.
+  otherwise `skip`. MICRO is always `skip`.
 - `load`: the files the ticket names, plus the memory files that matter (for example
   `.memory/30-tech.md` for commands). Never list a path you did not see exist.

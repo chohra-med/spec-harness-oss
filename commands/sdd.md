@@ -35,11 +35,7 @@ Initialization reads project rules, structure, manifests/lockfiles, representati
 
 For ticket work, record the current source state before planning:
 
-- **Uncommitted changes at the start.** Run `git status --porcelain --untracked-files=all`. For a
-  MICRO ticket, anything listed (uncommitted init output included) stops the run with `PENDING:
-  uncommitted changes; commit or stash them first` and the list: its single verifier fails on any
-  path it did not expect. For LITE and FULL, record the listed paths in `input.md` as present before
-  the ticket, so no gate attributes them to it. Do not commit or stash for the user.
+- **Uncommitted changes.** Checked once the ticket class is recorded, in section 3.
 
 - Git source: `git rev-parse HEAD` and SHA-256 of the exact `git diff --binary HEAD` bytes. MICRO records `HEAD` only.
 - Non-Git source: mark Git state unavailable and hash the relevant files and rule inputs.
@@ -174,6 +170,15 @@ Use the exact input, touched scope and risk:
 - **LITE:** a small multi-file change or one contained behavior change with declared local dependencies.
 - **FULL:** multi-repository, shared-interface, security-sensitive, externally consequential, or otherwise
   high-risk work. When uncertain, use FULL.
+
+- **Uncommitted changes, checked once the class is recorded.** Run `git status --porcelain
+  --untracked-files=all` and record the listed paths. Output that `init` wrote in the same run is not
+  "uncommitted at the start": when `init` carries a ticket, record those paths as present before the
+  ticket and do not stop, because `init` still ends by asking the user to commit before the first
+  ticket (`commands/init.md`, Output). Any other listed path stops a MICRO run with `PENDING:
+  uncommitted changes; commit or stash them first` and the list, because its single verifier fails on
+  any path it did not expect. For LITE and FULL, record the listed paths in `input.md` as present
+  before the ticket, so no gate attributes them to it. Do not commit or stash for the user.
 
 Once the class is MICRO or LITE, an orchestrator running on the strong tier does not explore the code
 itself. Its reading is the ticket input, the target's startup rules (its `CLAUDE.md` or `AGENTS.md` and
