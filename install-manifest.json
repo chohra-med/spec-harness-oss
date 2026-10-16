@@ -201,7 +201,7 @@
       "source": "commands/sdd.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "12e2b34604cdae5a8bc32a6c0d170fddce103617acb14577f0314e02be7f7b06",
+      "sha256": "afaf356fa2452914a7ae6da94380821c659ca75a7dfee0a64470e06bd68105ce",
       "mode": "0644"
     },
     {
@@ -233,7 +233,7 @@
       "source": "commands/generate-agents.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "5ba3909e35e6720482e518a83dcc19b31760bd1caf8648899e43a81da1aaefa8",
+      "sha256": "7d4f42bb40e6e512a37050dd4e2dc4078359c350aabfb8d629b066dc899342d9",
       "mode": "0644"
     },
     {
@@ -249,7 +249,7 @@
       "source": "commands/init.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "ff14c480599edf46beb977654c03c96b8e877a6b9cacdc7f95ebb3279b50242f",
+      "sha256": "bc4a1e4ce8bf5ab6b7481fad8301dc54936487d973a3832b70e6ea5d49e0e7e0",
       "mode": "0644"
     },
     {

@@ -35,6 +35,11 @@ Initialization reads project rules, structure, manifests/lockfiles, representati
 
 For ticket work, record the current source state before planning:
 
+- **Start from a clean tree.** If `git status --porcelain --untracked-files=all` lists anything
+  (uncommitted init output included), stop with `PENDING: uncommitted changes; commit or stash them,
+  or name the ones this ticket owns` and list them. A verifier compares the tree with the starting
+  `HEAD`, so a path the ticket did not expect fails it. Do not commit or stash for the user.
+
 - Git source: `git rev-parse HEAD` and SHA-256 of the exact `git diff --binary HEAD` bytes. MICRO records `HEAD` only.
 - Non-Git source: mark Git state unavailable and hash the relevant files and rule inputs.
 - Record the applicable rule paths and hashes. Read the target's `AGENTS.md`, `RULES.md`,

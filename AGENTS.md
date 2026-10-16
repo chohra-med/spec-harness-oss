@@ -164,6 +164,8 @@ from. Read them here to understand the method; act on the installed copies in th
 ### Run the tests
 
 They need `bash`, `git`, `python3` 3.11 or newer, `npm`, `tar`, `shasum` and `cmp` on `PATH`.
+Run them as a normal user, not root: root ignores file permissions, so the unreadable-file and
+read-only fixtures in `index`, `installer` and `update` fail under root.
 
 ```sh
 for t in tests/*.sh; do

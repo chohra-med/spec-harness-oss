@@ -3,6 +3,21 @@
 All notable changes to this project are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+
+### Fixed
+
+- First `/sdd init` could not pass `generate-agents --check`: a role row needs `status: "BOUND"`
+  (packages and skills say `"READY"`), and nothing said so. `commands/generate-agents.md` now shows
+  the role row's exact shape, and the check names which of status, path or `package_paths` is wrong.
+- The first ticket after `/sdd init` failed its verifier on the uncommitted init output. Init now
+  ends by asking the user to review and commit it, and `/sdd` stops with a named PENDING on a dirty
+  tree instead of failing later.
+
+### Changed
+
+- `AGENTS.md`: run the tests as a normal user; the permission fixtures fail under root.
+
 ## 0.4.0 - 2026-10-15
 
 ### Added
