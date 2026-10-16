@@ -86,6 +86,9 @@ RULE_LABELS=(
   "verifier: baseline clause"
   "verifier: hash clause"
   "verifier: absent clause"
+  "verifier: baseline path fails"
+  "sdd: MICRO route never asks Grill Me"
+  "sdd: Grill Me for LITE only"
 )
 dirty_rule_missing() { # [SDD_FILE] [INIT_FILE] [VERIFIER_FILE]: prints "MISSING: <label>" per absent sentence
   python3 -I -B - "${1:-$HARNESS_DIR/commands/sdd.md}" "${2:-$HARNESS_DIR/commands/init.md}" "${3:-$HARNESS_DIR/agents/sdd-verifier.md}" <<'PYDIRTY'
@@ -106,6 +109,9 @@ RULES = [
     ("init", "init: later run still stops MICRO", "When the ticket is a later run, uncommitted init output still makes a MICRO ticket stop"),
     ("verifier", "verifier: baseline clause", "Only the paths `init` wrote are exempt, those absent from the pre-init baseline."),
     ("verifier", "verifier: hash clause", "An exempt path stays exempt only while its current SHA-256 still equals its recorded hash"),
+    ("verifier", "verifier: baseline path fails", "An exempt path that `ticket.md` records in the pre-init baseline fails."),
+    ("sdd", "sdd: MICRO route never asks Grill Me", "a MICRO route never asks Grill Me, whatever the block says"),
+    ("sdd", "sdd: Grill Me for LITE only", "and the Grill Me method owner for LITE only (MICRO never asks Grill Me)"),
     ("verifier", "verifier: absent clause", "a path recorded as `absent` (deleted) stays exempt only while it is still absent"),
 ]
 for key, label, needle in RULES:

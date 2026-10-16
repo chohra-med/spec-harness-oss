@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The router contract: sdd-router is read-only, runs on the fast tier's smallest model, answers in
-# one fixed block, and /sdd dispatches it first with a raise-only, fall-back-on-failure rule.
+# one fixed block, and /sdd dispatches it before classifying with a raise-only, fall-back-on-failure rule.
 # An install stages it into the target. Each broken promise fails by name.
 set -u
 
@@ -68,7 +68,7 @@ for phrase, why in [
         bad.append(f"router file: {why} ({phrase!r} missing)")
 sec3 = sdd.split("## 3. Classify", 1)[-1].split("### MICRO light route", 1)[0]
 for phrase, why in [
-    ("Dispatch `sdd-router`", "/sdd section 3 must dispatch sdd-router first"),
+    ("Dispatch `sdd-router`", "/sdd section 3 must dispatch sdd-router before classifying"),
     ("Raise, never lower", "/sdd must only raise the router's class"),
     ("A missing router never stops the run", "/sdd must fall back when the router is unavailable"),
     ("confidence: low", "/sdd must fall back on low confidence"),

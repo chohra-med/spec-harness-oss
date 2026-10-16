@@ -246,8 +246,8 @@ produce manifests or hashes of unchanged files (the pre-init baseline and the pr
 
 ## 4. Ground and resolve the work
 
-For MICRO and LITE the orchestrator's own reading is limited as section 3's hand-off rule says. Open relevant source, tests, package manifests and rules, then follow the installed Grill Me and
-Ponytail method owners in `.claude/commands/spec-harness/` (source checkout fallback:
+For MICRO and LITE the orchestrator's own reading is limited as section 3's hand-off rule says. Open relevant source, tests, package manifests and rules, then follow the installed Ponytail method owner, and the Grill Me method owner for LITE only (MICRO never
+asks Grill Me), in `.claude/commands/spec-harness/` (source checkout fallback:
 `commands/`). Package Finder and Skill Finder apply when package or reusable-skill discovery is
 relevant. Record evidence, selected/excluded candidates and unavailable capabilities in the plan;
 keep affected decisions PENDING when required evidence is unavailable. These method owners define
