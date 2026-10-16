@@ -36,8 +36,7 @@ Initialization reads project rules, structure, manifests/lockfiles, representati
 For ticket work, record the current source state before planning:
 
 - **Uncommitted changes.** Checked once the ticket class is recorded, in section 3.
-
-- Git source: `git rev-parse HEAD` and SHA-256 of the exact `git diff --binary HEAD` bytes. MICRO records `HEAD` only.
+- Git source: `git rev-parse HEAD` and SHA-256 of the exact `git diff --binary HEAD` bytes. MICRO records `HEAD` only, plus the pre-ticket path hashes that section 3 requires.
 - Non-Git source: mark Git state unavailable and hash the relevant files and rule inputs.
 - Record the applicable rule paths and hashes. Read the target's `AGENTS.md`, `RULES.md`,
   `CONTRIBUTING.md`, `ai_rules/`, `.memory/`, `.cursor/rules/`, `.agents/` and README, following
@@ -171,21 +170,22 @@ Use the exact input, touched scope and risk:
 - **FULL:** multi-repository, shared-interface, security-sensitive, externally consequential, or otherwise
   high-risk work. When uncertain, use FULL.
 
-- **Uncommitted changes, checked once the class is recorded.** Run `git status --porcelain
-  --untracked-files=all` and record the listed paths. Output that `init` wrote in the same run is not
-  "uncommitted at the start": when `init` carries a ticket, record those paths as present before the
-  ticket and do not stop, because `init` still ends by asking the user to commit before the first
-  ticket (`commands/init.md`, Output). Any other listed path stops a MICRO run with `PENDING:
-  uncommitted changes; commit or stash them first` and the list, because its single verifier fails on
-  any path it did not expect. For LITE and FULL, record the listed paths in `input.md` as present
-  before the ticket, so no gate attributes them to it. Do not commit or stash for the user.
-
 Once the class is MICRO or LITE, an orchestrator running on the strong tier does not explore the code
 itself. Its reading is the ticket input, the target's startup rules (its `CLAUDE.md` or `AGENTS.md` and
 any startup sequence it declares; required reading for both classes), and the files the ticket names.
 For MICRO it then writes `ticket.md`, which records the class, and dispatches; broad reading is the
 fast-tier implementer's job. For LITE it reads only what the inline plan needs and dispatches the
 planner only for material decisions.
+
+**Uncommitted changes, checked once the class is recorded.** Run `git status --porcelain
+--untracked-files=all` and record the listed paths. Output that `init` wrote in the same run is not
+uncommitted at the start: when `init` carries a ticket, the ticket records those paths as present before
+the ticket, with a SHA-256 of each file's bytes (`absent` for a path that is deleted), and does not stop,
+because `init` still ends by asking the user to commit before the first ticket (`commands/init.md`,
+Output). Any other listed path stops a MICRO run with `PENDING: uncommitted changes; commit or stash them
+first` and the list, because its single verifier fails on any path it did not expect. For LITE and FULL,
+record the listed paths in `input.md` as present before the ticket, so no gate attributes them to it. Do
+not commit or stash for the user.
 
 Record the class and reason in the packet. Every class retains exact input provenance, a literal
 goal, source identity, the applicable rules and independent acceptance. LITE and FULL also keep an
@@ -205,7 +205,8 @@ MICRO.
 - **One file.** Before implementation the orchestrator writes `specs/<feature>/ticket.md` with the
   exact input, one to five literal goal checks, the starting `git rev-parse HEAD` and the paths
   expected to change. Do not create `spec.md`, `goal.md`, `plan.md`, `tasks.md` or `gates/`, and do
-  not record file or diff hashes. The implementer never edits `ticket.md`. Only the orchestrator does.
+  not record file or diff hashes, except the pre-ticket hashes for same-run `init` output that section 3
+  requires. The implementer never edits `ticket.md`. Only the orchestrator does.
 - **Two stages.** The fast-tier implementer makes the change with a test that fails first. Then one
   fresh `sdd-verifier`, dispatched on the fast tier, receives the goal checks and expected paths in its
   dispatch, together with the `ticket.md` path. It is not the implementer's context. It runs on the
@@ -215,8 +216,11 @@ MICRO.
   tier. It runs the project's test command, checks every goal line and
   reads the diff against the applicable rules. It returns FAIL when the goal checks in `ticket.md`
   differ from the dispatched ones, or when `git diff --name-only <starting HEAD>` on the working tree or
-  `git status --porcelain --untracked-files=all` lists a path outside the expected ones and `ticket.md` itself. It returns `RESULT: PASS|FAIL` with its evidence, and the
-  orchestrator copies that return unchanged into `ticket.md`. No separate tester, reviewer, planner
+  `git status --porcelain --untracked-files=all` lists a path outside the expected ones and `ticket.md` itself.
+  Pre-ticket paths that `ticket.md` records from same-run `init` output are exempt from the "changed path it
+  did not expect" check, but only while each one's current SHA-256 still equals its recorded hash: a recorded
+  path changed further than its recorded state fails, and so does every other unexpected path. It returns
+  `RESULT: PASS|FAIL` with its evidence, and the orchestrator copies that return unchanged into `ticket.md`. No separate tester, reviewer, planner
   or finisher stage runs.
 - **Still required.** The target's startup rules and security constraints, a verifier context that
   is not the implementer's, and explicit authority before any commit, push or merge. A merge
@@ -227,7 +231,7 @@ MICRO.
   security-sensitive code, or the verifier fails twice.
 
 Evidence is proportional for every class: record what this procedure names and nothing more. Do not
-produce manifests or hashes of unchanged files, copies of reports, or receipts about receipts.
+produce manifests or hashes of unchanged files (the pre-ticket hashes in section 3 are the one exception), copies of reports, or receipts about receipts.
 
 ## 4. Ground and resolve the work
 

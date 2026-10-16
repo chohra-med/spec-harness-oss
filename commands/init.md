@@ -64,5 +64,7 @@ Report the inventory source and completeness, every package path and rule file, 
 
 End by handing the init output to the user: show `git status` and the diff of what initialization
 wrote, and ask them to review and commit it (or tell you to) before the first ticket. Do not commit
-without that word. A ticket records its starting `HEAD` and its verifier fails on any changed path it
-did not expect, so uncommitted init output makes the first ticket fail.
+without that word. When `init` and a ticket run in the same invocation, the ticket records the paths `init`
+wrote as present and its verifier exempts them (`commands/sdd.md` section 3). When the ticket is a later
+run, uncommitted init output still makes a MICRO ticket stop (`PENDING: uncommitted changes`), because its
+verifier fails on any path it did not expect.

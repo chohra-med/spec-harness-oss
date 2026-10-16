@@ -70,6 +70,49 @@ if [[ -f "$HARNESS_DIR/commands/sdd.md" ]]; then
   done
 fi
 
+# Dirty-tree rule (commands/sdd.md section 3) and its init sentence (commands/init.md, Output). Each
+# sentence is matched on whitespace-flattened text. A planted run replaces one sentence in memory and must
+# report it missing: a check that cannot fail is not evidence.
+RULE_LABELS=(
+  "class-first dirty-tree check"
+  "MICRO stops on other uncommitted paths"
+  "same-run init paths recorded before the ticket"
+  "same-run init paths exempt from the verifier"
+  "recorded path changed further still fails"
+  "init: same-run paths exempt"
+  "init: later run still stops MICRO"
+)
+dirty_rule_missing() { # [SDD_FILE] [INIT_FILE]: prints "MISSING: <label>" for each absent sentence
+  python3 -I -B - "${1:-$HARNESS_DIR/commands/sdd.md}" "${2:-$HARNESS_DIR/commands/init.md}" <<'PYDIRTY'
+import os, sys
+def flat(path):
+    return " ".join(open(path, encoding="utf-8").read().split())
+texts = {"sdd": flat(sys.argv[1]), "init": flat(sys.argv[2])}
+plant = os.environ.get("PLANT_RULE", "")
+RULES = [
+    ("sdd", "class-first dirty-tree check", "Uncommitted changes, checked once the class is recorded."),
+    ("sdd", "MICRO stops on other uncommitted paths", "Any other listed path stops a MICRO run with `PENDING: uncommitted changes; commit or stash them first`"),
+    ("sdd", "same-run init paths recorded before the ticket", "when `init` carries a ticket, the ticket records those paths as present before the ticket"),
+    ("sdd", "same-run init paths exempt from the verifier", 'Pre-ticket paths that `ticket.md` records from same-run `init` output are exempt from the "changed path it did not expect" check'),
+    ("sdd", "recorded path changed further still fails", "a recorded path changed further than its recorded state fails"),
+    ("init", "init: same-run paths exempt", "When `init` and a ticket run in the same invocation, the ticket records the paths `init` wrote as present and its verifier exempts them"),
+    ("init", "init: later run still stops MICRO", "When the ticket is a later run, uncommitted init output still makes a MICRO ticket stop"),
+]
+for key, label, needle in RULES:
+    text = texts[key]
+    if label == plant:
+        text = text.replace(needle, "[planted omission]")
+    if needle not in text:
+        print("MISSING: " + label)
+PYDIRTY
+}
+rule_missing="$(dirty_rule_missing)"
+if [[ -z "$rule_missing" ]]; then pass "dirty-tree rule and init sentence are in the real text"; else fail "dirty-tree rule text: ${rule_missing//$'\n'/; }"; fi
+for label in "${RULE_LABELS[@]}"; do
+  planted="$(PLANT_RULE="$label" dirty_rule_missing)"
+  if [[ "$planted" == *"MISSING: $label"* ]]; then pass "planted break caught: $label"; else fail "planted break not caught: $label"; fi
+done
+
 if [[ -f "$HARNESS_DIR/commands/sdd.md" && -f "$HARNESS_DIR/commands/build.md" ]]; then
   if ! python3 -I -B - "$HARNESS_DIR/commands/sdd.md" "$HARNESS_DIR/commands/build.md" <<'PYCONTRACT'
 from pathlib import Path
