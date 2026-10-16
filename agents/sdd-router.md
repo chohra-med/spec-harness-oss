@@ -1,6 +1,6 @@
 ---
 name: sdd-router
-description: Reads one resolved ticket and returns its route (class, tier per stage, files to load) before any other stage runs. Runs on the smallest model of the fast tier so a cheap model, not the strong one, decides how much work a ticket needs. Read-only. Never reads source contents and never changes a file.
+description: Reads one resolved ticket and returns its route (class, tier per stage, files to load) before the ticket is classified. Runs on the smallest model of the fast tier so a cheap model, not the strong one, decides how much work a ticket needs. Read-only. Never reads source contents and never changes a file.
 tools: Read, Glob, Grep
 model: haiku
 ---

@@ -156,7 +156,7 @@ complete classification before optional history, research or broad package recal
 fast-tier model, with the exact input. It reads startup rules and file names, never source contents,
 and returns a `## Route` block: class, reason, the tier for each stage, whether to ask Grill Me, and
 the files to load first. Copy that block into the class record (`ticket.md` for MICRO, `input.md`
-for LITE and FULL) and follow it:
+for LITE and FULL) and follow it (a MICRO route never asks Grill Me, whatever the block says):
 
 - **Raise, never lower.** Keep the router's class unless the input or the startup rules show a risk
   it missed; then raise it and record why. Nothing lowers a class below what the definitions below

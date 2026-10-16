@@ -177,7 +177,7 @@
       "source": "agents/sdd-router.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "18e47e9a374d6e479d3ed42f19af1c3db5159a74d539d8830222808fb6521782",
+      "sha256": "8940479539104bbe70690886496d700eae4414539e518678a7605deca85b381b",
       "mode": "0644"
     },
     {
@@ -193,7 +193,7 @@
       "source": "agents/sdd-verifier.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "2daf418c02520b998ca7188ea94ff971903c894b7956a26091b31cfcb343186f",
+      "sha256": "3345028a3474b59b36b2df3887f64fddb8963c132a1b2995ee8849b562609034",
       "mode": "0644"
     },
     {
@@ -209,7 +209,7 @@
       "source": "commands/sdd.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "ffbfa14dfa0ca9e9b708fadc6df98df678cb1eaec7e332c1a77bd3a6561a4b97",
+      "sha256": "a61b4cdf2daf709c8a4e36331f011a5193e879f0e8310aaf26b3eb77901a75a5",
       "mode": "0644"
     },
     {
@@ -257,7 +257,7 @@
       "source": "commands/init.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "4efde95b1787602f93fdf4e364f2217e098a6d117abb97836e7e28179bce5017",
+      "sha256": "26bdbaa3c83bdbaec4c7a3c260d2f968c095453e7c029165d62ef29aa4959837",
       "mode": "0644"
     },
     {

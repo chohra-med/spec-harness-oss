@@ -8,7 +8,7 @@ All notable changes to this project are recorded here. The format follows
 ### Added
 
 - `sdd-router`, a read-only role on the fast tier's smallest model (`haiku` on Claude). `/sdd`
-  dispatches it first; it reads the ticket, the startup rules and file names (never source contents)
+  dispatches it before the ticket is classified; it reads the ticket, the startup rules and file names (never source contents)
   and returns a `## Route` block: class, the tier for each stage, whether to ask Grill Me and the
   files to load first. The orchestrator may raise its class, never lower it. Low confidence, a
   malformed block or no separate context falls back to the orchestrator's own classification.
