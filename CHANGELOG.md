@@ -24,6 +24,8 @@ All notable changes to this project are recorded here. The format follows
   ends by asking the user to review and commit it. A MICRO ticket stops with a named PENDING on a
   dirty tree instead of failing later; LITE and FULL record every listed path in `input.md`, the baseline's and init's. A
   same-run `init`'s own paths are exempt, and a path already dirty before `init` ran is not.
+- The `spec-harness-plan` skill said to apply Grill Me with no size limit, while `commands/sdd.md` says a
+  MICRO ticket never asks it. The generated description now says Grill Me is for LITE and FULL only, and the body says a MICRO ticket gets none.
 
 ### Changed
 
