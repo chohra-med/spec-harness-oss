@@ -21,7 +21,9 @@ All notable changes to this project are recorded here. The format follows
   rules in `ai_rules/rules/tool-<package>.md`, baseline rules in `ai_rules/rules/baseline-<topic>.md`,
   and package versions only in `ai_rules/stack.md`. Conflicts follow precedence (business, decision,
   project, tool, baseline) with `overrides <ID>`; what precedence cannot settle stays open in
-  `rule_conflicts`. A first initialisation writes schema 4.
+  `rule_conflicts`. A first initialisation writes schema 4. v1 keeps it light: packs are recommended,
+  not required; the policy ledger is optional and checked when present; duplicates are rules with the same
+  words; a stray version is a stack version written in full.
 - `spec-harness stack <target> [--check]` (`bin/sh_stack.py`): writes `ai_rules/stack.md` from
   `package.json`, `pyproject.toml` and their lockfiles (`package-lock.json`, `yarn.lock`, `uv.lock`,
   `poetry.lock`). The readiness check rebuilds it and refuses READY when it is stale.
@@ -32,8 +34,7 @@ All notable changes to this project are recorded here. The format follows
   inside its declared version range.
 - `generate-agents --check` with schema 4 (`bin/sh_rule_layers.py`) rejects pointer lines such as "Apply
   the canonical ... Coverage IDs: ...", unreadable rule lines, a rule ID defined twice, two rules with the
-  same words, a reworded pack rule, a tool module outside its range, a baseline or matching tool pack that
-  is neither adopted nor excluded with a reason, a `PROPOSED` convention, an override by a lower layer, an
+  same words, a reworded pack rule, a tool module outside its range, a `PROPOSED` convention, an override by a lower layer, an
   open rule conflict, a package version outside the stack, and a skill or role block that copies a rule
   instead of naming its ID. A captured ledger row anchors to a rule ID. Tests:
   `tests/rule-layers-fixtures.sh`.

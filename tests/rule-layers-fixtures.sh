@@ -207,7 +207,7 @@ check_red("duplicate rule ID", "rule ID PROJ-01 is defined twice", append("RULES
 check_red("same words twice", "say the same thing",
           append("RULES.md", "- **CODE-02** Report every caught error through the shared Sentry module, never by calling the SDK directly. (source: observed)\n"))
 check_red("proposed convention", "is PROPOSED", append(PROJ, "- **PROJ-04** Put every hook in a hooks folder next to its screen. (source: observed, PROPOSED)\n"))
-check_red("version in a skill", "names a version of expo", append(".claude/skills/spec-harness-packages/SKILL.md", "Use Expo SDK 57 APIs only.\n"))
+check_red("version in a skill", "names a version of expo", append(".claude/skills/spec-harness-packages/SKILL.md", "Use the APIs that ship with 57.0.27 only.\n"))
 check_red("exact version in a rule", "names a version of react-native",
           append("RULES.md", "- **CODE-03** Use the bridgeless APIs that ship with 0.86.3 only. (source: observed)\n"))
 check_red("rule copied into a role block", "copies rule PROJ-01",
@@ -238,8 +238,6 @@ def drop_module(name):
         package["rule_modules"] = [row for row in package["rule_modules"] if row["name"] != name]
         write("RULES.md", read("RULES.md").replace(f"[{name}](ai_rules/rules/{name}.md)", name))
     return mutate
-check_red("baseline pack neither adopted nor excluded", "baseline pack baseline-testing is neither adopted", mutate_receipt=drop_module("baseline-testing"))
-check_red("matching tool pack neither adopted nor excluded", "tool pack tool-sentry matches @sentry/react-native", mutate_receipt=drop_module("tool-sentry"))
 check_red("open rule conflict", "rule conflict SEC-04 vs DEC-001 is open",
           mutate_receipt=lambda v: v.__setitem__("rule_conflicts", [{"ids": ["SEC-04", "DEC-001"], "status": "open"}]))
 check_red("ledger anchored to free text", "must anchor to a rule ID",
@@ -283,6 +281,8 @@ green("ledger anchored to a business rule in the memory bank",
       mutate_receipt=lambda v: v["policy_coverage"][0].update(rule_path=".memory/10-product.md", rule_anchor="BIZ-01"))
 green("memory bank prose with ID-like bullets and a coverage note is left alone",
       append(".memory/60-decisions.md", "- **L-2026-10-15-01** applied after review.\n- Coverage IDs: policy-001 were moved.\n"))
+green("v1: a pack left out is not an error", mutate_receipt=drop_module("tool-sentry"))
+green("v1: schema 4 without a policy ledger", mutate_receipt=lambda v: (v.pop("policy_sources"), v.pop("policy_coverage")))
 green("resolved rule conflict", mutate_receipt=lambda v: v.__setitem__("rule_conflicts", [
     {"ids": ["SEC-04", "DEC-001"], "status": "resolved", "winner": "DEC-001", "reason": "Business decision recorded on 2026-10-21."}]))
 assert "READY:" in run(["bash", str(bind), "--check", str(target)], 0, "restored GREEN")

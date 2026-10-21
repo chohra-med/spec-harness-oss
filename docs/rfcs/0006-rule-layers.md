@@ -39,8 +39,7 @@ One fact, one home, checked by the readiness check for receipt schema 4.
   `index` does not hash it as policy.
 - **Packs.** `templates/rule-packs/` ships six baseline packs and five tool packs, each rule citing an
   official source. Targets copy pack lines byte for byte and may leave a rule out but not reword it.
-  Each baseline pack, and each tool pack whose package version is inside its range, is adopted or
-  excluded in `excluded_packs` with a reason.
+  In v1 packs are recommended, not required.
 - **Standards.** Init asks the owner once which named standards and laws the company has, must meet or
   plans (for example the European Accessibility Act with EN 301 549 for an app offered to consumers in
   the EU). Each answer is a `STD-` commitment with a status, carried out by a standard module. Standard
@@ -66,9 +65,10 @@ directory, `.claude/spec-harness/rule-packs/`, and the `standards` method with i
 
 - The check proves structure: a rule is readable, defined once, in its layer, at a matching version.
   It cannot prove a rule is right for the project; the fresh semantic review still decides that.
-- Near-duplicate detection compares word sets (identical, or 90 percent overlap for rules of six words
-  or more). Two rules that say the same thing in different words still need the reviewer.
-- Version detection covers each stack version written in full and a package name followed by a number.
+- Duplicate detection (v1) flags rules with the same set of words. Two rules that say the same thing in
+  different words still need the reviewer.
+- The policy ledger is optional in v1 and checked when the receipt has one.
+- Version detection (v1) covers each stack version written in full, such as `57.0.27`; a bare "SDK 57" is not caught.
 - Lockfiles read: `package-lock.json`, `yarn.lock`, `uv.lock`, `poetry.lock`. `pnpm-lock.yaml` and
   `bun.lock` are named in the stack as not read, and their locked versions show as unknown.
 - Pack sources were checked on 2026-10-21. Pack content changes only in this repository.
@@ -76,6 +76,7 @@ directory, `.claude/spec-harness/rule-packs/`, and the `standards` method with i
 ## Tests
 
 `tests/rule-layers-fixtures.sh`: a READY schema 4 fixture, a lint of every shipped pack, twenty-four
-planted faults (one per check) and three green controls (an excluded pack, a decision overriding a
-baseline rule, a resolved conflict). `tests/synthesis-contract.sh` now treats 5 as the next unknown
+planted faults (one per check) and seven green controls (among them a pack left out, a receipt with no
+ledger, a decision overriding a baseline rule and a resolved conflict). `tests/index-exclusion-fixtures.sh`
+covers `--exclude-dir`. `tests/synthesis-contract.sh` now treats 5 as the next unknown
 schema.

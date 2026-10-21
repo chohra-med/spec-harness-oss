@@ -69,9 +69,6 @@ def _stray_version_patterns(stack_rows):
         for value in {locked, re.sub(r"^[^0-9]*", "", declared or "")}:
             if value and re.fullmatch(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?", value):
                 patterns.append((name, re.compile(r"(?<![\w.])" + re.escape(value) + r"(?![\w.])")))
-        words = r"[\s-]+".join(re.escape(part) for part in re.split(r"[-/]", name.lstrip("@")) if part)
-        if words:
-            patterns.append((name, re.compile(r"(?i)\b" + words + r"\s*(?:sdk\s*)?v?\d+(?:\.\d+)*\b")))
     return patterns
 
 
@@ -162,25 +159,7 @@ def check(root, receipt, read, fail, modules, rule_paths, consumers, pack_dir):
                 if "http" not in rule["source"] or not CHECKED.search(rule["source"]):
                     fail(f"{rel}: {layer} rule {rule['id']} without a pack needs an official documentation URL and 'checked YYYY-MM-DD' in its source")
 
-    # Every shipped baseline pack, and every tool pack whose package is in the stack, is either
-    # adopted as a module or excluded with a reason.
-    excluded = receipt.get("excluded_packs", [])
-    excluded_names = set()
-    for row in excluded if isinstance(excluded, list) else []:
-        if not isinstance(row, dict) or not isinstance(row.get("name"), str) or not str(row.get("reason", "")).strip():
-            fail("each excluded_packs row needs a name and a reason")
-        else:
-            excluded_names.add(row["name"])
-    for pack_file in sorted(pack_dir.glob("*.md")):
-        name = pack_file.stem
-        # A standard pack is adopted only on the owner's commitment, never by default.
-        if name == "README" or name.startswith("standard-") or name in shipped or name in excluded_names:
-            continue
-        applies = APPLIES.search(pack_file.read_text())
-        if name.startswith("baseline-"):
-            fail(f"baseline pack {name} is neither adopted as a rule module nor listed in excluded_packs with a reason")
-        elif applies and applies.group(1) in locked and sh_stack.satisfies(locked[applies.group(1)], applies.group(2)):
-            fail(f"tool pack {name} matches {applies.group(1)} in the stack but is neither adopted nor listed in excluded_packs with a reason")
+    # v1: packs are recommended, not required; `init` adopts the ones that apply (commands/rules.md).
 
     for rel, layer in MEMORY_LAYERS:
         data = read(rel)
@@ -212,7 +191,7 @@ def check(root, receipt, read, fail, modules, rule_paths, consumers, pack_dir):
         mine = _words(rule["text"])
         for other in every[index + 1:]:
             theirs = _words(other["text"])
-            if mine == theirs or (min(len(mine), len(theirs)) >= 6 and len(mine & theirs) / len(mine | theirs) >= 0.9):
+            if mine == theirs:
                 fail(f"rules {rule['id']} and {other['id']} say the same thing; keep one and reference it")
     for rule in every:
         for target in OVERRIDES.findall(rule["source"]):
