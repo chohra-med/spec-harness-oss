@@ -149,7 +149,8 @@ assert "CONFLICT/PENDING" in prompt
 assert ".claude/commands/spec-harness/{init,rules,generate-agents}.md" in prompt
 assert "templates/project-skills/" in prompt
 assert "A matching receipt hash alone never authorizes replacement." in prompt
-assert "preserve its bytes and record `CONFLICT/PENDING`" in prompt
+# The refresh and CONFLICT/PENDING rules are owned by commands/init.md (tests/rule-ownership-contract.sh); the work order only points there.
+assert "follow `commands/init.md` step 5, which owns those rules" in prompt
 assert sha(conflict_target / ".claude/skills/spec-harness-performance/SKILL.md") == conflict_hash
 assert str(conflict_target) not in prompt and str(tmp) not in prompt, "work order embeds an absolute target path"
 assert "Target root: the project directory that contains this `.claude/` directory" in prompt
