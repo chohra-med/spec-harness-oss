@@ -19,7 +19,7 @@ from sh_safe_io import MAX_FILE_BYTES, WriteRefused, read_bounded_result, safe_r
 
 STACK_PATH = "ai_rules/stack.md"
 MARKER = "<!-- spec-harness-stack:v1 -->"
-VERSION = re.compile(r"\d+(?:\.\d+)+")
+VERSION = re.compile(r"(\d+(?:\.\d+)+)(-[0-9A-Za-z.-]+)?")
 
 
 def _read(root, rel):
@@ -97,7 +97,7 @@ def _npm_rows(root, package, data):
             npm_lock = {}
     elif lock_rel and lock_rel.endswith("yarn.lock"):
         yarn_lock = _yarn_versions(lock_data.decode("utf-8", errors="replace"))
-    inner = "" if package == lock_dir else (package if lock_dir == "." else package[len(lock_dir) + 1:])
+    inner = "" if lock_dir is None or package == lock_dir else (package if lock_dir == "." else package[len(lock_dir) + 1:])
 
     def locked(name, declared):
         if npm_lock:
@@ -130,14 +130,14 @@ def _normal(name):
 
 def _python_rows(root, package, data):
     try:
-        manifest = tomllib.loads(data.decode("utf-8"))
+        manifest = tomllib.loads(data.decode("utf-8-sig"))
     except (tomllib.TOMLDecodeError, UnicodeDecodeError):
         return None, []
     lock_rel, _, lock_data = _find_lockfile(root, package, ("uv.lock", "poetry.lock"))
     locked = {}
     if lock_data is not None:
         try:
-            for row in tomllib.loads(lock_data.decode("utf-8")).get("package", []):
+            for row in tomllib.loads(lock_data.decode("utf-8-sig")).get("package", []):
                 if isinstance(row, dict) and isinstance(row.get("name"), str) and isinstance(row.get("version"), str):
                     locked[_normal(row["name"])] = row["version"]
         except (tomllib.TOMLDecodeError, UnicodeDecodeError):
@@ -199,14 +199,17 @@ def entries(root):
     return [(package, row["name"], row["declared"], row["locked"]) for package, _, _, rows in collect(root) for row in rows]
 
 
-def version_tuple(text):
+def version_key(text):
+    """(numbers, 0 for a prerelease, 1 for a release): a prerelease sorts before its release (semver)."""
     match = VERSION.search(text or "")
-    return tuple(int(part) for part in match.group(0).split(".")) if match else None
+    if not match:
+        return None
+    return tuple(int(part) for part in match.group(1).split(".")), (0 if match.group(2) else 1)
 
 
 def satisfies(version, requirement):
     """True when a version satisfies every space-separated comparator (>=, >, <=, <, =)."""
-    have = version_tuple(version)
+    have = version_key(version)
     if have is None:
         return False
     for comparator in requirement.split():
@@ -214,8 +217,9 @@ def satisfies(version, requirement):
         if not match:
             return False
         want = tuple(int(part) for part in match.group(2).split("."))
-        size = max(len(have), len(want))
-        left, right = have + (0,) * (size - len(have)), want + (0,) * (size - len(want))
+        size = max(len(have[0]), len(want))
+        left = (have[0] + (0,) * (size - len(have[0])), have[1])
+        right = (want + (0,) * (size - len(want)), 1)
         operator = match.group(1) or "="
         if not {">=": left >= right, "<=": left <= right, ">": left > right, "<": left < right, "=": left == right}[operator]:
             return False

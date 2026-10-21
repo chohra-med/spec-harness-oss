@@ -18,6 +18,8 @@ import sh_stack
 
 RULE_LINE = re.compile(r"^\s*[-*]\s+\*\*(?P<id>[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+)\*\*\s+(?P<text>.+?)\s+\(source:\s*(?P<source>.+)\)\s*$")
 RULE_LIKE = re.compile(r"^\s*[-*]\s+\*\*[A-Z][A-Z0-9]*-")
+# A standard commitment is checked even in the human-written memory bank, so a malformed one cannot vanish.
+STANDARD_LIKE = re.compile(r"^\s*[-*]\s+\*\*STD-")
 POINTER = re.compile(r"(?i)apply the canonical|coverage ids?:|\bpolicy-\d+\b")
 LAYER = re.compile(r"<!-- rule-layer: ([a-z]+) -->")
 PACK = re.compile(r"<!-- pack: ([a-z0-9]+(?:-[a-z0-9]+)*) -->")
@@ -46,7 +48,7 @@ def parse(text, strict=True):
             continue
         match = RULE_LINE.match(line)
         if not match:
-            if strict and RULE_LIKE.match(line):
+            if (strict and RULE_LIKE.match(line)) or STANDARD_LIKE.match(line):
                 defects.append(f"line {number} is not a readable rule line (- **ID** sentence. (source: ...))")
             continue
         sentence = match.group("text")
@@ -68,7 +70,7 @@ def _stray_version_patterns(stack_rows):
     for _, name, declared, locked in stack_rows:
         for value in {locked, re.sub(r"^[^0-9]*", "", declared or "")}:
             if value and re.fullmatch(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?", value):
-                patterns.append((name, re.compile(r"(?<![\w.])" + re.escape(value) + r"(?![\w.])")))
+                patterns.append((name, re.compile(r"(?<![\w.])" + re.escape(value) + r"(?!\w|\.\d)")))
     return patterns
 
 
@@ -95,8 +97,8 @@ def check(root, receipt, read, fail, modules, rule_paths, consumers, pack_dir):
             fail(f"{sh_stack.STACK_PATH} changed after the receipt; record its new sha256")
         stack_rows = sh_stack.entries(root)
     locked = {}
-    for _, name, declared, version in stack_rows:
-        locked.setdefault(name, version or declared)
+    for package, name, declared, version in stack_rows:
+        locked.setdefault((package, name), version or declared)
 
     def add_file(rel, text, layer):
         rules, defects = parse(text, strict=layer not in ("business", "decision"))
@@ -135,9 +137,9 @@ def check(root, receipt, read, fail, modules, rule_paths, consumers, pack_dir):
         if layer == "tool":
             if not applies:
                 fail(f"{rel}: a tool module needs <!-- applies: <package> <range> -->")
-            elif applies.group(1) not in locked:
-                fail(f"{rel}: applies to {applies.group(1)}, which is not in {sh_stack.STACK_PATH}")
-            elif not sh_stack.satisfies(locked[applies.group(1)], applies.group(2)):
+            elif (package_path, applies.group(1)) not in locked:
+                fail(f"{rel}: applies to {applies.group(1)}, which package {package_path} does not declare in {sh_stack.STACK_PATH}")
+            elif not sh_stack.satisfies(locked[(package_path, applies.group(1))], applies.group(2)):
                 fail(f"{rel}: the stack version of {applies.group(1)} is outside this module's range {applies.group(2)}; refresh or remove the module")
         if pack_match:
             name = pack_match.group(1)

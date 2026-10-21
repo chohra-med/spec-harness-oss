@@ -255,6 +255,10 @@ check_red("ledger anchored to a memory rule that does not exist", "must anchor t
 check_red("generated output listed as policy", "policy source is a generated output or harness file, not project policy: RULES.md",
           mutate_receipt=lambda v: v["policy_sources"].append({"path": "RULES.md", "sha256": sha("RULES.md"), "requirement_ids": ["X-1"]}))
 check_red("missing stack row", "needs a stack row", mutate_receipt=lambda v: v.pop("stack"))
+check_red("version at the end of a sentence", "names a version of expo",
+          append(PROJ, "- **PROJ-05** Keep the app on Expo 57.0.27. (source: observed in package.json)\n"))
+check_red("malformed standard commitment in the memory bank", "is not a readable rule line",
+          append(".memory/10-product.md", "- **STD-03** The app meets WCAG 2.2 AA. status: planned\n"))
 
 def green(label, mutate_files=None, mutate_receipt=None):
     saved = {rel: (target / rel).read_bytes() for rel in [RECEIPT, "RULES.md", ".memory/60-decisions.md"]}
@@ -295,5 +299,43 @@ save(value)
 assert "READY:" in run(["bash", str(bind), "--check", str(target)], 0, "schema 3 keeps its meaning")
 save(receipt)
 print("PASS: schema 3 receipts keep their meaning; schema 4 enforces the rule layers")
+
+# Edge cases: a package without a lockfile, a byte order mark, a prerelease, and a monorepo whose
+# packages lock different versions of one tool. Each has its own small tree under the temp directory.
+import sh_stack
+edge = Path(sys.argv[2]) / "edge"
+
+def edge_tree(name, files):
+    base = edge / name
+    for rel, content in files.items():
+        (base / rel).parent.mkdir(parents=True, exist_ok=True)
+        (base / rel).write_bytes(content.encode("utf-8"))
+    return base
+
+bare = edge_tree("no-lockfile", {"package.json": json.dumps({"name": "bare", "dependencies": {"expo": "~57.0.27"}})})
+assert "| `expo` | `~57.0.27` | - | dependency |" in sh_stack.render(bare).decode(), "a package.json without a lockfile must still render"
+bom = edge_tree("bom", {"pyproject.toml": "﻿[project]\nname = \"bom\"\ndependencies = [\"requests>=2.31\"]\n"})
+assert "`requests`" in sh_stack.render(bom).decode(), "a byte order mark must not hide the dependencies"
+assert not sh_stack.satisfies("57.0.0-rc.1", ">=57.0.0"), "a prerelease sorts before its release"
+assert sh_stack.satisfies("57.0.0", ">=50 <58"), "a release satisfies its range"
+print("PASS: a package without a lockfile renders, a byte order mark is read, a prerelease sorts first")
+
+mono = edge_tree("monorepo", {
+    "ai_rules/project_inventory.json": json.dumps({"packages": [{"path": "apps/a"}, {"path": "apps/b"}]}),
+    "apps/a/package.json": json.dumps({"name": "a", "dependencies": {"expo": "^57.0.0"}}),
+    "apps/b/package.json": json.dumps({"name": "b", "dependencies": {"expo": "^49.0.0"}})})
+(mono / "ai_rules/stack.md").write_bytes(sh_stack.render(mono))
+stack_receipt = {"stack": {"path": "ai_rules/stack.md", "sha256": hashlib.sha256((mono / "ai_rules/stack.md").read_bytes()).hexdigest()}}
+tool_text = "<!-- rule-layer: tool -->\n<!-- applies: expo >=50 -->\n- **TOOL-EXPO-01** Use the expo-router file routes for every screen. (source: https://docs.expo.dev/router/introduction/ checked 2026-10-21)\n"
+def monorepo_fails(package):
+    fails = []
+    module_rel = f"{package}/ai_rules/rules/tool-expo.md" if package != "." else "ai_rules/rules/tool-expo.md"
+    sh_rule_layers.check(mono, stack_receipt, lambda rel: (mono / rel).read_bytes() if (mono / rel).is_file() else None,
+                         fails.append, [(package, {"path": module_rel}, tool_text)], [], [], root / "templates" / "rule-packs")
+    return fails
+assert any("outside this module's range >=50" in item for item in monorepo_fails("apps/b")), "apps/b locks expo 49, a >=50 module must be refused"
+assert not monorepo_fails("apps/a"), "apps/a locks expo 57, its >=50 module passes"
+print("PASS: a tool module is checked against the version its own package locks")
+
 print("All rule-layer fixtures passed.")
 PY
