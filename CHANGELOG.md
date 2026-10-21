@@ -3,6 +3,16 @@
 All notable changes to this project are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+
+### Fixed
+
+- The work order printed by `generate-agents` restated the first-initialisation and guarded-refresh rules that `commands/init.md` owns, and said the quality and conduct core skills belong to "schema 2" only, while the check requires them for schemas 2, 3 and 4. It now points to `commands/init.md` step 5 and says "schema 2 or later".
+
+### Added
+
+- `tests/rule-ownership-contract.sh`: each first-initialisation, refresh and `CONFLICT/PENDING` phrase must be present in `commands/init.md` and absent from the work order, the skill generator and `commands/sdd.md`. It fails when a second copy of the rule appears. Planted-fault control: a copy of the refresh phrase in `commands/sdd.md` turns it red.
+
 ## 0.6.0 - 2026-10-21
 
 ### Added
