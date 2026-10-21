@@ -84,6 +84,19 @@ expect("a branch test missing from the body fails", GOOD.replace("keeps the orde
 expect("a ref that looks like an option is refused", GOOD, 2, "must not start with", "--repo", str(repo), "--base=-x", "--head", "feature")
 expect("--repo without refs is a usage error", GOOD, 2, "needs both --base and --head", "--repo", str(repo))
 
+img_tag = GOOD.replace("![Before and After: the table without and with the total row](evidence/before-after.png)",
+                       '<img alt="Before and After: the table without and with the total row" src="evidence/before-after.png">')
+expect("an HTML img tag naming Before and After passes", img_tag, 0, "PASS before/after labels")
+fenced = GOOD.replace("## Evidence\n\n", "## Evidence\n\n```sh\n# run the suite\nnpm test\n```\n\n")
+expect("a shell comment inside a fenced block is not a heading", fenced, 0, "PASS evidence image count")
+not_utf8 = tmp / "not-utf8.md"
+not_utf8.write_bytes(b"## Summary\n\xff\n## Evidence\n")
+proc = subprocess.run(["bash", str(cli), "pr-packet", str(not_utf8)], capture_output=True, text=True)
+if proc.returncode != 2 or "FAIL read" not in proc.stdout:
+    failures.append(f"a body that is not UTF-8 must exit 2 with FAIL read, got {proc.returncode}:\n{proc.stdout}{proc.stderr}")
+else:
+    print("PASS: a body that is not UTF-8 is a read error (exit 2), not a traceback")
+
 proc = subprocess.run(["bash", str(cli), "pr-prepare"], capture_output=True, text=True)
 if proc.returncode != 2 or "PENDING: documentation only" not in proc.stdout or "Packet check" not in proc.stdout:
     failures.append(f"pr-prepare route: expected exit 2 and the checklist, got {proc.returncode}:\n{proc.stdout}{proc.stderr}")

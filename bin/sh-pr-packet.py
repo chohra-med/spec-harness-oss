@@ -34,6 +34,7 @@ IMAGE_PATTERN = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)|<img\b[^>]*>", re.IGNORECA
 ABSOLUTE_PATH_PATTERN = re.compile(r"(?<![\w.])(/(?:Users|home)/|[A-Za-z]:\\)")
 PLACEHOLDER_PATTERN = re.compile(r"\b(TODO|TBD|lorem ipsum)\b|<placeholder>", re.IGNORECASE)
 HEADING_PATTERN = re.compile(r"^#{1,6}\s+(.*?)\s*#*\s*$")
+FENCE_PATTERN = re.compile(r"^\s*(```|~~~)")
 TEST_PATHSPECS = ("*.test.*", "*.spec.*", "test_*.py", "*/test_*.py")
 JS_TEST_RE = re.compile(r"""\b(?:it|test|describe)(?:\.(?:only|skip))?\(\s*(['"`])(.+?)\1""")
 PY_TEST_RE = re.compile(r"^\s*(?:async\s+)?def\s+(test_\w+)")
@@ -65,11 +66,20 @@ def added_test_titles(repo, base, head):
 
 
 def split_sections(text):
-    """Return {lowercase heading: body lines}. Text before the first heading is ignored."""
+    """Return {lowercase heading: body lines}. Text before the first heading is ignored.
+
+    A line inside a fenced code block is body text, so a shell comment such as `# run the suite` is not a heading.
+    """
     sections = {}
     current = None
+    in_fence = False
     for line in text.splitlines():
-        match = HEADING_PATTERN.match(line)
+        if FENCE_PATTERN.match(line):
+            in_fence = not in_fence
+            if current is not None:
+                sections[current].append(line)
+            continue
+        match = None if in_fence else HEADING_PATTERN.match(line)
         if match:
             current = match.group(1).strip().lower()
             sections.setdefault(current, [])
@@ -97,8 +107,8 @@ def main(argv):
 
     try:
         text = Path(args.body).read_text(encoding="utf-8")
-    except OSError as exc:
-        print("FAIL read: cannot read %s (%s)" % (args.body, exc.strerror))
+    except (OSError, UnicodeDecodeError) as exc:
+        print("FAIL read: cannot read %s (%s)" % (args.body, getattr(exc, "strerror", None) or "not UTF-8 text"))
         return 2
 
     results = []
@@ -118,14 +128,13 @@ def main(argv):
             results.append(("FAIL", "merge danger bullets", "%d, max %d" % (count, MAX_MERGE_DANGER_BULLETS)))
 
     evidence_lines = sections.get("evidence", [])
-    images = IMAGE_PATTERN.findall("\n".join(evidence_lines))
+    images = [match.group(0) for match in IMAGE_PATTERN.finditer("\n".join(evidence_lines))]
     if len(images) == 1:
         results.append(("PASS", "evidence image count", "1 combined image"))
     else:
         results.append(("FAIL", "evidence image count", "%d found, expected exactly 1 combined Before/After image" % len(images)))
     if images:
-        image_text = " ".join(images[0]) if isinstance(images[0], tuple) else images[0]
-        lowered = image_text.lower()
+        lowered = images[0].lower()
         if "before" in lowered and "after" in lowered:
             results.append(("PASS", "before/after labels", "alt text or path names both"))
         else:
@@ -153,8 +162,8 @@ def main(argv):
         if args.test_names:
             try:
                 names = [line.strip() for line in Path(args.test_names).read_text(encoding="utf-8").splitlines() if line.strip()]
-            except OSError as exc:
-                print("FAIL read: cannot read %s (%s)" % (args.test_names, exc.strerror))
+            except (OSError, UnicodeDecodeError) as exc:
+                print("FAIL read: cannot read %s (%s)" % (args.test_names, getattr(exc, "strerror", None) or "not UTF-8 text"))
                 return 2
             if not names:
                 results.append(("FAIL", "test names", "test-names file is empty"))
