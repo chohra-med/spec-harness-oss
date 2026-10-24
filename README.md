@@ -1,10 +1,10 @@
 <div align="center">
 
-# Spec Harness
+<h1><img src="docs/images/hero.svg" alt="Spec Harness: AI coding with a checker that says PASS or FAIL" width="100%"></h1>
 
-**Spec Harness wraps spec-driven development with project memory, source-backed rules, independent checks, and a learning loop.**
+**Spec-driven development for AI coding agents, with a separate verifier that says PASS or FAIL.**
 
-Spec-driven development, wrapped in a harness: a reviewed ratchet, a separate verifier that says PASS/FAIL, and a learning loop that classifies feedback so durable corrections can become rules.
+Spec Harness wraps spec-driven development with project memory, source-backed rules, independent checks, and a learning loop that turns reviewed corrections into rules.
 
 Created by [**Malik Chohra**](https://getwireai.com?utm_source=github&utm_medium=readme&utm_campaign=creator) · [Code Meet AI newsletter](https://codemeetai.substack.com?utm_source=github&utm_medium=readme&utm_campaign=newsletter)
 
@@ -14,13 +14,79 @@ Sponsored by [AI Mobile Launcher](https://aimobilelauncher.com?utm_source=github
 
 ---
 
-## Name and method
+## Start
+
+You need Bash, git and Python 3.11+. Node is needed only for `npx`. Run these from the root of an existing project.
+
+1. Start on a clean branch:
+
+   ```sh
+   git switch -c spec-harness-setup
+   ```
+
+2. Stage the harness. This copies files and reports `PENDING`; it does not write project rules:
+
+   ```sh
+   npx -y github:chohra-med/spec-harness-oss init . integrate
+   ```
+
+3. Review what it wrote with `git status` and `git diff`, then commit it on the branch.
+
+4. In Claude Code, run `/sdd init`. It reads the codebase and writes the project's rules, skills and roles.
+
+5. Run one small ticket with `/sdd <ticket text>`. Check its resumable state with `spec-harness run-state --check <ticket>` (see [docs/RUN-STATE.md](./docs/RUN-STATE.md)).
+
+<br>
+
+**New here? Read the ten-minute explainer first.** [`learning_human.html`](./learning_human.html) is
+one interactive page: what Spec Harness is, how a ticket moves through it, which model does what,
+what lands in your repository and how it improves over time. It is copied into every project you
+set up, and the agent opens it for you when you run `/sdd init`. Download it and open it in a
+browser; it needs no network.
+
+**Using an agent?** Point Claude Code, Codex or any agent at this repository and say what you want,
+for example "read AGENTS.md in this repository and add Spec Harness to my project at `<path>`".
+[`AGENTS.md`](./AGENTS.md) tells it how to install, how to run the workflow and where everything is.
+
+**Adopting it in an existing project?** Follow [docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md):
+both ways to get the CLI (`npx`, or a `git clone` you keep on your machine), then ten steps from a clean branch to a first verified ticket, including what to do when the project
+already has its own `CLAUDE.md` and `AGENTS.md`, how to review what the initialiser wrote, and how
+to undo it.
+
+<br>
+
+## Why this exists
+
+AI coding agents lose the project every session, mark their own homework, and repeat the same mistakes. Spec Harness fixes each one with a separate piece, and the three pieces stack:
+
+<img src="docs/images/pillars.svg" alt="Three pillars: the memory bank at the bottom, spec-driven development in the middle, the harness on top." width="100%">
+
+<br>
+
+## How a ticket moves
+
+<img src="docs/images/ticket-flow.svg" alt="Ticket, router, build, fresh checks, learn. Confirmed misses become rules that the next ticket starts with." width="100%">
+
+<br>
+
+| Ticket size | When | Route |
+|---|---|---|
+| **MICRO** | One small, reversible, local fix | One ticket file, one implementer, one fresh verifier. |
+| **LITE** | A small multi-file change | A short packet with the plan written inline, then a fresh tester, verifier and reviewer. |
+| **FULL** | Anything shared, security-sensitive, multi-repo or high-risk. When unsure, FULL. | Full packet with separate tester, verifier and reviewer. |
+
+<br>
+
+<details>
+<summary><strong>What the name and the model tiers mean</strong></summary>
+
+<br>
 
 **Spec** means a written, checkable description of a change. **Harness** means the project memory, source-backed rules, independent checks, and learning loop around that work. Spec-driven development (SDD) is the workflow; `spec-harness` is the package and local CLI. The shared workflow entry is `/sdd` in Claude Code, or `$sdd` in Codex when the project skill is discovered.
 
 The method stages the harness, inspects the target repository, derives project-bound rules and roles from its source, then takes one ticket through independent checks. The harness keeps project context and reviewed corrections available for later work.
 
-Roles ask for a model tier, not a model: plan on the strongest model, implement on a fast cheap one,
+Roles ask for a model tier: plan on the strongest model, implement on a fast cheap one,
 and review on whichever the token budget allows. One table in [`commands/sdd.md`](./commands/sdd.md)
 maps tiers to models per provider, so changing provider means filling one column.
 A small model reads each ticket before it is classified (`sdd-router`) and decides its size, the tier for each stage
@@ -29,7 +95,12 @@ and the files to load, so the strong model only works on what needs it.
 Small fixes take a light route: one ticket file, one implementer and one fresh verifier. Larger or
 riskier work keeps the full packet with separate tester, verifier and reviewer.
 
-## The three pillars
+</details>
+
+<details>
+<summary><strong>The three pillars, in a table</strong></summary>
+
+<br>
 
 Everything in Spec Harness is one of three things. The name is literal: **Spec** + **Harness**.
 
@@ -39,14 +110,19 @@ Everything in Spec Harness is one of three things. The name is literal: **Spec**
 | **Spec-Driven Development** | A feature-owned `spec → goal → plan → tasks → build` packet. The project-bound planner and implementer work with fresh tester, verifier and reviewer contexts; researcher and merger roles are selected when needed. | A structured path from ticket to checkable tasks with project-bound roles. |
 | **Harness** | The ratchet (`AGENTS.md` rules that only tighten after reviewed classification) + the **verifier** (a fresh context, PASS/FAIL vs the feature's checkable goal) + the **tester** (a separate agent that adversarially runs + breaks the critical `workflows/`) + the **learning loop** (feedback is classified before it becomes policy). | Reviewed feedback, independent verification, and checks for critical project workflows. |
 
-## The harness, in detail (where the new work is)
+</details>
+
+<details>
+<summary><strong>The harness, in detail: ratchet, verifier, tester, learning loop</strong></summary>
+
+<br>
 
 The harness has four moving parts that together make the system *converge* instead of drift:
 
 - **The ratchet**: `AGENTS.md` + `ai_rules/`. Reviewed rules only get added or sharpened; a failure does not become policy automatically.
 - **The verifier**: `sdd-verifier`, a fresh context that checks
   `specs/<feature>/goal.md` against current evidence and returns `RESULT: PASS|FAIL`. It works from
-  the ticket goal and evidence, not the implementation conversation.
+  the ticket goal and evidence.
 - **The tester**: `sdd-workflow-tester`, the proactive complement to the verifier. It loads the
   `workflows/` bank (critical journeys, ranked P0→P2) and, per journey, a clean-context agent *runs
   it end-to-end and adversarially tries to break it* (bad inputs, killed mid-flow, races, offline,
@@ -59,6 +135,14 @@ The harness has four moving parts that together make the system *converge* inste
   (→ rules); the operator learns from its wins (→ `learning/` lessons). *This is the "loop",
   reframed: not a cron schedule, a learning schedule.*
 
+</details>
+
+<br>
+
+---
+
+## Reference
+
 ## What this is (and isn't)
 
 - **It is** a portable, stack-agnostic system for project memory, bounded package inventory,
@@ -70,37 +154,6 @@ The harness has four moving parts that together make the system *converge* inste
   `PENDING` rather than claiming that agents ran.
 - **It runs the dev, not the product.** The harness guides the development workflow; the shipped
   application remains yours.
-
-## Quickstart
-
-Five steps, from the root of an existing project. You need Bash, git and Python 3.11+; Node is needed only for `npx`.
-
-1. Start on a clean branch: `git switch -c spec-harness-setup`.
-2. Stage the harness. This copies files and reports `PENDING`; it does not write project rules:
-
-   ```sh
-   npx -y github:chohra-med/spec-harness-oss init . integrate
-   ```
-
-3. Review what it wrote with `git status` and `git diff`, then commit it on the branch.
-4. In Claude Code, run `/sdd init`. It reads the codebase and writes the project's rules, skills and roles.
-5. Run one small ticket with `/sdd <ticket text>`. Check its resumable state with
-   `spec-harness run-state --check <ticket>` (see [docs/RUN-STATE.md](./docs/RUN-STATE.md)).
-
-**New here? Read the ten-minute explainer first.** [`learning_human.html`](./learning_human.html) is
-one interactive page: what Spec Harness is, how a ticket moves through it, which model does what,
-what lands in your repository and how it improves over time. It is copied into every project you
-set up, and the agent opens it for you when you run `/sdd init`. Download it and open it in a
-browser; it needs no network.
-
-**Using an agent?** Point Claude Code, Codex or any agent at this repository and say what you want,
-for example "read AGENTS.md in this repository and add Spec Harness to my project at <path>".
-[`AGENTS.md`](./AGENTS.md) tells it how to install, how to run the workflow and where everything is.
-
-**Adopting it in an existing project?** Follow [docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md):
-both ways to get the CLI (`npx`, or a `git clone` you keep on your machine), then ten steps from a clean branch to a first verified ticket, including what to do when the project
-already has its own `CLAUDE.md` and `AGENTS.md`, how to review what the initialiser wrote, and how
-to undo it.
 
 ## Install and stage from a checkout
 
