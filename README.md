@@ -45,7 +45,7 @@ set up, and the agent opens it for you when you run `/sdd init`. Download it and
 browser; it needs no network.
 
 **Using an agent?** Point Claude Code, Codex or any agent at this repository and say what you want,
-for example "read AGENTS.md in this repository and add Spec Harness to my project at <path>".
+for example "read AGENTS.md in this repository and add Spec Harness to my project at `<path>`".
 [`AGENTS.md`](./AGENTS.md) tells it how to install, how to run the workflow and where everything is.
 
 **Adopting it in an existing project?** Follow [docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md):
