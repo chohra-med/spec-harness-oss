@@ -1,10 +1,10 @@
 <div align="center">
 
-# Spec Harness
+<h1><img src="docs/images/hero.svg" alt="Spec Harness: AI coding with a checker that says PASS or FAIL" width="100%"></h1>
 
-**Spec Harness wraps spec-driven development with project memory, source-backed rules, independent checks, and a learning loop.**
+**Spec-driven development for AI coding agents, with a separate verifier that says PASS or FAIL.**
 
-Spec-driven development, wrapped in a harness: a reviewed ratchet, a separate verifier that says PASS/FAIL, and a learning loop that classifies feedback so durable corrections can become rules.
+Spec Harness wraps spec-driven development with project memory, source-backed rules, independent checks, and a learning loop that turns reviewed corrections into rules.
 
 Created by [**Malik Chohra**](https://getwireai.com?utm_source=github&utm_medium=readme&utm_campaign=creator) · [Code Meet AI newsletter](https://codemeetai.substack.com?utm_source=github&utm_medium=readme&utm_campaign=newsletter)
 
@@ -14,68 +14,16 @@ Sponsored by [AI Mobile Launcher](https://aimobilelauncher.com?utm_source=github
 
 ---
 
-## Name and method
+## Start
 
-**Spec** means a written, checkable description of a change. **Harness** means the project memory, source-backed rules, independent checks, and learning loop around that work. Spec-driven development (SDD) is the workflow; `spec-harness` is the package and local CLI. The shared workflow entry is `/sdd` in Claude Code, or `$sdd` in Codex when the project skill is discovered.
+You need Bash, git and Python 3.11+. Node is needed only for `npx`. Run these from the root of an existing project.
 
-The method stages the harness, inspects the target repository, derives project-bound rules and roles from its source, then takes one ticket through independent checks. The harness keeps project context and reviewed corrections available for later work.
+1. Start on a clean branch:
 
-Roles ask for a model tier, not a model: plan on the strongest model, implement on a fast cheap one,
-and review on whichever the token budget allows. One table in [`commands/sdd.md`](./commands/sdd.md)
-maps tiers to models per provider, so changing provider means filling one column.
-A small model reads each ticket before it is classified (`sdd-router`) and decides its size, the tier for each stage
-and the files to load, so the strong model only works on what needs it.
+   ```sh
+   git switch -c spec-harness-setup
+   ```
 
-Small fixes take a light route: one ticket file, one implementer and one fresh verifier. Larger or
-riskier work keeps the full packet with separate tester, verifier and reviewer.
-
-## The three pillars
-
-Everything in Spec Harness is one of three things. The name is literal: **Spec** + **Harness**.
-
-| Pillar | What it is | What it addresses |
-|---|---|---|
-| **Memory bank** | The context/memory engine: a 10-file `.memory/` bank + an index of the codebase (`context_map`). Persistent project context and a codebase index. | Cold start every session; hallucinated files/symbols. |
-| **Spec-Driven Development** | A feature-owned `spec → goal → plan → tasks → build` packet. The project-bound planner and implementer work with fresh tester, verifier and reviewer contexts; researcher and merger roles are selected when needed. | A structured path from ticket to checkable tasks with project-bound roles. |
-| **Harness** | The ratchet (`AGENTS.md` rules that only tighten after reviewed classification) + the **verifier** (a fresh context, PASS/FAIL vs the feature's checkable goal) + the **tester** (a separate agent that adversarially runs + breaks the critical `workflows/`) + the **learning loop** (feedback is classified before it becomes policy). | Reviewed feedback, independent verification, and checks for critical project workflows. |
-
-## The harness, in detail (where the new work is)
-
-The harness has four moving parts that together make the system *converge* instead of drift:
-
-- **The ratchet**: `AGENTS.md` + `ai_rules/`. Reviewed rules only get added or sharpened; a failure does not become policy automatically.
-- **The verifier**: `sdd-verifier`, a fresh context that checks
-  `specs/<feature>/goal.md` against current evidence and returns `RESULT: PASS|FAIL`. It works from
-  the ticket goal and evidence, not the implementation conversation.
-- **The tester**: `sdd-workflow-tester`, the proactive complement to the verifier. It loads the
-  `workflows/` bank (critical journeys, ranked P0→P2) and, per journey, a clean-context agent *runs
-  it end-to-end and adversarially tries to break it* (bad inputs, killed mid-flow, races, offline,
-  double-submits, boundary values), returning `BROKEN` + a concrete repro. The verifier checks *a
-  change* against the goal; the tester checks *reality* against the critical journeys.
-- **The learning loop** (`learn`): the verifier or tester records a failure; `learn` captures and
-  classifies it, then a reviewed durable correction can become a dated rule (a BROKEN workflow can
-  also yield a recommended regression guard). The `sdd-learner` agent owns it: it also records
-  decisions, promotes a cause that repeats, and corrects project skills as well as rules. Feedback never evaporates. The machine learns from its failures
-  (→ rules); the operator learns from its wins (→ `learning/` lessons). *This is the "loop",
-  reframed: not a cron schedule, a learning schedule.*
-
-## What this is (and isn't)
-
-- **It is** a portable, stack-agnostic system for project memory, bounded package inventory,
-  source-backed rules and skills, SDD roles, independent gates, and a learning loop. It adds no
-  application dependency. The source commands use Bash. Python 3.11+ is required for the complete
-  index-and-check flow. This source repository is MIT-licensed; see [LICENSE](./LICENSE). Run the
-  CLI with `npx` from GitHub, from a checkout, or from a locally packed tarball. This source release
-  is not published to npm; the registry package with the same name is unrelated. Model-led work needs a capable client; the shell stages files and reports
-  `PENDING` rather than claiming that agents ran.
-- **It runs the dev, not the product.** The harness guides the development workflow; the shipped
-  application remains yours.
-
-## Quickstart
-
-Five steps, from the root of an existing project. You need Bash, git and Python 3.11+; Node is needed only for `npx`.
-
-1. Start on a clean branch: `git switch -c spec-harness-setup`.
 2. Stage the harness. This copies files and reports `PENDING`; it does not write project rules:
 
    ```sh
@@ -83,9 +31,12 @@ Five steps, from the root of an existing project. You need Bash, git and Python 
    ```
 
 3. Review what it wrote with `git status` and `git diff`, then commit it on the branch.
+
 4. In Claude Code, run `/sdd init`. It reads the codebase and writes the project's rules, skills and roles.
-5. Run one small ticket with `/sdd <ticket text>`. Check its resumable state with
-   `spec-harness run-state --check <ticket>` (see [docs/RUN-STATE.md](./docs/RUN-STATE.md)).
+
+5. Run one small ticket with `/sdd <ticket text>`. Check its resumable state with `spec-harness run-state --check <ticket>` (see [docs/RUN-STATE.md](./docs/RUN-STATE.md)).
+
+<br>
 
 **New here? Read the ten-minute explainer first.** [`learning_human.html`](./learning_human.html) is
 one interactive page: what Spec Harness is, how a ticket moves through it, which model does what,
@@ -101,6 +52,108 @@ for example "read AGENTS.md in this repository and add Spec Harness to my projec
 both ways to get the CLI (`npx`, or a `git clone` you keep on your machine), then ten steps from a clean branch to a first verified ticket, including what to do when the project
 already has its own `CLAUDE.md` and `AGENTS.md`, how to review what the initialiser wrote, and how
 to undo it.
+
+<br>
+
+## Why this exists
+
+AI coding agents lose the project every session, mark their own homework, and repeat the same mistakes. Spec Harness fixes each one with a separate piece, and the three pieces stack:
+
+<img src="docs/images/pillars.svg" alt="Three pillars: the memory bank at the bottom, spec-driven development in the middle, the harness on top." width="100%">
+
+<br>
+
+## How a ticket moves
+
+<img src="docs/images/ticket-flow.svg" alt="Ticket, router, build, fresh checks, learn. Confirmed misses become rules that the next ticket starts with." width="100%">
+
+<br>
+
+| Ticket size | When | Route |
+|---|---|---|
+| **MICRO** | One small, reversible, local fix | One ticket file, one implementer, one fresh verifier. |
+| **LITE** | A small multi-file change | A short packet with the plan written inline, then a fresh tester, verifier and reviewer. |
+| **FULL** | Anything shared, security-sensitive, multi-repo or high-risk. When unsure, FULL. | Full packet with separate tester, verifier and reviewer. |
+
+<br>
+
+<details>
+<summary><strong>What the name and the model tiers mean</strong></summary>
+
+<br>
+
+**Spec** means a written, checkable description of a change. **Harness** means the project memory, source-backed rules, independent checks, and learning loop around that work. Spec-driven development (SDD) is the workflow; `spec-harness` is the package and local CLI. The shared workflow entry is `/sdd` in Claude Code, or `$sdd` in Codex when the project skill is discovered.
+
+The method stages the harness, inspects the target repository, derives project-bound rules and roles from its source, then takes one ticket through independent checks. The harness keeps project context and reviewed corrections available for later work.
+
+Roles ask for a model tier: plan on the strongest model, implement on a fast cheap one,
+and review on whichever the token budget allows. One table in [`commands/sdd.md`](./commands/sdd.md)
+maps tiers to models per provider, so changing provider means filling one column.
+A small model reads each ticket before it is classified (`sdd-router`) and decides its size, the tier for each stage
+and the files to load, so the strong model only works on what needs it.
+
+Small fixes take a light route: one ticket file, one implementer and one fresh verifier. Larger or
+riskier work keeps the full packet with separate tester, verifier and reviewer.
+
+</details>
+
+<details>
+<summary><strong>The three pillars, in a table</strong></summary>
+
+<br>
+
+Everything in Spec Harness is one of three things. The name is literal: **Spec** + **Harness**.
+
+| Pillar | What it is | What it addresses |
+|---|---|---|
+| **Memory bank** | The context/memory engine: a 10-file `.memory/` bank + an index of the codebase (`context_map`). Persistent project context and a codebase index. | Cold start every session; hallucinated files/symbols. |
+| **Spec-Driven Development** | A feature-owned `spec → goal → plan → tasks → build` packet. The project-bound planner and implementer work with fresh tester, verifier and reviewer contexts; researcher and merger roles are selected when needed. | A structured path from ticket to checkable tasks with project-bound roles. |
+| **Harness** | The ratchet (`AGENTS.md` rules that only tighten after reviewed classification) + the **verifier** (a fresh context, PASS/FAIL vs the feature's checkable goal) + the **tester** (a separate agent that adversarially runs + breaks the critical `workflows/`) + the **learning loop** (feedback is classified before it becomes policy). | Reviewed feedback, independent verification, and checks for critical project workflows. |
+
+</details>
+
+<details>
+<summary><strong>The harness, in detail: ratchet, verifier, tester, learning loop</strong></summary>
+
+<br>
+
+The harness has four moving parts that together make the system *converge* instead of drift:
+
+- **The ratchet**: `AGENTS.md` + `ai_rules/`. Reviewed rules only get added or sharpened; a failure does not become policy automatically.
+- **The verifier**: `sdd-verifier`, a fresh context that checks
+  `specs/<feature>/goal.md` against current evidence and returns `RESULT: PASS|FAIL`. It works from
+  the ticket goal and evidence.
+- **The tester**: `sdd-workflow-tester`, the proactive complement to the verifier. It loads the
+  `workflows/` bank (critical journeys, ranked P0→P2) and, per journey, a clean-context agent *runs
+  it end-to-end and adversarially tries to break it* (bad inputs, killed mid-flow, races, offline,
+  double-submits, boundary values), returning `BROKEN` + a concrete repro. The verifier checks *a
+  change* against the goal; the tester checks *reality* against the critical journeys.
+- **The learning loop** (`learn`): the verifier or tester records a failure; `learn` captures and
+  classifies it, then a reviewed durable correction can become a dated rule (a BROKEN workflow can
+  also yield a recommended regression guard). The `sdd-learner` agent owns it: it also records
+  decisions, promotes a cause that repeats, and corrects project skills as well as rules. Feedback never evaporates. The machine learns from its failures
+  (→ rules); the operator learns from its wins (→ `learning/` lessons). *This is the "loop",
+  reframed: not a cron schedule, a learning schedule.*
+
+</details>
+
+<br>
+
+---
+
+## Reference
+
+## What this is (and isn't)
+
+- **It is** a portable, stack-agnostic system for project memory, bounded package inventory,
+  source-backed rules and skills, SDD roles, independent gates, and a learning loop. It adds no
+  application dependency. The source commands use Bash. Python 3.11+ is required for the complete
+  index-and-check flow. This source repository is MIT-licensed; see [LICENSE](./LICENSE). Run the
+  CLI with `npx` from GitHub, from a checkout, or from a locally packed tarball. This source release
+  is not published to npm; the registry package with the same name is unrelated. Model-led work needs a capable client; the shell stages files and reports
+  `PENDING` rather than claiming that agents ran.
+- **It runs the dev, not the product.** The harness guides the development workflow; the shipped
+  application remains yours.
 
 ## Install and stage from a checkout
 
