@@ -144,6 +144,185 @@ assert_absent "$MISSING_REF/ai_rules/missing-local-rule.md" 'installer does not 
 if [ "$(hash_file "$MISSING_REF/CLAUDE.md")" = "$MISSING_REF_HASH" ]; then pass 'missing-reference startup file is preserved byte-for-byte'; else fail 'missing-reference startup file is preserved byte-for-byte'; fi
 if grep -Eq 'status[[:space:]]*:[[:space:]]*READY|READY: true' "$TMP/missing-reference.log"; then fail 'missing installed reference is never called READY'; else pass 'missing installed reference is never called READY'; fi
 
+# The staged CLAUDE.md imports AGENTS.md so Claude Code loads the same rules; an existing one is never touched.
+assert_line_present() {
+  local file="$1" label="$2"
+  if grep -Fxq '@AGENTS.md' "$file"; then pass "$label"; else fail "$label (no exact @AGENTS.md line in $file)"; fi
+}
+assert_line_present "$NEW/CLAUDE.md" 'fresh install CLAUDE.md imports AGENTS.md'
+AGENTS_ONLY="$TMP/agents-only-target"
+mkdir -p "$AGENTS_ONLY"
+printf '# Local agents\nKeep changes small.\n' >"$AGENTS_ONLY/AGENTS.md"
+run_cli "$TMP/agents-only.log" init "$AGENTS_ONLY" new AgentsOnly
+assert_rc 0 'a target with only AGENTS.md installs'
+assert_line_present "$AGENTS_ONLY/CLAUDE.md" 'a target with only AGENTS.md gets a CLAUDE.md that imports it'
+if ! grep -Fxq '@AGENTS.md' "$MISSING_REF/CLAUDE.md"; then pass 'an existing CLAUDE.md gets no AGENTS.md import added'; else fail 'an existing CLAUDE.md gets no AGENTS.md import added'; fi
+
+# The project lens template and the optional memory kinds are staged on an empty target; an existing lens is never touched.
+assert_file "$NEW/ai_rules/review-lens.md" 'fresh install stages the review lens template'
+assert_contains "$NEW/ai_rules/review-lens.md" '- **LENS-<n>** <one check sentence>.' 'lens template shows the line format'
+assert_contains "$NEW/ai_rules/review-lens.md" '`MET`, `VIOLATED` or `NOT-APPLICABLE`' 'lens template names the three verdicts'
+assert_contains "$NEW/ai_rules/review-lens.md" 'never remove or weaken a lens item' 'lens template says a brief may add and never remove'
+assert_contains "$NEW/ai_rules/review-lens.md" 'Status: PENDING' 'lens template is PENDING'
+for kind_file in content/voice-dna.md content/audience.md automation/pipeline.md research/sources.md; do
+  assert_file "$NEW/.claude/spec-harness/memory-kinds/$kind_file" "fresh install stages memory kind $kind_file"
+  assert_contains "$NEW/.claude/spec-harness/memory-kinds/$kind_file" 'Status: PENDING' "memory kind $kind_file is PENDING"
+done
+# The memory guide is staged where commands/init.md names it, and init.md names that exact path.
+assert_file "$NEW/.claude/spec-harness/docs/MEMORY.md" 'fresh install stages the memory guide docs/MEMORY.md'
+assert_contains "$NEW/.claude/spec-harness/docs/MEMORY.md" '## When a Hot file is full' 'staged memory guide has the Hot-file section'
+assert_contains "$HARNESS_DIR/commands/init.md" '.claude/spec-harness/docs/MEMORY.md' 'init.md names the staged memory guide path'
+LENS_TARGET="$TMP/lens-target"
+mkdir -p "$LENS_TARGET/ai_rules"
+printf '# My lens\n- **LENS-1** Own check.\n' >"$LENS_TARGET/ai_rules/review-lens.md"
+LENS_HASH="$(hash_file "$LENS_TARGET/ai_rules/review-lens.md")"
+run_cli "$TMP/lens-target.log" init "$LENS_TARGET" new LensTarget
+assert_rc 0 'a target with its own review lens installs'
+if [ "$(hash_file "$LENS_TARGET/ai_rules/review-lens.md")" = "$LENS_HASH" ]; then pass 'an existing review-lens.md stays byte-identical'; else fail 'an existing review-lens.md stays byte-identical'; fi
+
+# The edit guard hook: staged executable, registered in the untracked settings.local.json by a merge,
+# never in the committed settings.json, idempotent, and removable without touching anything else.
+HOOK_CMD='"$CLAUDE_PROJECT_DIR"/.claude/spec-harness/hooks/sdd-gate.sh'
+HOOK_REG="$HARNESS_DIR/bin/sh-hook-register.py"
+HOOK_GIT="$TMP/hook-git"
+mkdir -p "$HOOK_GIT"
+git init -q "$HOOK_GIT"
+run_cli "$TMP/hook-git.log" install "$HOOK_GIT" integrate HookGit
+assert_rc 0 'install into a git target with the hook'
+assert_file "$HOOK_GIT/.claude/spec-harness/hooks/sdd-gate.sh" 'install stages the edit guard hook'
+if [ -x "$HOOK_GIT/.claude/spec-harness/hooks/sdd-gate.sh" ]; then pass 'the staged hook is executable'; else fail 'the staged hook is executable'; fi
+assert_file "$HOOK_GIT/.claude/settings.local.json" 'install registers the hook in settings.local.json'
+assert_absent "$HOOK_GIT/.claude/settings.json" 'install never writes the committed settings.json'
+assert_contains "$TMP/hook-git.log" 'hook registration' 'the install report says what happened to the hook registration'
+python3 -I -B - "$HOOK_GIT/.claude/settings.local.json" "$HOOK_CMD" <<'PYHOOK1' >"$TMP/hook-git-check.log" 2>&1
+import json, sys
+settings = json.load(open(sys.argv[1]))
+groups = settings["hooks"]["PreToolUse"]
+assert len(groups) == 1, groups
+assert groups[0]["matcher"] == "Edit|Write|MultiEdit|NotebookEdit", groups
+assert groups[0]["hooks"] == [{"type": "command", "command": sys.argv[2]}], groups
+print("REGISTERED once with the expected matcher and command")
+PYHOOK1
+assert_contains "$TMP/hook-git-check.log" 'REGISTERED once with the expected matcher and command' 'settings.local.json holds exactly one harness entry'
+HOOK_EXCLUDE_COUNT="$(grep -Fxc '/.claude/settings.local.json' "$HOOK_GIT/.git/info/exclude")"
+if [ "$HOOK_EXCLUDE_COUNT" = 1 ]; then pass 'the settings file is added to .git/info/exclude once'; else fail "the settings file is added to .git/info/exclude once (found $HOOK_EXCLUDE_COUNT)"; fi
+if git -C "$HOOK_GIT" check-ignore -q .claude/settings.local.json; then pass 'git ignores the settings file after install'; else fail 'git ignores the settings file after install'; fi
+HOOK_SETTINGS_HASH="$(hash_file "$HOOK_GIT/.claude/settings.local.json")"
+run_cli "$TMP/hook-git-2.log" install "$HOOK_GIT" integrate HookGit
+assert_rc 0 'second install into the same target'
+if [ "$(hash_file "$HOOK_GIT/.claude/settings.local.json")" = "$HOOK_SETTINGS_HASH" ]; then pass 'a second install leaves settings.local.json byte-identical'; else fail 'a second install leaves settings.local.json byte-identical'; fi
+HOOK_EXCLUDE_COUNT="$(grep -Fxc '/.claude/settings.local.json' "$HOOK_GIT/.git/info/exclude")"
+if [ "$HOOK_EXCLUDE_COUNT" = 1 ]; then pass 'a second install does not repeat the exclude line'; else fail "a second install does not repeat the exclude line (found $HOOK_EXCLUDE_COUNT)"; fi
+if [ -z "$(find "$HOOK_GIT/.claude" -maxdepth 1 -name '.spec-harness-update-*')" ]; then pass 'the settings merge leaves no temporary file'; else fail 'the settings merge leaves no temporary file'; fi
+
+# An existing settings.local.json keeps every unrelated key and hook, in order, and its file mode.
+HOOK_MERGE="$TMP/hook-merge"
+mkdir -p "$HOOK_MERGE/.claude"
+git init -q "$HOOK_MERGE"
+cat >"$HOOK_MERGE/.claude/settings.local.json" <<'JSON'
+{
+  "permissions": {"allow": ["Bash(ls:*)"], "deny": []},
+  "env": {"EXAMPLE": "1"},
+  "hooks": {
+    "PreToolUse": [
+      {"matcher": "Bash", "hooks": [{"type": "command", "command": "echo before-bash"}]},
+      {"matcher": "Edit", "hooks": [{"type": "command", "command": "echo own-edit-hook"}]}
+    ],
+    "PostToolUse": [{"matcher": "Write", "hooks": [{"type": "command", "command": "echo after-write"}]}]
+  }
+}
+JSON
+chmod 600 "$HOOK_MERGE/.claude/settings.local.json"
+cp "$HOOK_MERGE/.claude/settings.local.json" "$TMP/hook-merge-before.json"
+printf '{"permissions": {"allow": ["Read"]}}\n' >"$HOOK_MERGE/.claude/settings.json"
+HOOK_COMMITTED_HASH="$(hash_file "$HOOK_MERGE/.claude/settings.json")"
+run_cli "$TMP/hook-merge.log" install "$HOOK_MERGE" integrate HookMerge
+assert_rc 0 'install over an existing settings.local.json'
+run_cli "$TMP/hook-merge-2.log" install "$HOOK_MERGE" integrate HookMerge
+assert_rc 0 'second install over an existing settings.local.json'
+if [ "$(hash_file "$HOOK_MERGE/.claude/settings.json")" = "$HOOK_COMMITTED_HASH" ]; then pass 'the committed settings.json is byte-identical after install'; else fail 'the committed settings.json is byte-identical after install'; fi
+python3 -I -B - "$TMP/hook-merge-before.json" "$HOOK_MERGE/.claude/settings.local.json" "$HOOK_CMD" <<'PYHOOK2' >"$TMP/hook-merge-check.log" 2>&1
+import json, os, stat, sys
+before = json.load(open(sys.argv[1]))
+path = sys.argv[2]
+after = json.load(open(path))
+ours = {"matcher": "Edit|Write|MultiEdit|NotebookEdit", "hooks": [{"type": "command", "command": sys.argv[3]}]}
+assert after["permissions"] == before["permissions"] and after["env"] == before["env"], after
+assert after["hooks"]["PostToolUse"] == before["hooks"]["PostToolUse"], after
+assert after["hooks"]["PreToolUse"][:2] == before["hooks"]["PreToolUse"], after["hooks"]["PreToolUse"]
+assert after["hooks"]["PreToolUse"][2:] == [ours], after["hooks"]["PreToolUse"]
+assert set(after) == set(before), after
+assert stat.S_IMODE(os.stat(path).st_mode) == 0o600, oct(os.stat(path).st_mode)
+print("MERGED: unrelated keys and hooks survive, one entry added, mode kept")
+PYHOOK2
+assert_contains "$TMP/hook-merge-check.log" 'MERGED: unrelated keys and hooks survive, one entry added, mode kept' 'a merge keeps unrelated keys and hooks, adds one entry once, keeps the mode'
+# Remove deletes only the harness entry and restores the person's own file meaning.
+python3 -I -B "$HOOK_REG" remove "$HOOK_MERGE" >"$TMP/hook-merge-remove.log" 2>&1
+python3 -I -B "$HOOK_REG" remove "$HOOK_MERGE" >>"$TMP/hook-merge-remove.log" 2>&1
+python3 -I -B - "$TMP/hook-merge-before.json" "$HOOK_MERGE/.claude/settings.local.json" <<'PYHOOK3' >"$TMP/hook-merge-remove-check.log" 2>&1
+import json, sys
+assert json.load(open(sys.argv[1])) == json.load(open(sys.argv[2]))
+print("REMOVED: the file is back to the person's own content")
+PYHOOK3
+assert_contains "$TMP/hook-merge-remove-check.log" "REMOVED: the file is back to the person's own content" 'remove takes out only the harness entry (twice is safe)'
+assert_file "$HOOK_MERGE/.claude/spec-harness/hooks/sdd-gate.sh" 'remove leaves the staged hook script alone'
+python3 -I -B "$HOOK_REG" remove "$HOOK_GIT" >"$TMP/hook-git-remove.log" 2>&1
+assert_absent "$HOOK_GIT/.claude/settings.local.json" 'remove deletes a settings file that held only the harness entry'
+
+# A settings file the merge cannot trust is left byte-for-byte alone and named in the report.
+HOOK_BAD="$TMP/hook-bad"
+mkdir -p "$HOOK_BAD/.claude"
+printf '{ not json\n' >"$HOOK_BAD/.claude/settings.local.json"
+HOOK_BAD_HASH="$(hash_file "$HOOK_BAD/.claude/settings.local.json")"
+run_cli "$TMP/hook-bad.log" install "$HOOK_BAD" integrate HookBad
+assert_rc 0 'install next to an unreadable settings.local.json still stages the rest'
+if [ "$(hash_file "$HOOK_BAD/.claude/settings.local.json")" = "$HOOK_BAD_HASH" ]; then pass 'an invalid settings.local.json is left byte-identical'; else fail 'an invalid settings.local.json is left byte-identical'; fi
+assert_contains "$TMP/hook-bad.log" 'hook registration: NOT registered' 'the report says the hook was not registered'
+HOOK_LINK="$TMP/hook-link"
+mkdir -p "$HOOK_LINK/.claude"
+printf '{"keep": true}\n' >"$TMP/hook-link-victim.json"
+ln -s "$TMP/hook-link-victim.json" "$HOOK_LINK/.claude/settings.local.json"
+run_cli "$TMP/hook-link.log" install "$HOOK_LINK" integrate HookLink
+assert_rc 0 'install next to a linked settings.local.json still stages the rest'
+if [ "$(cat "$TMP/hook-link-victim.json")" = '{"keep": true}' ]; then pass 'a linked settings.local.json is never written through'; else fail 'a linked settings.local.json is never written through'; fi
+assert_contains "$TMP/hook-link.log" 'hook registration: NOT registered' 'the report says a linked settings file was not used'
+
+# A target that already ignores the file, and a target that is not a git repository.
+HOOK_IGN="$TMP/hook-ignored"
+mkdir -p "$HOOK_IGN"
+git init -q "$HOOK_IGN"
+printf '.claude/settings.local.json\n' >"$HOOK_IGN/.gitignore"
+run_cli "$TMP/hook-ignored.log" install "$HOOK_IGN" integrate HookIgnored
+assert_rc 0 'install into a target that already ignores the settings file'
+if ! grep -Fq 'settings.local.json' "$HOOK_IGN/.git/info/exclude"; then pass 'an already ignored settings file is not added to .git/info/exclude'; else fail 'an already ignored settings file is not added to .git/info/exclude'; fi
+HOOK_PLAIN="$TMP/hook-plain"
+mkdir -p "$HOOK_PLAIN"
+run_cli "$TMP/hook-plain.log" install "$HOOK_PLAIN" new HookPlain
+assert_rc 0 'install into a folder that is not a git repository'
+assert_file "$HOOK_PLAIN/.claude/settings.local.json" 'a non-git target still gets the registration'
+assert_absent "$HOOK_PLAIN/.git" 'the installer does not create a git repository'
+run_cli "$TMP/hook-uninstall.log" uninstall "$HOOK_PLAIN"
+assert_contains "$TMP/hook-uninstall.log" '.claude/spec-harness/hooks/sdd-gate.sh' 'the uninstall plan lists the hook script'
+assert_contains "$TMP/hook-uninstall.log" 'sh-hook-register.py remove' 'the uninstall plan names the command that removes the settings entry'
+
+# The removal command the uninstall plan prints must survive a path with a space: split it like a shell and run it.
+HOOK_SPACE="$TMP/hook target with space"
+mkdir -p "$HOOK_SPACE"
+run_cli "$TMP/hook-space-install.log" install "$HOOK_SPACE" new HookSpace
+run_cli "$TMP/hook-space-uninstall.log" uninstall "$HOOK_SPACE"
+python3 -I -B - "$TMP/hook-space-uninstall.log" "$HOOK_SPACE" "$HOOK_REG" <<'PYSPACE' >"$TMP/hook-space-check.log" 2>&1
+import shlex, subprocess, sys
+line = next(l for l in open(sys.argv[1]).read().splitlines() if "sh-hook-register.py" in l and "remove" in l).strip()
+words = shlex.split(line)
+import os
+assert os.path.realpath(words[-1]) == os.path.realpath(sys.argv[2]) and words[-2] == "remove" and words[-3] == sys.argv[3], words
+result = subprocess.run(words, capture_output=True, text=True)
+assert result.returncode == 0, (result.returncode, result.stdout, result.stderr)
+print("QUOTED: the printed removal command works for a path with a space")
+PYSPACE
+assert_contains "$TMP/hook-space-check.log" 'QUOTED: the printed removal command works for a path with a space' 'the uninstall plan quotes the target path in the removal command'
+assert_absent "$HOOK_SPACE/.claude/settings.local.json" 'the printed removal command removed the harness entry'
+
 # Explicit integrate into an existing package-shaped fixture.
 INTEGRATE="$TMP/integrate project"
 mkdir -p "$INTEGRATE"

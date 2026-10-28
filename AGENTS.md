@@ -47,7 +47,7 @@ are the same route, written for an agent. The guide numbers its steps differentl
 differ in detail, the guide wins. Step numbers in this section mean the numbers in this section.
 
 **If the user is not there to answer you:** step 2 still decides. If it tells you to stop, stop
-there and change nothing. If it passes, do steps 3, 4, 6 and 8, which only add files, using the
+there and change nothing. If it passes, do steps 3, 4, 6 and 8, which only add files (step 3 also merges one hook entry into `.claude/settings.local.json`), using the
 default source sample in step 6. Do not edit their instruction files (step 5) and do not initialise
 (step 7). Report exactly what you did and what is waiting for them.
 
@@ -69,7 +69,7 @@ default source sample in step 6. Do not edit their instruction files (step 5) an
    npx -y github:chohra-med/spec-harness-oss init . integrate
    ```
 
-   Exit code 0 with a `status` line that says `PENDING` is success. It only copies files.
+   Exit code 0 with a `status` line that says `PENDING` is success. It copies files, and merges one edit guard hook entry into `.claude/settings.local.json` (the `hook registration` line in the report says what happened; other keys and hooks there are kept).
 4. **Read the report.** `ADDED` are new files. `PRESERVED` is every file that already existed;
    none of them is overwritten. `CONFLICTS` is the subset of preserved files whose content differs
    from the harness version: those are the user's own. **Never overwrite a preserved or conflicting
@@ -136,11 +136,12 @@ from. Read them here to understand the method; act on the installed copies in th
 | `agents/sdd-*.md` | The thirteen role files, with `model:` and `tools:` frontmatter | you touch a role |
 | `bin/spec-harness` | CLI dispatcher | you add or trace a subcommand |
 | `bin/sh-install.sh` | Stages files into a target; refuses unsafe paths | install behaviour |
+| `hooks/sdd-gate.sh`, `bin/sh-hook-register.py` | The edit guard hook that the installer stages, and the helper that merges (or removes) its entry in a target's `.claude/settings.local.json` | you change the guard or its registration |
 | `bin/sh-index.sh` | Writes the project inventory | inventory behaviour |
 | `bin/sh-gen-agents.sh` | The structural check of an initialised project | receipt or check behaviour |
 | `bin/sh-make-skills.sh` | **Generates** `skills/` | you change a skill's text |
 | `skills/` | Generated skill entry points. **Never edit by hand** | read only |
-| `templates/` | Files copied into a target: `AGENTS.md`, `CLAUDE.md`, `RULES.md`, `constitution.md`, `goal.template.md`, `workflows/`, `project-skills/` (methods), and `install/` (memory bank, `ai_rules/`, status file) | you change what a project receives |
+| `templates/` | Files copied into a target: `AGENTS.md`, `CLAUDE.md`, `RULES.md`, `constitution.md`, `goal.template.md`, `workflows/`, `project-skills/` (methods), `memory-kinds/` (optional memory files), and `install/` (memory bank, `ai_rules/` including the review lens template, status file) | you change what a project receives |
 | [`install-manifest.json`](./install-manifest.json) | Record of every staged file, with a hash per source | you add, remove or edit a staged file; then run `bash tests/tools/update-install-manifest.sh` |
 | `tests/*.sh` | Contract and fixture tests | before and after every change |
 | [`learning_human.html`](./learning_human.html) | The interactive explainer for humans. Staged into every target; init opens it | a person asks what this is, or you change what the harness does |
