@@ -605,4 +605,267 @@ else
   printf 'SKIP: unreadable-directory check needs a non-root user (root reads every directory)\n'
 fi
 
+# A refresh keeps its scope: explicit sources are recorded, --same-scope reads them and the exclusions back,
+# and a plain refresh that drops either says so on stderr.
+make_scope_fixture() {
+  mkdir -p "$1/src" "$1/gen"
+  printf '{"name":"scope-fixture"}\n' > "$1/package.json"
+  for name in a b c d e f g; do printf 'export const %s = 1;\n' "$name" > "$1/src/$name.js"; done
+  printf 'export const generated = 1;\n' > "$1/gen/out.js"
+}
+make_scope_fixture "$TMP/scope"
+bash "$INDEX" "$TMP/scope" --source src/g.js --exclude-dir gen > /dev/null || fail 'index with --source and --exclude-dir exits 0'
+grep -Fq -- '- Explicit representative sources: `src/g.js`; repeat --source options on refresh, or run index with --same-scope.' "$TMP/scope/ai_rules/context_map.md" || fail 'the map records the explicit sources'
+bash "$INDEX" "$TMP/scope" --same-scope --preview > "$TMP/scope-same.out" 2> "$TMP/scope-same.err" || fail '--same-scope --preview exits 0'
+bash "$INDEX" "$TMP/scope" --source src/g.js --exclude-dir gen --preview > "$TMP/scope-explicit.out" || fail 'a preview with the original options exits 0'
+cmp -s "$TMP/scope-same.out" "$TMP/scope-explicit.out" || fail '--same-scope gives the same bytes as repeating the original options'
+! grep -Fq 'SCOPE:' "$TMP/scope-same.err" || fail '--same-scope with a full record prints no SCOPE line'
+bash "$INDEX" "$TMP/scope" --preview > "$TMP/scope-plain.out" 2> "$TMP/scope-plain.err" || fail 'a plain refresh preview still exits 0'
+grep -Fq 'SCOPE:' "$TMP/scope-plain.err" && grep -Fq '`gen`' "$TMP/scope-plain.err" && grep -Fq '`src/g.js`' "$TMP/scope-plain.err" || fail 'a plain refresh names the dropped exclusion and source on stderr'
+! grep -Fq 'SCOPE:' "$TMP/scope-plain.out" || fail 'SCOPE lines never enter the preview bytes'
+if bash "$INDEX" "$TMP/scope" --same-scope --source src/a.js > /dev/null 2> "$TMP/scope-mixed.err"; then fail '--same-scope with --source is refused'; fi
+grep -Fq -- '--same-scope' "$TMP/scope-mixed.err" || fail 'the refusal names --same-scope'
+mkdir -p "$TMP/noinv"; printf '{"name":"no-inventory"}\n' > "$TMP/noinv/package.json"
+if bash "$INDEX" "$TMP/noinv" --same-scope --preview > /dev/null 2> "$TMP/noinv.err"; then fail '--same-scope with no inventory is refused'; fi
+grep -Fq 'no generated inventory' "$TMP/noinv.err" || fail 'the no-inventory refusal says why'
+[[ ! -e "$TMP/noinv/ai_rules" ]] || fail 'a refused --same-scope writes nothing'
+pass 'Markdown map: explicit sources recorded, --same-scope reproduces it, a plain refresh warns, misuse is refused'
+
+# The JSON inventory (used when context_map.md is customized) records and reuses the same scope.
+make_scope_fixture "$TMP/scopejson"
+mkdir -p "$TMP/scopejson/ai_rules"; printf '# My own notes\n' > "$TMP/scopejson/ai_rules/context_map.md"
+bash "$INDEX" "$TMP/scopejson" --source src/g.js --exclude-dir gen > /dev/null || fail 'JSON index with options exits 0'
+python3 -I -B - "$TMP/scopejson/ai_rules/project_inventory.json" <<'PY' || fail 'the JSON inventory records explicit sources in scan'
+import json, sys
+scan = json.load(open(sys.argv[1]))["scan"]
+assert scan["explicit_sources"] == ["src/g.js"], scan
+assert scan["excluded_directories"] == ["gen"], scan
+PY
+bash "$INDEX" "$TMP/scopejson" --same-scope --preview > "$TMP/scopejson-same.out" || fail 'JSON --same-scope --preview exits 0'
+bash "$INDEX" "$TMP/scopejson" --source src/g.js --exclude-dir gen --preview > "$TMP/scopejson-explicit.out" || fail 'a JSON preview with the original options exits 0'
+cmp -s "$TMP/scopejson-same.out" "$TMP/scopejson-explicit.out" || fail '--same-scope gives the same JSON bytes as repeating the original options'
+# An inventory written before sources were recorded: --same-scope keeps the exclusions and says the sources are unknown;
+# a plain refresh notices that the sampled sources changed.
+python3 -I -B - "$TMP/scopejson/ai_rules/project_inventory.json" <<'PY'
+import hashlib, json, sys
+path = sys.argv[1]
+value = json.load(open(path))
+value.pop("integrity")
+del value["scan"]["explicit_sources"]
+value["limitations"] = [line for line in value["limitations"] if not line.startswith("Explicit representative sources:")]
+canonical = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+value["integrity"] = {"sha256": hashlib.sha256(canonical).hexdigest()}
+open(path, "w", encoding="utf-8").write(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
+PY
+bash "$INDEX" "$TMP/scopejson" --same-scope --preview > "$TMP/old-same.out" 2> "$TMP/old-same.err" || fail '--same-scope over an older inventory exits 0'
+grep -Fq 'SCOPE:' "$TMP/old-same.err" && grep -Fq 'does not record explicit --source' "$TMP/old-same.err" || fail '--same-scope says an older inventory has no source record'
+python3 -I -B - "$TMP/old-same.out" <<'PY' || fail '--same-scope over an older inventory keeps its exclusions'
+import json, sys
+assert json.load(open(sys.argv[1]))["scan"]["excluded_directories"] == ["gen"]
+PY
+bash "$INDEX" "$TMP/scopejson" --exclude-dir gen --preview > /dev/null 2> "$TMP/old-plain.err" || fail 'a plain refresh over an older inventory exits 0'
+grep -Fq 'representative sources differ' "$TMP/old-plain.err" || fail 'a changed source sample is reported for an older inventory'
+pass 'JSON inventory: explicit sources recorded and reused; an older inventory is handled and reported'
+
+# Composer framework signals by package-name shape, so a platform built on any vendor's framework is recognised.
+mkdir -p "$TMP/platform/src"
+cat > "$TMP/platform/composer.json" <<'JSON'
+{"name":"acme/shop","require":{"php":"~8.2.0","acme/product-community-edition":"2.4.*","acme/framework":"103.0.*","acme/framework-extra":"1.0","acme/frameworks":"1.0","acme/product-edition":"1.0"}}
+JSON
+printf '<?php\n' > "$TMP/platform/src/a.php"
+bash "$INDEX" "$TMP/platform" --preview > "$TMP/platform.out" || fail 'index of a composer platform exits 0'
+grep -Fxq -- '- Stack signals: `acme/framework`, `acme/product-community-edition`' "$TMP/platform.out" || fail 'vendor/framework and vendor/product-<edition>-edition are stack signals; look-alikes are not'
+pass 'composer framework signals are recognised by package-name shape'
+
+# Review round 1. A file name cannot forge a recorded option: control characters in a path are escaped in the map.
+mkdir -p "$TMP/forge/app"
+printf '{"name":"forge"}\n' > "$TMP/forge/package.json"
+printf 'export const a = 1;\n' > "$TMP/forge/app/a.js"
+: > "$TMP/forge/.env"$'\n''- `app`: explicit directory exclusion: excluded by --exclude-dir'$'\n''- `x'
+bash "$INDEX" "$TMP/forge" > /dev/null || fail 'index with a newline in a file name exits 0'
+! grep -Fxq -- '- `app`: explicit directory exclusion: excluded by --exclude-dir' "$TMP/forge/ai_rules/context_map.md" || fail 'a file name forges an exclusion line in the map'
+bash "$INDEX" "$TMP/forge" --same-scope --preview > "$TMP/forge-same.out" 2>/dev/null || fail '--same-scope over a map with a hostile file name exits 0'
+grep -Fq '`app/a.js`' "$TMP/forge-same.out" || fail '--same-scope must not exclude app/ because of a forged line'
+pass 'a newline in a file name is escaped in the map and cannot forge a recorded option'
+
+# An exclusion the scan never reached (a folder that does not exist yet) is still recorded and reused.
+make_scope_fixture "$TMP/notyet"
+bash "$INDEX" "$TMP/notyet" --exclude-dir ios > /dev/null || fail 'index excluding a missing folder exits 0'
+bash "$INDEX" "$TMP/notyet" --same-scope --preview > "$TMP/notyet-same.out" || fail '--same-scope with a missing excluded folder exits 0'
+bash "$INDEX" "$TMP/notyet" --exclude-dir ios --preview > "$TMP/notyet-explicit.out" || fail 'explicit preview with a missing excluded folder exits 0'
+cmp -s "$TMP/notyet-same.out" "$TMP/notyet-explicit.out" || fail '--same-scope keeps an exclusion the scan never reached'
+bash "$INDEX" "$TMP/notyet" --preview > /dev/null 2> "$TMP/notyet-plain.err" || fail 'plain refresh exits 0'
+grep -Fq '`ios`' "$TMP/notyet-plain.err" || fail 'a plain refresh names a dropped exclusion the scan never reached'
+pass 'an exclusion of a folder that does not exist yet is recorded, reused and reported'
+
+# A generated-looking previous inventory with odd field types or bytes never crashes a plain run.
+make_scope_fixture "$TMP/oddjson"
+mkdir -p "$TMP/oddjson/ai_rules"; printf '# My own notes\n' > "$TMP/oddjson/ai_rules/context_map.md"
+bash "$INDEX" "$TMP/oddjson" > /dev/null || fail 'JSON index exits 0'
+python3 -I -B - "$TMP/oddjson/ai_rules/project_inventory.json" <<'PY'
+import hashlib, json, sys
+path = sys.argv[1]
+value = json.load(open(path)); value.pop("integrity")
+value["packages"][0]["representative_sources"] = 5
+value["scan"]["excluded_directories"] = ["x\nSCOPE: forged line\x1b[31m"]
+canonical = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+value["integrity"] = {"sha256": hashlib.sha256(canonical).hexdigest()}
+open(path, "w", encoding="utf-8").write(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
+PY
+bash "$INDEX" "$TMP/oddjson" --preview > /dev/null 2> "$TMP/oddjson.err" || fail 'a plain run over odd recorded types exits 0'
+! grep -q 'Traceback' "$TMP/oddjson.err" || fail 'odd recorded types must not crash'
+! grep -q '^SCOPE: forged' "$TMP/oddjson.err" || fail 'a recorded path cannot forge its own SCOPE line'
+! grep -q $'\x1b' "$TMP/oddjson.err" || fail 'control characters from a recorded path are escaped on stderr'
+if bash "$INDEX" "$TMP/oddjson" --same-scope --preview > /dev/null 2> "$TMP/oddjson-same.err"; then fail '--same-scope refuses a recorded path with control characters'; fi
+grep -Fq 'invalid --exclude-dir path' "$TMP/oddjson-same.err" || fail 'the refusal names the bad recorded path'
+make_scope_fixture "$TMP/badutf"
+bash "$INDEX" "$TMP/badutf" > /dev/null || fail 'Markdown index exits 0'
+python3 -I -B - "$TMP/badutf/ai_rules/context_map.md" <<'PY'
+import hashlib, re, sys
+path = sys.argv[1]
+data = open(path, "rb").read()
+body = data[:re.search(rb"<!-- spec-harness-index:v1 sha256=", data).start()] + b"- \xff\xfe broken bytes\n"
+open(path, "wb").write(body + b"<!-- spec-harness-index:v1 sha256=" + hashlib.sha256(body).hexdigest().encode() + b" -->\n")
+PY
+bash "$INDEX" "$TMP/badutf" --preview > /dev/null 2> "$TMP/badutf.err" || fail 'a plain run over a map with invalid UTF-8 exits 0'
+! grep -q 'Traceback' "$TMP/badutf.err" || fail 'invalid UTF-8 in the previous map must not crash'
+pass 'odd recorded types and bytes are handled without a crash, and recorded paths cannot forge output'
+
+# Well-known Composer frameworks are signals too.
+mkdir -p "$TMP/drupal/src"
+printf '{"name":"acme/site","require":{"drupal/core":"^10","slim/slim":"^4"}}\n' > "$TMP/drupal/composer.json"
+printf '<?php\n' > "$TMP/drupal/src/a.php"
+bash "$INDEX" "$TMP/drupal" --preview > "$TMP/drupal.out" || fail 'index of a Drupal site exits 0'
+grep -Fxq -- '- Stack signals: `drupal/core`, `slim/slim`' "$TMP/drupal.out" || fail 'well-known Composer frameworks are stack signals'
+pass 'well-known Composer frameworks are recognised by name'
+
+# Review round 2. An index from before control characters were escaped wrote file names raw. Its map passes the
+# integrity marker, so a name with line breaks could forge option lines; such a map is not trusted for scope.
+as_unescaped_map() {
+  python3 -I -B - "$1" <<'PY'
+import hashlib, re, sys
+path = sys.argv[1]
+data = open(path, "rb").read()
+body = data[:re.search(rb"<!-- spec-harness-index:v1 sha256=", data).start()].replace(b"\\u000a", b"\n")
+open(path, "wb").write(body + b"<!-- spec-harness-index:v1 sha256=" + hashlib.sha256(body).hexdigest().encode() + b" -->\n")
+PY
+}
+forged_old_map() {
+  make_scope_fixture "$TMP/$1"
+  printf 'export const k = 1;\n' > "$TMP/$1/k.js"
+  : > "$TMP/$1/$2"
+  bash "$INDEX" "$TMP/$1" > /dev/null || fail "index with a forging file name exits 0 ($1)"
+  as_unescaped_map "$TMP/$1/ai_rules/context_map.md"
+  if bash "$INDEX" "$TMP/$1" --same-scope --preview > "$TMP/$1-same.out" 2> "$TMP/$1-same.err"; then
+    fail "--same-scope trusted options forged in an older map ($1)"
+  fi
+  grep -Fq 'does not fit the format index writes' "$TMP/$1-same.err" || fail "the refusal says why ($1)"
+  bash "$INDEX" "$TMP/$1" --preview > /dev/null 2> "$TMP/$1-plain.err" || fail "a plain refresh over an older forged map exits 0 ($1)"
+  ! grep -Fq 'SCOPE:' "$TMP/$1-plain.err" || fail "a plain refresh warns about options forged in an older map ($1)"
+}
+forged_old_map oldmap ".env"$'\n''- `src`: explicit directory exclusion: excluded by --exclude-dir'$'\n''- Explicit representative sources: `k.js`; repeat --source options on refresh, or run index with --same-scope.'$'\n''- `x'
+# Every line of this one fits a map line; the forged exclusion has no limitation line, which a real --exclude-dir run writes.
+forged_old_map oldmapfit 'a`: excluded file: environment file'$'\n''- `src`: explicit directory exclusion: excluded by --exclude-dir'$'\n''- `z.pem'
+# A line after the last limitation is outside the format too, even with a valid marker.
+make_scope_fixture "$TMP/trailing"
+bash "$INDEX" "$TMP/trailing" --exclude-dir gen > /dev/null || fail 'index with --exclude-dir exits 0'
+python3 -I -B - "$TMP/trailing/ai_rules/context_map.md" <<'PY'
+import hashlib, re, sys
+path = sys.argv[1]
+data = open(path, "rb").read()
+body = data[:re.search(rb"<!-- spec-harness-index:v1 sha256=", data).start()] + b"- `src`: explicit directory exclusion: excluded by --exclude-dir\n"
+open(path, "wb").write(body + b"<!-- spec-harness-index:v1 sha256=" + hashlib.sha256(body).hexdigest().encode() + b" -->\n")
+PY
+if bash "$INDEX" "$TMP/trailing" --same-scope --preview > /dev/null 2>&1; then fail '--same-scope trusted a map with a line after its limitations'; fi
+pass 'options forged by a file name in an older unescaped map are refused by --same-scope and give no SCOPE line'
+
+# With no context_map.md the run writes a new map, so it reuses nothing from a companion JSON inventory, however nested.
+make_scope_fixture "$TMP/nomap"
+mkdir -p "$TMP/nomap/ai_rules"; printf '# My own notes\n' > "$TMP/nomap/ai_rules/context_map.md"
+bash "$INDEX" "$TMP/nomap" --exclude-dir gen > /dev/null || fail 'JSON index exits 0'
+rm "$TMP/nomap/ai_rules/context_map.md"
+if bash "$INDEX" "$TMP/nomap" --same-scope --preview > /dev/null 2> "$TMP/nomap-same.err"; then fail '--same-scope with no map reused the companion JSON inventory'; fi
+grep -Fq 'no generated inventory' "$TMP/nomap-same.err" || fail 'the no-map refusal says why'
+python3 -I -B -c 'import sys; open(sys.argv[1], "w").write("{\"a\":" + "[" * 1000000 + "]" * 1000000 + "}\n")' "$TMP/nomap/ai_rules/project_inventory.json"
+bash "$INDEX" "$TMP/nomap" --preview > /dev/null 2> "$TMP/nomap-deep.err" || fail 'a run with no map and a deeply nested JSON exits 0'
+! grep -q 'Traceback' "$TMP/nomap-deep.err" || fail 'a deeply nested JSON inventory must not crash a run with no map'
+printf '# My own notes\n' > "$TMP/nomap/ai_rules/context_map.md"
+if bash "$INDEX" "$TMP/nomap" --preview > /dev/null 2> "$TMP/nomap-deep-custom.err"; then fail 'a deeply nested JSON inventory is not overwritten'; fi
+! grep -q 'Traceback' "$TMP/nomap-deep-custom.err" || fail 'a deeply nested JSON inventory is refused without a crash'
+pass 'with no map nothing is reused from the JSON inventory, and deep nesting is refused without a crash'
+
+# A backtick in a source file or package folder name leaves that sample unknown instead of giving a false SCOPE line.
+make_scope_fixture "$TMP/tick"
+mkdir -p "$TMP/tick/p\`kg/src"
+printf '{"name":"tick-package"}\n' > "$TMP/tick/p\`kg/package.json"
+printf 'export const t = 1;\n' > "$TMP/tick/p\`kg/src/a.js"
+printf 'export const t = 1;\n' > "$TMP/tick/src/0\`tick.js"
+bash "$INDEX" "$TMP/tick" > /dev/null || fail 'index with backtick names exits 0'
+bash "$INDEX" "$TMP/tick" --preview > /dev/null 2> "$TMP/tick.err" || fail 'a refresh with backtick names exits 0'
+! grep -Fq 'SCOPE:' "$TMP/tick.err" || fail 'an unchanged refresh with backtick names prints a SCOPE line'
+bash "$INDEX" "$TMP/tick" --same-scope --preview > /dev/null || fail '--same-scope reuses a map that names files with backticks'
+pass 'backtick names in sources and package folders give no false SCOPE line and keep --same-scope'
+
+# Recorded options of the wrong type are refused, not dropped.
+make_scope_fixture "$TMP/oddopts"
+mkdir -p "$TMP/oddopts/ai_rules"; printf '# My own notes\n' > "$TMP/oddopts/ai_rules/context_map.md"
+bash "$INDEX" "$TMP/oddopts" --exclude-dir gen --source src/g.js > /dev/null || fail 'JSON index exits 0'
+python3 -I -B - "$TMP/oddopts/ai_rules/project_inventory.json" <<'PY'
+import hashlib, json, sys
+path = sys.argv[1]
+value = json.load(open(path)); value.pop("integrity")
+value["scan"]["excluded_directories"] = ["gen", 5]
+canonical = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+value["integrity"] = {"sha256": hashlib.sha256(canonical).hexdigest()}
+open(path, "w", encoding="utf-8").write(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
+PY
+if bash "$INDEX" "$TMP/oddopts" --same-scope --preview > /dev/null 2> "$TMP/oddopts.err"; then fail '--same-scope dropped a recorded option of the wrong type'; fi
+grep -Fq 'excluded_directories' "$TMP/oddopts.err" || fail 'the refusal names the malformed record'
+bash "$INDEX" "$TMP/oddopts" --exclude-dir gen --source src/g.js --preview > /dev/null 2> "$TMP/oddopts-plain.err" || fail 'a run with explicit options over a malformed record exits 0'
+! grep -q 'Traceback' "$TMP/oddopts-plain.err" || fail 'a malformed record must not crash'
+pass 'recorded options of the wrong type are refused by --same-scope'
+
+
+# Review round 3. A source whose name looks like two list items is compared as written, not split.
+make_scope_fixture "$TMP/twoitems"
+printf 'export const t = 1;\n' > "$TMP/twoitems/src/0a\`, \`b.js"
+bash "$INDEX" "$TMP/twoitems" > /dev/null || fail 'index with a list-like source name exits 0'
+bash "$INDEX" "$TMP/twoitems" --preview > /dev/null 2> "$TMP/twoitems.err" || fail 'a refresh with a list-like source name exits 0'
+! grep -Fq 'SCOPE:' "$TMP/twoitems.err" || fail 'an unchanged refresh with a list-like source name prints a SCOPE line'
+# An empty workspace pattern is written as an empty code span; that map is still the format index writes.
+make_scope_fixture "$TMP/emptyws"
+printf '{"name":"emptyws","workspaces":[""]}\n' > "$TMP/emptyws/package.json"
+bash "$INDEX" "$TMP/emptyws" --exclude-dir gen > /dev/null || fail 'index with an empty workspace pattern exits 0'
+bash "$INDEX" "$TMP/emptyws" --same-scope --preview > /dev/null || fail '--same-scope reuses a map with an empty workspace pattern'
+# A long crafted line cannot make reading the previous map slow (no backtracking regex over a whole line).
+make_scope_fixture "$TMP/slowmap"
+bash "$INDEX" "$TMP/slowmap" > /dev/null || fail 'index exits 0'
+python3 -I -B - "$TMP/slowmap/ai_rules/context_map.md" <<'PY'
+import hashlib, re, sys
+path = sys.argv[1]
+data = open(path, "rb").read()
+start = re.search(rb"## Project instructions and workspace evidence\n\n", data).end()
+body = data[:start] + b"- `" + b"`: read (" * 120000 + b"\n" + data[start:re.search(rb"<!-- spec-harness-index:v1 sha256=", data).start()]
+open(path, "wb").write(body + b"<!-- spec-harness-index:v1 sha256=" + hashlib.sha256(body).hexdigest().encode() + b" -->\n")
+PY
+python3 -I -B - "$INDEX" "$TMP/slowmap" <<'PY' || fail 'a long crafted line in the previous map made a plain run slow'
+import os, signal, subprocess, sys
+child = subprocess.Popen(["bash", sys.argv[1], sys.argv[2], "--preview"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+try:
+    sys.exit(child.wait(timeout=20))
+except subprocess.TimeoutExpired:
+    os.killpg(child.pid, signal.SIGKILL)
+    sys.exit(1)
+PY
+# JSON the parser accepts but cannot hold (a huge integer, a lone surrogate) is refused without a crash.
+for odd in '{"n":1'"$(printf '0%.0s' $(seq 5000))"'}' '{"generated_by":"spec-harness-index","schema_version":1,"integrity":{"sha256":"x"},"s":"\ud800"}'; do
+  make_scope_fixture "$TMP/oddnum"
+  mkdir -p "$TMP/oddnum/ai_rules"; printf '# My own notes\n' > "$TMP/oddnum/ai_rules/context_map.md"
+  printf '%s\n' "$odd" > "$TMP/oddnum/ai_rules/project_inventory.json"
+  bash "$INDEX" "$TMP/oddnum" --preview > /dev/null 2> "$TMP/oddnum.err" || true
+  ! grep -q 'Traceback' "$TMP/oddnum.err" || fail 'an unholdable JSON value crashes index'
+  rm -rf "$TMP/oddnum"
+done
+pass 'list-like names, empty workspace patterns, long crafted lines and unholdable JSON values are handled'
+
 printf 'All index fixtures passed.\n'
