@@ -140,7 +140,7 @@
       "source": "agents/sdd-implementer.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "c0817194c42f51b70295ae5a877afc3dd6eb6826e70f477da71afad32420352b",
+      "sha256": "18c035e0c3a5641a9630f02eead768f377bfa3f5b4bd766e88d4aeac2eee5be9",
       "mode": "0644"
     },
     {
@@ -220,7 +220,7 @@
       "source": "commands/sdd.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "7569a2427b7524329a390ee8940c32b8994393852391e984cc592a467ee92d6a",
+      "sha256": "b587ba1104fb89c9f2866e3af1cf08eb752533d770c6336e51d16722783b80d5",
       "mode": "0644"
     },
     {
@@ -252,7 +252,7 @@
       "source": "commands/generate-agents.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "1cc35cbf196de6e3e11cbee1c8ab994f2d88691e7ef6d8a38a4aec6eac23d68c",
+      "sha256": "764638faca492f01568b9cbd30bed82b966ae4eae2b561ce25a5badbc125b847",
       "mode": "0644"
     },
     {
@@ -268,7 +268,7 @@
       "source": "commands/init.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "93fa7eb7165934431f387b1d74560060050ec7834642953cc2dd64a060c1c59c",
+      "sha256": "37127de301e4f0295de8465ac5f9aec270f94e38183e7232d752904c7a160db7",
       "mode": "0644"
     },
     {
@@ -890,7 +890,7 @@
       "source": "commands/pr-prepare.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "7f6b5cd36791d3d9ee9dd927094d1bc6117086621da1b30c75ba6ebfd1519e94",
+      "sha256": "0abfacca8096847dc88d946fe53227c801723aad92bdc6ca03dc5a8bcfaaff9b",
       "mode": "0644"
     },
     {

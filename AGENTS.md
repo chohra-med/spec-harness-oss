@@ -38,7 +38,7 @@ If you cannot tell which, ask. Do not start installing anything on a guess.
 | **Tier** | The class of model a role asks for: `strong`, `fast` or `review`. Never a model name. |
 | **Inventory** | The output of `index` in the target: its packages and a few sampled source files. It is `ai_rules/context_map.md`, or `ai_rules/project_inventory.json` when the target keeps its own `context_map.md` (see `docs/GETTING-STARTED.md` step 4). |
 | **Receipt** | `.claude/agents/.init-synthesis.json` in the target: what initialisation produced, with hashes. |
-| **PENDING / READY** | PENDING: files are staged but a model or reviewer has not done its part. READY: the structural check prints it when hashes and citations line up. That alone does not mean the generated rules are correct; the setup is fully ready only after a fresh reviewer accepts them. |
+| **PENDING / READY** | PENDING: files are staged but a model or reviewer has not done its part. READY: the structural check prints it when hashes and citations line up. That alone does not mean the generated rules are correct; the setup is fully ready only when `spec-harness doctor` also reports `structural: READY` and a fresh reviewer accepts the rules. |
 
 ## Job 1: install Spec Harness into the user's project
 
@@ -94,6 +94,8 @@ default source sample in step 6. Do not edit their instruction files (step 5) an
 8. **Check**: `bash /path/to/spec-harness-oss/bin/spec-harness generate-agents --check .` (or the
    `npx` form). After initialisation it must print `READY`. Before initialisation it prints
    `PENDING: missing or unsafe synthesis receipt` and exits 1; that is the expected state, not a fault.
+   After initialisation also run `spec-harness doctor .`: it must report `structural: READY` (the startup
+   and memory files filled); otherwise the setup stays PENDING.
 9. **Hand back.** Show the user `git status` (the staged files are untracked, so `git diff` alone
    shows nothing until they are added) and the diff of anything initialisation changed, and tell them a fresh session should
    review the generated rules against their cited lines. **Do not commit, push or merge unless the

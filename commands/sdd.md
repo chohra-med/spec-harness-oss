@@ -26,8 +26,8 @@ For `init`, first open `learning_human.html` for the user as `init.md` describes
 derive package-scoped rules, the core project skills (five on first initialisation) and a skill per major technology, then bind the core roles. Run
 `spec-harness index "$PWD"` before synthesis and
 `spec-harness generate-agents --check "$PWD"` after it. That result proves structure and
-provenance only. A separate fresh reviewer must accept the cited claims before overall
-initialization is READY. Missing evidence or an unavailable reviewer leaves it PENDING. When
+provenance only. Overall initialization is READY only when `spec-harness doctor "$PWD"` also
+reports `structural: READY` and a separate fresh reviewer accepts the cited claims. Missing evidence or an unavailable reviewer leaves it PENDING. When
 `spec-harness` is not on `PATH`, run the same subcommand through
 `npx -y github:chohra-med/spec-harness-oss <subcommand> ...`. If neither is available, report that limitation and keep initialization PENDING. If `init` also carries optional ticket text or a connected reference, continue through input resolution and the ticket steps after initialization. If no optional ticket is present, complete the initialization gates and return; init-only work does not request ticket content or classify a ticket.
 

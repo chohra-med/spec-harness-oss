@@ -82,6 +82,17 @@ active = ready / ".memory/40-active.md"
 red("missing memory file", lambda: active.unlink(), lambda: fx.write(active, filled), lambda r: expect(status(r, ".memory/40-active.md") == "MISSING", r))
 red("scaffold memory file", lambda: fx.write(active, "# Active\n\nPENDING: fill only from this project's evidence.\n"), lambda: fx.write(active, filled),
     lambda r: expect(status(r, ".memory/40-active.md") == "SCAFFOLD", r))
+# A Hot file whose PENDING lines are replaced by an explicit "None recorded yet" is filled, not a scaffold.
+fx.write(active, "# Active\n\n> Tier: Hot. current focus and next action\n\n## Current truth\n\nNone recorded yet (2026-10-28).\n\n## Log\n")
+assert doctor(ready, 0)["structural"] == "READY"
+fx.write(active, filled)
+# init owns filling the memory bank and must say what doctor checks: every core file, and doctor in its READY.
+init = (harness / "commands/init.md").read_text(encoding="utf-8")
+for name in ("00-description", "01-brief", "10-product", "20-system", "30-tech", "40-active", "50-progress", "60-decisions", "70-knowledge", "80-feedback"):
+    assert f"`{name}`" in init, f"commands/init.md does not name the core memory file {name}"
+assert "None recorded yet (YYYY-MM-DD)." in init, "commands/init.md does not say how to fill a memory file with no evidence"
+assert "`spec-harness doctor <target>` reports `structural: READY`" in init, "the READY definition in commands/init.md does not name doctor"
+print("PASS: an explicit 'None recorded yet' fills a memory file; init names every core file doctor checks and doctor in READY")
 agents = ready / "AGENTS.md"
 agents_text = agents.read_text()
 red("no startup route", lambda: fx.write(agents, "# Agents\nOld instructions only.\n"), lambda: fx.write(agents, agents_text),
