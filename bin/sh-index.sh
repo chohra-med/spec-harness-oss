@@ -28,6 +28,7 @@ import json
 import os
 import re
 import stat
+import subprocess
 import sys
 from pathlib import Path
 
@@ -165,6 +166,8 @@ scanned_dirs = 0
 visited_files = 0
 scanned_files = 0
 truncated = False
+limit_hit = False
+limit_name = ""
 
 
 RECEIPT_PATH = ".claude/agents/.init-synthesis.json"
@@ -317,8 +320,14 @@ def read_bounded(path, limit):
     return read_bounded_result(rel(path), limit, root=root)
 
 
+UNSAFE_TEXT = re.compile(r"[\x00-\x1f\x7f-\x9f`\u2028\u2029\u202a-\u202e\u2066-\u2069\ud800-\udfff]")
+
+
 def safe_string(value):
-    return isinstance(value, str) and "\x00" not in value and len(value) <= 500
+    # Manifest values are written into the Markdown map: control characters, line separators, direction
+    # overrides and backticks could forge or disguise a heading or a code span, and a lone surrogate cannot
+    # be encoded as UTF-8.
+    return isinstance(value, str) and len(value) <= 500 and not UNSAFE_TEXT.search(value)
 
 
 def add_dependency(names, value):
@@ -381,11 +390,43 @@ def toml_manifest(data):
                 mapping = group.get("dependencies", {}) if isinstance(group, dict) else {}
                 if isinstance(mapping, dict):
                     deps.update(key for key in mapping if safe_string(key))
-    workspace = obj.get("tool", {}).get("uv", {}).get("workspace", {}) if isinstance(obj.get("tool", {}), dict) else {}
+    tool = obj.get("tool", {})
+    uv = tool.get("uv", {}) if isinstance(tool, dict) else {}
+    workspace = uv.get("workspace", {}) if isinstance(uv, dict) else {}
     if isinstance(workspace, dict):
-        result["workspace_patterns"] = sorted(value for value in workspace.get("members", []) if safe_string(value))
+        members = workspace.get("members", [])
+        result["workspace_patterns"] = sorted(value for value in members if safe_string(value)) if isinstance(members, list) else []
     result["dependencies"] = sorted(deps)
     result["stack_signals"] = []
+    result["entrypoints"] = []
+    return result
+
+
+# Composer's package-name grammar (schema "name"); platform requirements such as php or ext-* do not match.
+# Written without nested optional groups so a long near-match cannot backtrack exponentially.
+COMPOSER_NAME = re.compile(r"[a-z0-9]+(?:[_.-][a-z0-9]+)*/[a-z0-9]+(?:(?:[_.]|-{1,2})[a-z0-9]+)*")
+
+
+def composer_name(value):
+    return value.lower() if isinstance(value, str) and COMPOSER_NAME.fullmatch(value.lower()) else None
+
+
+def composer_manifest(data):
+    obj = json.loads(data.decode("utf-8"))
+    if not isinstance(obj, dict):
+        raise ValueError("manifest must be a JSON object")
+    result = {"status": "supported"}
+    if composer_name(obj.get("name")):
+        result["name"] = composer_name(obj["name"])
+    scripts = obj.get("scripts", {})
+    result["scripts"] = sorted(key for key, value in scripts.items() if safe_string(key) and isinstance(value, (str, list))) if isinstance(scripts, dict) else []
+    deps = set()
+    for section in ("require", "require-dev"):
+        mapping = obj.get(section, {})
+        if isinstance(mapping, dict):
+            deps.update(composer_name(key) for key, value in mapping.items() if composer_name(key) and isinstance(value, str))
+    result["dependencies"] = sorted(deps)
+    result["stack_signals"] = sorted(deps.intersection({"laravel/framework", "symfony/framework-bundle"}))
     result["entrypoints"] = []
     return result
 
@@ -396,15 +437,17 @@ def parse_manifest(name, data):
             result = js_manifest(data)
         elif name == "pyproject.toml":
             result = toml_manifest(data)
+        elif name == "composer.json":
+            result = composer_manifest(data)
         else:
             return {"status": "unsupported", "reason": "manifest format is inventoried but not parsed"}
         return result
-    except (UnicodeDecodeError, json.JSONDecodeError, tomllib.TOMLDecodeError, ValueError, TypeError):
+    except (UnicodeDecodeError, json.JSONDecodeError, tomllib.TOMLDecodeError, ValueError, TypeError, AttributeError, RecursionError):
         return {"status": "unsupported", "reason": "manifest is malformed or has an unsupported encoding"}
 
 
 def classify_manifest(name):
-    return "supported" if name in {"package.json", "pyproject.toml"} else "unsupported"
+    return "supported" if name in {"package.json", "pyproject.toml", "composer.json"} else "unsupported"
 
 
 receipt_owned = receipt_owned_rule_digests()
@@ -416,6 +459,8 @@ for directory, dirnames, filenames in os.walk(root, topdown=True, followlinks=Fa
         visited_dirs += 1
     if scanned_dirs > MAX_DIRECTORIES:
         truncated = True
+        limit_hit = True
+        limit_name = f"directory limit {MAX_DIRECTORIES}"
         add_exclusion(relative_dir, "scan limit", f"directory limit of {MAX_DIRECTORIES} reached; remaining tree not scanned")
         dirnames[:] = []
         break
@@ -455,6 +500,8 @@ for directory, dirnames, filenames in os.walk(root, topdown=True, followlinks=Fa
         path_rel = rel(path)
         if scanned_files > MAX_FILES:
             truncated = True
+            limit_hit = True
+            limit_name = f"file limit {MAX_FILES}"
             add_exclusion(path_rel, "scan limit", f"file limit of {MAX_FILES} reached; remaining tree not scanned")
             dirnames[:] = []
             break
@@ -655,6 +702,21 @@ for package in packages.values():
         for pattern in manifest.get("workspace_patterns", []):
             workspace_declarations.append({"owner": manifest["path"], "pattern": pattern})
 
+def source_head():
+    """The git HEAD of the selected root, or None when the root is not itself the top of a git repository.
+
+    A folder inside a larger repository has no HEAD of its own, so it reports None rather than the outer commit.
+    """
+    try:
+        top = subprocess.run(["git", "-C", root, "rev-parse", "--show-toplevel"], capture_output=True, encoding="utf-8", errors="replace", timeout=10)
+        if top.returncode != 0 or os.path.realpath(top.stdout.strip()) != os.path.realpath(root):
+            return None
+        head = subprocess.run(["git", "-C", root, "rev-parse", "HEAD"], capture_output=True, encoding="utf-8", errors="replace", timeout=10)
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return None
+    return head.stdout.strip() if head.returncode == 0 and head.stdout.strip() else None
+
+
 inventory = {
     "format": "spec-harness-project-inventory",
     "schema_version": 1,
@@ -675,6 +737,7 @@ inventory = {
         },
         "visited_directories": min(visited_dirs, MAX_DIRECTORIES),
         "visited_files": min(visited_files, MAX_FILES),
+        "source_head": source_head(),
     },
     "packages": [packages[path] for path in package_paths],
     "rule_files": instruction_rows,
@@ -722,6 +785,7 @@ def markdown_for(value):
         "",
         f"- Selected project root: `{value['project_root_name']}/`",
         f"- Scan complete: `{str(value['scan']['complete']).lower()}`; visited {value['scan']['visited_directories']} directories and {value['scan']['visited_files']} files.",
+        f"- Source HEAD: `{value['scan']['source_head'] or 'none'}`",
         "- Read limits and unsupported formats are recorded below. No command from a manifest was executed.",
         "",
         "## Package boundaries",
@@ -881,6 +945,10 @@ finally:
     os.close(directory_fd)
 
 print(f"Indexed {len(inventory['packages'])} package boundary/boundaries; {len(instruction_rows)} instruction files; {len(inventory['exclusions'])} excluded paths.")
+if limit_hit:
+    print(f"INCOMPLETE: scan stopped at a read limit ({limit_name}; visited directories {inventory['scan']['visited_directories']}, files {inventory['scan']['visited_files']}); the inventory is partial. Re-run with --exclude-dir <dir> for large generated or data folders.")
+elif truncated:
+    print("INCOMPLETE: some paths could not be read; the inventory is partial. See the excluded paths in the inventory.")
 print(f"Wrote: {rel(output_path)}")
 if use_json:
     print("Existing context_map.md was preserved; read ai_rules/project_inventory.json for this scan.")

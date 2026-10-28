@@ -86,6 +86,17 @@ PY
 cat > "$TMP/mixed/AGENTS.md" <<'RULES'
 # Fixture instructions
 RULES
+mkdir -p "$TMP/mixed/services/shop/Model" "$TMP/mixed/services/brokenphp"
+cat > "$TMP/mixed/services/shop/composer.json" <<'JSON'
+{"name":"Acme/Module-Shop","require":{"php":"~8.2.0","ext-json":"*","symfony/framework-bundle":"7.1.*","Laravel/Framework":"^11","x/(unsupported)":"*","acme/object-value":{"v":1}},"require-dev":{"phpunit/phpunit":"^10"},"scripts":{"test":"phpunit","check":["@test","phpcs"],"bad":{"x":1}}}
+JSON
+cat > "$TMP/mixed/services/shop/Model/Cart.php" <<'PHP'
+<?php
+class Cart {}
+PHP
+printf '{ malformed composer\n' > "$TMP/mixed/services/brokenphp/composer.json"
+mkdir -p "$TMP/mixed/services/arrayphp"
+printf '[1,2]\n' > "$TMP/mixed/services/arrayphp/composer.json"
 cat > "$TMP/mixed/examples/java/pom.xml" <<'XML'
 <project><modelVersion>4.0.0</modelVersion></project>
 XML
@@ -120,6 +131,7 @@ printf 'DO_NOT_READ=outside-sentinel\n' > "$TMP/outside-sentinel.txt"
 # The default no-option inventory must remain byte-identical to the accepted
 # baseline, while deeper first-party sources remain absent from its fixed sample.
 # The baseline was re-pinned once: project_root_name is now "." instead of the folder name (2026-10-09).
+# It was re-pinned again for scan.source_head (2026-10-26): this fixture is not a git repository, so the key is null.
 mkdir -p "$TMP/selected/src/features/pagination" "$TMP/selected/ai_rules"
 printf '{"name":"selected-source-fixture"}\n' > "$TMP/selected/package.json"
 for letter in a b c d e; do
@@ -128,7 +140,7 @@ done
 printf 'export const useHomePostList = true;\n' > "$TMP/selected/src/features/pagination/useHomePostList.ts"
 printf '# custom context map\n' > "$TMP/selected/ai_rules/context_map.md"
 bash "$INDEX" "$TMP/selected" > "$TMP/default.out"
-[[ "$(sha256_file "$TMP/selected/ai_rules/project_inventory.json")" == "fa717eda21ffa8581b673b2eff9a0ad0523d070b318fde5e451341a1f8889df5" ]] || fail 'default index output differs from pinned byte baseline'
+[[ "$(sha256_file "$TMP/selected/ai_rules/project_inventory.json")" == "ef327daba222a0bc76bf19da9e6bbb5322ae7cffab14354045e2d33872c8fbce" ]] || fail 'default index output differs from pinned byte baseline'
 python3 -I -B - "$TMP/selected/ai_rules/project_inventory.json" <<'PY'
 import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
@@ -389,7 +401,7 @@ python3 -I -B - "$TMP/mixed/ai_rules/project_inventory.json" <<'PY'
 import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
 packages = {package["path"]: package for package in data["packages"]}
-expected = {".", "apps/mobile", "apps/broken", "packages/core", "services/api", "examples/java"}
+expected = {".", "apps/mobile", "apps/broken", "packages/core", "services/api", "services/shop", "services/brokenphp", "services/arrayphp", "examples/java"}
 assert set(packages) == expected, (set(packages), expected)
 assert "expo" in packages["apps/mobile"]["dependencies"]
 assert "fastapi" in packages["services/api"]["dependencies"]
@@ -397,6 +409,15 @@ assert "zod" in packages["packages/core"]["dependencies"]
 assert "services/api/RULES.md" in packages["services/api"]["applicable_instructions"]
 assert packages["examples/java"]["manifests"][0]["status"] == "unsupported"
 assert packages["apps/broken"]["manifests"][0]["status"] == "unsupported"
+shop = packages["services/shop"]
+assert shop["manifests"][0]["status"] == "supported", shop["manifests"]
+assert shop["names"] == ["acme/module-shop"], shop["names"]
+assert shop["dependencies"] == ["laravel/framework", "phpunit/phpunit", "symfony/framework-bundle"], shop["dependencies"]
+assert shop["scripts"] == ["check", "test"], shop["scripts"]
+assert shop["stack_signals"] == ["laravel/framework", "symfony/framework-bundle"], shop["stack_signals"]
+assert "services/shop/Model/Cart.php" in {item["path"] for item in shop["representative_sources"]}
+assert packages["services/brokenphp"]["manifests"][0]["status"] == "unsupported"
+assert packages["services/arrayphp"]["manifests"][0]["status"] == "unsupported"
 assert {item["pattern"] for item in data["workspace_declarations"]} == {"apps/*", "packages/*"}
 excluded = {item["path"] for item in data["exclusions"]}
 assert "linked-package" in excluded, excluded
@@ -415,6 +436,53 @@ print(f"Mixed fixture packages: {sorted(packages)}")
 print(f"Mixed fixture exclusions: {sorted(excluded)}")
 PY
 pass 'mixed packages, applicable instructions, unsupported manifests, and exclusions are enumerated'
+
+mkdir -p "$TMP/phponly/Model"
+printf '{"name":"acme/php-only","require":{"php":"^8.2"}}\n' > "$TMP/phponly/composer.json"
+printf '<?php\nclass Thing {}\n' > "$TMP/phponly/Model/Thing.php"
+bash "$INDEX" "$TMP/phponly" > /dev/null
+grep -Fq '`composer.json` (supported)' "$TMP/phponly/ai_rules/context_map.md" || fail 'composer.json not shown as supported in a PHP-only map'
+! grep -Fq '(unsupported)' "$TMP/phponly/ai_rules/context_map.md" || fail 'PHP-only map still reports an unsupported manifest'
+pass 'a PHP-only project map reports its composer.json as supported'
+
+mkdir -p "$TMP/phpredos/Model"
+python3 -I -B -c 'import json; print(json.dumps({"name": "a" * 4000 + "!", "require": {"a" * 4000 + "!": "*", "a/" + "a" * 4000 + "!": "*"}}))' > "$TMP/phpredos/composer.json"
+printf '<?php\nclass Thing {}\n' > "$TMP/phpredos/Model/Thing.php"
+# Own process group, killed whole on timeout, so a regression cannot leave index running.
+python3 -I -B - "$INDEX" "$TMP/phpredos" <<'PY' || fail 'a long near-match composer name made index slow (regex backtracking) or fail'
+import os, signal, subprocess, sys
+child = subprocess.Popen(["bash", sys.argv[1], sys.argv[2]], stdout=subprocess.DEVNULL, start_new_session=True)
+try:
+    sys.exit(child.wait(timeout=20))
+except subprocess.TimeoutExpired:
+    os.killpg(child.pid, signal.SIGKILL)
+    sys.exit(1)
+PY
+grep -Fq 'Declared names: none parsed' "$TMP/phpredos/ai_rules/context_map.md" || fail 'an invalid composer name was kept'
+pass 'a long near-match composer name is refused quickly'
+
+# Hostile manifest values: a name that would forge a package heading, a lone surrogate, and nesting deep
+# enough to exhaust the TOML parser (RecursionError). index must finish, drop the values and keep the map well formed.
+mkdir -p "$TMP/hostile/apps/inject/src" "$TMP/hostile/apps/surrogate/src" "$TMP/hostile/apps/deep/src" "$TMP/hostile/apps/uvbad/src"
+printf '[project]\nname = "uvbad"\ndependencies = ["fastapi>=1"]\n[tool]\nuv = "not-a-table"\n' > "$TMP/hostile/apps/uvbad/pyproject.toml"
+printf '{"name":"root-fixture","private":true,"workspaces":["apps/*"]}\n' > "$TMP/hostile/package.json"
+printf '{"name":"evil\\n### `forged`","scripts":{"ok":"x","bad`name":"y","line\\nbreak":"z"},"dependencies":{"left-pad":"*","dep\\nx":"*"}}\n' > "$TMP/hostile/apps/inject/package.json"
+printf '{"name":"\\ud800","dependencies":{"\\udfff":"*","right-pad":"*","sep\\u2028x":"*","rtl\\u202ex":"*","nel\\u0085x":"*"}}\n' > "$TMP/hostile/apps/surrogate/package.json"
+python3 -I -B -c 'import sys; open(sys.argv[1], "w").write("[project]\nname = \"deep\"\ndependencies = " + "[" * 5000 + "]" * 5000 + "\n")' "$TMP/hostile/apps/deep/pyproject.toml"
+for app in inject surrogate deep uvbad; do printf 'export const x = 1;\n' > "$TMP/hostile/apps/$app/src/index.ts"; done
+bash "$INDEX" "$TMP/hostile" > "$TMP/hostile.out" 2>&1 || fail "index crashed on hostile manifest values: $(tail -3 "$TMP/hostile.out")"
+python3 -I -B - "$TMP/hostile/ai_rules/context_map.md" <<'PY' || fail 'hostile manifest values reached the map'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+headings = re.findall(r"^### `([^`]+)`$", text, re.M)
+assert headings == [".", "apps/deep", "apps/inject", "apps/surrogate", "apps/uvbad"], headings
+assert "forged" not in text and "bad`name" not in text and "line\nbreak" not in text, "an unsafe value was kept"
+assert not any(ch in text for ch in " ‮\x85"), "a line separator or direction override was kept"
+assert "`fastapi`" in text, "a pyproject with a malformed [tool.uv] still reports its dependencies"
+assert "`left-pad`" in text and "`right-pad`" in text and "`ok`" in text, "safe values next to unsafe ones were lost"
+assert re.search(r"`apps/deep/pyproject.toml` \(unsupported\)", text), "a parser-exhausting manifest must be recorded as unsupported"
+PY
+pass 'hostile manifest names, surrogates and deep nesting are dropped without crashing index'
 
 [[ "$(sha256_lines "$TMP/mixed/ai_rules/context_map.md")" == "$custom_map_hash" ]] || fail 'custom map changed'
 [[ "$(sha256_lines "$TMP/outside-sentinel.txt")" == "$outside_hash" ]] || fail 'outside sentinel changed'
@@ -499,5 +567,42 @@ grep -Fq 'small.js' <<<"$overcap_rep" || fail 'readable source missing from repr
 ! grep -Fq 'big.js' <<<"$overcap_rep" || fail 'over-cap source listed as representative (read) source'
 grep -Fq -- '- `src/big.js`: source not sampled:' "$overcap_map" || fail 'over-cap source missing from excluded section'
 pass 'over-cap source is excluded, not listed as representative'
+
+# A scan that stops at a read limit says so on stdout; a complete scan does not.
+mkdir -p "$TMP/wide"
+printf '{"name":"wide-fixture"}\n' > "$TMP/wide/package.json"
+python3 -I -B -c 'import os, sys; [os.makedirs(os.path.join(sys.argv[1], "d%05d" % i)) for i in range(5100)]' "$TMP/wide"
+bash "$INDEX" "$TMP/wide" > "$TMP/wide.out"
+grep -Eq '^INCOMPLETE: .*--exclude-dir' "$TMP/wide.out" || fail 'truncated scan prints an INCOMPLETE line naming --exclude-dir'
+grep -Fq 'read limit (directory limit 5000;' "$TMP/wide.out" || fail 'INCOMPLETE line names the directory limit that stopped the scan'
+! grep -Fq 'file limit' "$TMP/wide.out" || fail 'directory-limit INCOMPLETE line does not name the file limit'
+! grep -Eq '^INCOMPLETE:' "$TMP/expo.out" || fail 'a complete scan prints no INCOMPLETE line'
+pass 'a truncated scan prints INCOMPLETE with --exclude-dir; a complete scan does not'
+
+# The file limit is its own branch and names itself.
+mkdir -p "$TMP/manyfiles"
+printf '{"name":"manyfiles-fixture"}\n' > "$TMP/manyfiles/package.json"
+python3 -I -B -c 'import os, sys
+for i in range(25_100):
+    open(os.path.join(sys.argv[1], "f%05d.txt" % i), "w").close()' "$TMP/manyfiles"
+bash "$INDEX" "$TMP/manyfiles" > "$TMP/manyfiles.out"
+grep -Eq '^INCOMPLETE: scan stopped at a read limit \(file limit 25000;.*--exclude-dir' "$TMP/manyfiles.out" || fail 'file-limit scan prints an INCOMPLETE line naming the file limit'
+! grep -Fq 'directory limit' "$TMP/manyfiles.out" || fail 'file-limit INCOMPLETE line does not name the directory limit'
+pass 'a scan stopped by the file limit prints INCOMPLETE naming the file limit'
+
+# An unreadable directory makes the scan partial without any limit being hit: the wording must say so.
+mkdir -p "$TMP/locked/src" "$TMP/locked/secret"
+printf '{"name":"locked-fixture"}\n' > "$TMP/locked/package.json"
+printf 'export const a = 1;\n' > "$TMP/locked/src/a.js"
+chmod 000 "$TMP/locked/secret"
+bash "$INDEX" "$TMP/locked" > "$TMP/locked.out" 2>&1 || { chmod 755 "$TMP/locked/secret"; fail 'index with an unreadable directory exits 0'; }
+chmod 755 "$TMP/locked/secret"
+if [[ "$(id -u)" != 0 ]]; then
+  grep -Eq '^INCOMPLETE: some paths could not be read; the inventory is partial\.' "$TMP/locked.out" || fail 'unreadable directory prints the unreadable INCOMPLETE wording'
+  ! grep -Fq 'read limit' "$TMP/locked.out" || fail 'unreadable directory does not claim a read limit'
+  pass 'an unreadable directory prints the unreadable wording, not the read-limit wording'
+else
+  printf 'SKIP: unreadable-directory check needs a non-root user (root reads every directory)\n'
+fi
 
 printf 'All index fixtures passed.\n'
