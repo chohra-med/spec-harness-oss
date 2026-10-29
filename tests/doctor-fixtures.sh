@@ -565,7 +565,7 @@ assert state["status"] == "UNKNOWN" and "partial clone" in state["note"], state
 
 # A real filtered clone from a local bare repo (no network): git records a promisor remote, and the doctor must treat it as partial.
 origin_bare = tmp / "origin-bare.git"
-subprocess.run(["git", "init", "-q", "--bare", str(origin_bare)], check=True)
+subprocess.run(["git", "init", "-q", "--bare", "--initial-branch=main", str(origin_bare)], check=True)
 subprocess.run(["git", "-C", str(origin_bare), "config", "uploadpack.allowFilter", "true"], check=True)
 source = tmp / "index-filter-source"
 write_package(source)
