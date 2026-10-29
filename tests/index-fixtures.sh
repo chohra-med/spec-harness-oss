@@ -659,6 +659,7 @@ open(path, "w", encoding="utf-8").write(json.dumps(value, ensure_ascii=False, so
 PY
 bash "$INDEX" "$TMP/scopejson" --same-scope --preview > "$TMP/old-same.out" 2> "$TMP/old-same.err" || fail '--same-scope over an older inventory exits 0'
 grep -Fq 'SCOPE:' "$TMP/old-same.err" && grep -Fq 'does not record explicit --source' "$TMP/old-same.err" || fail '--same-scope says an older inventory has no source record'
+grep -Fq 'predates source recording' "$TMP/old-same.err" || fail 'the changed-sample line says when it matters'
 python3 -I -B - "$TMP/old-same.out" <<'PY' || fail '--same-scope over an older inventory keeps its exclusions'
 import json, sys
 assert json.load(open(sys.argv[1]))["scan"]["excluded_directories"] == ["gen"]
@@ -697,6 +698,64 @@ cmp -s "$TMP/notyet-same.out" "$TMP/notyet-explicit.out" || fail '--same-scope k
 bash "$INDEX" "$TMP/notyet" --preview > /dev/null 2> "$TMP/notyet-plain.err" || fail 'plain refresh exits 0'
 grep -Fq '`ios`' "$TMP/notyet-plain.err" || fail 'a plain refresh names a dropped exclusion the scan never reached'
 pass 'an exclusion of a folder that does not exist yet is recorded, reused and reported'
+
+# Review round 4. An index before source recording wrote only the limitation line for an --exclude-dir folder the scan
+# never reached, not the folder (the Expo case: ios/ before prebuild). --same-scope must not scan that folder silently.
+remark_map() {
+  python3 -I -B - "$1" "$2" "$3" <<'PY'
+import hashlib, re, sys
+path, old, new = sys.argv[1], sys.argv[2].encode(), sys.argv[3].encode()
+data = open(path, "rb").read()
+body = data[:re.search(rb"<!-- spec-harness-index:v1 sha256=", data).start()]
+assert old in body, old
+body = body.replace(old, new)
+open(path, "wb").write(body + b"<!-- spec-harness-index:v1 sha256=" + hashlib.sha256(body).hexdigest().encode() + b" -->\n")
+PY
+}
+make_scope_fixture "$TMP/oldnotyet"
+bash "$INDEX" "$TMP/oldnotyet" --exclude-dir ios > /dev/null || fail 'index excluding a missing folder exits 0'
+remark_map "$TMP/oldnotyet/ai_rules/context_map.md" $'- Explicit directory exclusions the scan did not reach: `ios`; repeat --exclude-dir options on refresh, or run index with --same-scope.\n' ''
+grep -Fxq -- '- Explicit directory exclusions are outside the declared inventory scope; repeat --exclude-dir options on refresh.' "$TMP/oldnotyet/ai_rules/context_map.md" || fail 'the older map keeps its exclusion limitation line'
+mkdir -p "$TMP/oldnotyet/ios"; printf 'export const app = 1;\n' > "$TMP/oldnotyet/ios/app.js"
+if bash "$INDEX" "$TMP/oldnotyet" --same-scope --preview > /dev/null 2> "$TMP/oldnotyet-same.err"; then fail '--same-scope reused an older map that does not name its excluded folder'; fi
+grep -Fq 'may not name all its folders' "$TMP/oldnotyet-same.err" || fail 'the refusal says the map does not name its excluded folders'
+bash "$INDEX" "$TMP/oldnotyet" --preview > /dev/null 2> "$TMP/oldnotyet-plain.err" || fail 'a plain refresh over that map exits 0'
+grep -Fq 'SCOPE:' "$TMP/oldnotyet-plain.err" && grep -Fq 'may not name all its folders' "$TMP/oldnotyet-plain.err" || fail 'a plain refresh says the recorded exclusions are unknown'
+# The older index wrote no Source HEAD line, which every map from this index has. With one folder reached and one not,
+# its map names only the reached one; it is refused too (and so, once, is an older map whose folders were all reached).
+for case in mixed:'--exclude-dir gen --exclude-dir ios' reached:'--exclude-dir gen'; do
+  old_case="old${case%%:*}"; make_scope_fixture "$TMP/$old_case"
+  # shellcheck disable=SC2086
+  bash "$INDEX" "$TMP/$old_case" ${case#*:} > /dev/null || fail "index exits 0 ($old_case)"
+  python3 -I -B - "$TMP/$old_case/ai_rules/context_map.md" <<'PY'
+import hashlib, re, sys
+path = sys.argv[1]
+data = open(path, "rb").read()
+body = data[:re.search(rb"<!-- spec-harness-index:v1 sha256=", data).start()]
+body, heads = re.subn(rb"- Source HEAD: `[^`\n]*`\n", b"", body)
+body = re.sub(rb"- Explicit directory exclusions the scan did not reach: [^\n]*\n", b"", body)
+assert heads == 1, heads
+open(path, "wb").write(body + b"<!-- spec-harness-index:v1 sha256=" + hashlib.sha256(body).hexdigest().encode() + b" -->\n")
+PY
+  mkdir -p "$TMP/$old_case/ios"; printf 'export const app = 1;\n' > "$TMP/$old_case/ios/app.js"
+  if bash "$INDEX" "$TMP/$old_case" --same-scope --preview > /dev/null 2> "$TMP/$old_case-same.err"; then fail "--same-scope reused the exclusions of a map without Source HEAD ($old_case)"; fi
+  grep -Fq 'may not name all its folders' "$TMP/$old_case-same.err" || fail "the refusal says why ($old_case)"
+done
+# An older index also accepted a backtick in an --exclude-dir folder; its row is not in the format index writes now.
+make_scope_fixture "$TMP/oldtick"
+bash "$INDEX" "$TMP/oldtick" --exclude-dir gen > /dev/null || fail 'index with --exclude-dir exits 0'
+remark_map "$TMP/oldtick/ai_rules/context_map.md" '- `gen`: explicit directory exclusion' '- `ge`n`: explicit directory exclusion'
+if bash "$INDEX" "$TMP/oldtick" --same-scope --preview > /dev/null 2> "$TMP/oldtick-same.err"; then fail '--same-scope dropped an older exclusion row with a backtick'; fi
+grep -Fq 'does not fit the format index writes' "$TMP/oldtick-same.err" || fail 'the backtick-row refusal says why'
+pass 'an older map that does not name an excluded folder is refused by --same-scope and reported by a plain refresh'
+
+# A path that cannot be recorded in the map is refused, and the message says why.
+make_scope_fixture "$TMP/tickopt"
+for option in --source --exclude-dir; do
+  if bash "$INDEX" "$TMP/tickopt" "$option" 'src/a`b' --preview > /dev/null 2> "$TMP/tickopt.err"; then fail "$option with a backtick is refused"; fi
+  grep -Fq 'backtick or control character' "$TMP/tickopt.err" || fail "the $option refusal names the backtick"
+done
+pass 'a backtick in --source or --exclude-dir is refused with its reason'
 
 # A generated-looking previous inventory with odd field types or bytes never crashes a plain run.
 make_scope_fixture "$TMP/oddjson"

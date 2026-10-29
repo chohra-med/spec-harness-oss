@@ -172,6 +172,9 @@ EVIDENCE_ROWS = (
 )
 UNREACHED_LINE = re.escape("- " + UNREACHED_LIMITATION).replace(re.escape("{}"), f"({CODE_LIST})")
 SOURCES_LINE = re.escape("- " + SOURCES_LIMITATION).replace(re.escape("{}"), f"({CODE_LIST})")
+EXCLUSION_ROW_END = "`: explicit directory exclusion: excluded by --exclude-dir"
+MAP_FORMAT_PROBLEM = "does not fit the format index writes (an older index may have written a file name unescaped)"
+UNNAMED_EXCLUSIONS = "records an --exclude-dir run but may not name all its folders (an index before source recording did not name a folder the scan never reached)"
 
 
 def canonical_bytes(value):
@@ -211,7 +214,8 @@ def add_option(option, path):
         or any(part in {"", ".", ".."} for part in path.split("/"))
         or Path(path).as_posix() != path
     ):
-        raise SystemExit(f"invalid {option} path; expected a normalized in-root relative path: {path!r}")
+        reason = "a backtick or control character cannot be recorded in the map" if CONTROL_TEXT.search(path or "") or "`" in (path or "") else "expected a normalized in-root relative path"
+        raise SystemExit(f"invalid {option} path; {reason}: {path!r}")
     selected = explicit_source_paths if option == "--source" else explicit_excluded_dirs
     if path in selected:
         raise SystemExit(f"duplicate {option} path: {path}")
@@ -249,12 +253,23 @@ root = str(root_path)
 
 
 def markdown_scope(body):
-    """The options and source samples a generated map records, or None when a line is outside markdown_for's grammar.
+    """The options and source samples a generated map records, or a reason they cannot be reused.
 
     An index from before control characters were escaped wrote file names raw, and its maps still pass the marker, so
     a name with line breaks could add lines that look generated. Such a map is not trusted: every line must fit its
     place, and an explicit exclusion needs the limitation line that a real --exclude-dir run writes after all rows.
+    That older index also wrote no line for an excluded folder the scan never reached, so its exclusions cannot be
+    reused either. It wrote no Source HEAD line, which every map from this index has.
     """
+    scope = markdown_scope_lines(body)
+    if scope is None:
+        return None, MAP_FORMAT_PROBLEM
+    if scope == UNNAMED_EXCLUSIONS:
+        return None, UNNAMED_EXCLUSIONS
+    return scope, None
+
+
+def markdown_scope_lines(body):
     lines = body.split("\n")
     if lines.pop() != "":
         return None
@@ -267,9 +282,12 @@ def markdown_scope(body):
             return lines[position - 1]
         return None
 
+    has_source_head = False
     for pattern, optional in MAP_HEAD:
-        if take(pattern) is None and not optional:
+        line = take(pattern)
+        if line is None and not optional:
             return None
+        has_source_head = has_source_head or (optional and line is not None)
     samples = {}
     if take(re.escape("No recognized package manifests were found.")) is not None:
         if take("") is None:
@@ -295,9 +313,12 @@ def markdown_scope(body):
             return None
     excluded_dirs = []
     while (row := take(r"- `.+`: [a-z/ -]+: .+")) is not None:
-        match = re.fullmatch(r"- `([^`]+)`: explicit directory exclusion: excluded by --exclude-dir", row)
+        match = re.fullmatch(r"- `([^`]+)" + re.escape(EXCLUSION_ROW_END), row)
         if match:
             excluded_dirs.append(match.group(1))
+        elif row.endswith(EXCLUSION_ROW_END):
+            # An older index accepted a backtick in the folder; this index refuses one, so the row cannot be reused.
+            return None
     for limitation in BASE_LIMITATIONS:
         if take(re.escape("- " + limitation)) is None:
             return None
@@ -306,6 +327,8 @@ def markdown_scope(body):
     recorded = take(SOURCES_LINE)
     if position != len(lines) or ((excluded_dirs or unreached) and not has_exclusion_limitation):
         return None
+    if has_exclusion_limitation and not (has_source_head and (excluded_dirs or unreached)):
+        return UNNAMED_EXCLUSIONS
     return {
         "excluded_dirs": excluded_dirs + (re.findall(r"`([^`]+)`", unreached) if unreached else []),
         "sources": re.findall(r"`([^`]+)`", recorded) if recorded else None,
@@ -352,10 +375,10 @@ def read_previous_scope():
     data, _error = read_bounded_result(map_name, MAX_OUTPUT_BYTES, root=root)
     if data is not None and valid_markdown_bytes(data):
         try:
-            scope = markdown_scope(data[:data.rindex(b"<!-- spec-harness-index:v1 ")].decode("utf-8"))
+            scope, reason = markdown_scope(data[:data.rindex(b"<!-- spec-harness-index:v1 ")].decode("utf-8"))
         except UnicodeDecodeError:
-            scope = None
-        return (scope, None) if scope is not None else (None, f"{map_name} does not fit the format index writes (an older index may have written a file name unescaped)")
+            scope, reason = None, MAP_FORMAT_PROBLEM
+        return (scope, None) if scope is not None else (None, f"{map_name} {reason}")
     data, _error = read_bounded_result("ai_rules/project_inventory.json", MAX_OUTPUT_BYTES, root=root)
     if data is None or not valid_inventory_bytes(data):
         return None, None
@@ -1094,6 +1117,8 @@ if os.path.lexists(output_path):
     if use_json and map_state == "custom" and map_preimage is None and stat.S_ISREG(os.lstat(map_path).st_mode):
         raise SystemExit("refusing to route around an unreadable customized map")
 
+if previous_problem and previous_problem.endswith(UNNAMED_EXCLUSIONS):
+    print(f"SCOPE: the existing inventory {UNNAMED_EXCLUSIONS}. Repeat its --exclude-dir options once; the inventory then records them for --same-scope.", file=sys.stderr)
 if previous_scope is not None:
     scope_notes = []
     dropped = [path for path in previous_scope["excluded_dirs"] if path not in explicit_excluded_dirs]
@@ -1108,7 +1133,7 @@ if previous_scope is not None:
             before = previous_scope["samples"].get(package["path"])
             after = sample_text(item["path"] for item in package["representative_sources"])
             if before is not None and before != after and package["path"] not in explicit_sources_by_package:
-                scope_notes.append(f"representative sources differ from the existing inventory for `{package['path']}`, which does not record explicit --source paths. If it was built with --source, repeat those options once; the inventory then records them for --same-scope")
+                scope_notes.append(f"representative sources differ from the existing inventory for `{package['path']}`, which does not record explicit --source paths. This matters only if an index that predates source recording built it with --source: then repeat those options once, and the inventory records them for --same-scope")
     for note in scope_notes:
         print(escape_controls(f"SCOPE: {note}."), file=sys.stderr)
 
