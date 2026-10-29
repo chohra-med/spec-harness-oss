@@ -172,7 +172,7 @@ To install the CLI from a local tarball instead, run `npm pack` from the checkou
 filename it prints. For the current version, that is:
 
 ```sh
-npm install --global ./spec-harness-0.6.0.tgz
+npm install --global ./spec-harness-0.7.0.tgz
 ```
 
 Staging reports `PENDING`. It copies a scaffold; it does not synthesize project rules, run agents,
