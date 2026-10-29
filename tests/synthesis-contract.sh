@@ -576,7 +576,9 @@ write(inpkg_base / "services/api/NOTES.md", "Loose notes\nNot a source file\n")
 write(inpkg_base / "services/api/composer.json", '{"name": "acme/api",\n "scripts": {"test": "phpunit"}}\n')
 
 def inpkg_citation(package_path, path, **override):
-    row = {"package_path": package_path, "path": path, "line_start": 1, "line_end": 2, "sha256": sha(inpkg_base / path)}
+    row = {"package_path": package_path, "path": path, "line_start": 1, "line_end": 2}
+    # Hash the file only when the caller gave no hash: a case-variant path names no file on a case-sensitive file system.
+    row["sha256"] = override.pop("sha256") if "sha256" in override else sha(inpkg_base / path)
     row.update(override)
     return row
 
