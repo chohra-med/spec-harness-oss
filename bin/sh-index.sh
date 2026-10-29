@@ -108,13 +108,23 @@ GENERATED_PATTERNS = (
     re.compile(r"\.min\.(?:js|css)$", re.I),
 )
 
-# A line break or terminal control in a path must never start a new map line or a forged stderr line.
-CONTROL_TEXT = re.compile(r"[\x00-\x1f\x7f-\x9f\u2028\u2029]")
+# A line break, terminal control or bidirectional control in a path must never start a new map line, a forged
+# stderr line or text that shows reordered to a reader.
+CONTROL_TEXT = re.compile(r"[\x00-\x1f\x7f-\x9f\u061c\u200e\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]")
 
 
 def escape_controls(text):
     return CONTROL_TEXT.sub(lambda match: f"\\u{ord(match.group()):04x}", text)
 
+
+# The JSON inventory keeps file names readable (ensure_ascii=False) but writes these as \u escapes, which decode to
+# the same value: JSON already escapes C0 controls, and none of these appear outside a string.
+JSON_UNSAFE_TEXT = re.compile(r"[\x7f-\x9f\u061c\u200e\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]")
+
+
+def json_text(value):
+    text = json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2)
+    return JSON_UNSAFE_TEXT.sub(lambda match: f"\\u{ord(match.group()):04x}", text) + "\n"
 
 BASE_LIMITATIONS = [
     "Dependencies and commands are declaration names only; command bodies are not emitted or executed.",
@@ -432,7 +442,7 @@ def receipt_owned_rule_digests():
     happens on the single read of the file below. Nothing is read here except the receipt.
     """
     def reject(reason):
-        raise SystemExit(f"PENDING: synthesis receipt ownership unavailable: {reason}; inventory preserved. Repair or re-synthesize the receipt before retrying.")
+        raise SystemExit(escape_controls(f"PENDING: synthesis receipt ownership unavailable: {reason}; inventory preserved. Repair or re-synthesize the receipt before retrying."))
     receipt_file = os.path.join(root, RECEIPT_PATH)
     if not os.path.lexists(receipt_file):
         return {}
@@ -839,7 +849,7 @@ read_digests = {}
 for path_rel, absolute in sorted(instruction_files):
     data, error = read_bounded(absolute, MAX_INSTRUCTION_BYTES)
     if error and path_rel in receipt_owned:
-        raise SystemExit(f"PENDING: synthesis receipt ownership unavailable: registered generated output {path_rel}: {error}; inventory preserved.")
+        raise SystemExit(escape_controls(f"PENDING: synthesis receipt ownership unavailable: registered generated output {path_rel}: {error}; inventory preserved."))
     row = {"path": path_rel, "kind": "project instruction/startup document", "read_status": "read" if data is not None else "excluded"}
     if data is not None:
         digest = hashlib.sha256(data).hexdigest()
@@ -857,7 +867,7 @@ for path_rel, absolute in sorted(instruction_files):
     instruction_rows.append(row)
 unseen_owned = sorted(set(receipt_owned) - set(read_digests))
 if unseen_owned and not truncated:
-    raise SystemExit(f"PENDING: synthesis receipt ownership unavailable: registered generated output is missing, linked or not a regular file: {', '.join(unseen_owned[:5])}; inventory preserved.")
+    raise SystemExit(escape_controls(f"PENDING: synthesis receipt ownership unavailable: registered generated output is missing, linked or not a regular file: {', '.join(unseen_owned[:5])}; inventory preserved."))
 
 package_paths = sorted(packages, key=lambda value: (value.count("/"), value))
 
@@ -1099,7 +1109,7 @@ if os.path.lexists(map_path):
 
 use_json = map_state == "custom"
 output_path = inventory_path if use_json else map_path
-output_bytes = (json.dumps(inventory_document(inventory), ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode("utf-8") if use_json else markdown_for(inventory)
+output_bytes = json_text(inventory_document(inventory)).encode("utf-8") if use_json else markdown_for(inventory)
 if len(output_bytes) > MAX_OUTPUT_BYTES:
     raise SystemExit(f"refusing to write: generated inventory exceeds {MAX_OUTPUT_BYTES} bytes")
 output_existing = None

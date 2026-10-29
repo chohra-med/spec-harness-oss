@@ -477,7 +477,7 @@ text = open(sys.argv[1], encoding="utf-8").read()
 headings = re.findall(r"^### `([^`]+)`$", text, re.M)
 assert headings == [".", "apps/deep", "apps/inject", "apps/surrogate", "apps/uvbad"], headings
 assert "forged" not in text and "bad`name" not in text and "line\nbreak" not in text, "an unsafe value was kept"
-assert not any(ch in text for ch in " ‮\x85"), "a line separator or direction override was kept"
+assert not any(ch in text for ch in "\u2028\u202e\x85"), "a line separator or direction override was kept"
 assert "`fastapi`" in text, "a pyproject with a malformed [tool.uv] still reports its dependencies"
 assert "`left-pad`" in text and "`right-pad`" in text and "`ok`" in text, "safe values next to unsafe ones were lost"
 assert re.search(r"`apps/deep/pyproject.toml` \(unsupported\)", text), "a parser-exhausting manifest must be recorded as unsupported"
@@ -688,6 +688,52 @@ bash "$INDEX" "$TMP/forge" > /dev/null || fail 'index with a newline in a file n
 bash "$INDEX" "$TMP/forge" --same-scope --preview > "$TMP/forge-same.out" 2>/dev/null || fail '--same-scope over a map with a hostile file name exits 0'
 grep -Fq '`app/a.js`' "$TMP/forge-same.out" || fail '--same-scope must not exclude app/ because of a forged line'
 pass 'a newline in a file name is escaped in the map and cannot forge a recorded option'
+
+# Bidirectional controls in a file name are escaped too, so a name cannot show reordered to a reader of the map.
+mkdir -p "$TMP/bidi/src"
+printf '{"name":"bidi"}\n' > "$TMP/bidi/package.json"
+for name in "a"$'\xe2\x80\xae'"sj.exe.js" "b"$'\xe2\x81\xa6'"c.js" "c"$'\xe2\x80\x8f'"d.js"; do printf 'export const x = 1;\n' > "$TMP/bidi/src/$name"; done
+bash "$INDEX" "$TMP/bidi" > /dev/null || fail 'index with bidirectional controls in file names exits 0'
+python3 -I -B - "$TMP/bidi/ai_rules/context_map.md" <<'PY' || fail 'bidirectional controls are escaped in the map'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+assert not re.search("[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]", text), "a raw bidirectional control is in the map"
+assert "\\u202e" in text and "\\u2066" in text and "\\u200f" in text, "the escaped forms are missing"
+PY
+if bash "$INDEX" "$TMP/bidi" --source "src/a"$'\xe2\x80\xae'"sj.exe.js" --preview > /dev/null 2>&1; then fail '--source with a bidirectional control is refused'; fi
+# The JSON inventory, which models read, writes them as \u escapes too; the decoded names are unchanged.
+printf '# My own notes\n' > "$TMP/bidi/ai_rules/context_map.md"
+bash "$INDEX" "$TMP/bidi" > /dev/null || fail 'JSON index with bidirectional controls in file names exits 0'
+python3 -I -B - "$TMP/bidi/ai_rules/project_inventory.json" <<'PY' || fail 'bidirectional controls are escaped in the JSON inventory'
+import json, re, sys
+raw = open(sys.argv[1], encoding="utf-8").read()
+assert not re.search("[\u061c\u200e\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]", raw), "a raw bidirectional control is in the JSON inventory"
+assert "\u202e" in json.dumps(json.loads(raw), ensure_ascii=False), "the decoded inventory lost the file name"
+PY
+# A path from the synthesis receipt cannot forge a stderr line or show reordered in a refusal.
+mkdir -p "$TMP/badreceipt/.claude/agents"
+printf '{"name":"receipt"}\n' > "$TMP/badreceipt/package.json"
+python3 -I -B -c 'import json, sys; json.dump({"format": "spec-harness-synthesis", "schema_version": 4, "packages": [{"path": ".", "rules_path": "x\u202e\nFORGED: line/RULES.md", "sha256": "0" * 64}]}, open(sys.argv[1], "w"))' "$TMP/badreceipt/.claude/agents/.init-synthesis.json"
+if bash "$INDEX" "$TMP/badreceipt" --preview > /dev/null 2> "$TMP/badreceipt.err"; then fail 'a receipt with a rules path outside its package is refused'; fi
+grep -Fq 'ownership unavailable' "$TMP/badreceipt.err" || fail 'the receipt refusal says why'
+! grep -q '^FORGED' "$TMP/badreceipt.err" || fail 'a receipt path forged a stderr line'
+python3 -I -B -c 'import re, sys; sys.exit(1 if re.search("[\u202a-\u202e]", open(sys.argv[1], encoding="utf-8").read()) else 0)' "$TMP/badreceipt.err" || fail 'a receipt path wrote a raw bidirectional control to stderr'
+# The two other receipt refusals escape the path as well: an owned output whose folder does not exist (missing), and
+# an owned output the scan finds but cannot read (fifo: a FIFO named RULES.md).
+for case in missing fifo; do
+  mkdir -p "$TMP/badreceipt-$case/.claude/agents"
+  printf '{"name":"receipt"}\n' > "$TMP/badreceipt-$case/package.json"
+  python3 -I -B -c 'import json, sys; p = "x\u202e\nFORGED: line"; json.dump({"format": "spec-harness-synthesis", "schema_version": 4, "packages": [{"path": p, "rules_path": p + "/RULES.md", "sha256": "0" * 64}]}, open(sys.argv[1], "w"))' "$TMP/badreceipt-$case/.claude/agents/.init-synthesis.json"
+done
+python3 -I -B -c 'import os, sys; folder = os.path.join(sys.argv[1], "x\u202e\nFORGED: line"); os.mkdir(folder); os.mkfifo(os.path.join(folder, "RULES.md"))' "$TMP/badreceipt-fifo"
+for case in missing fifo; do
+  if bash "$INDEX" "$TMP/badreceipt-$case" --preview > /dev/null 2> "$TMP/badreceipt-$case.err"; then fail "a receipt whose owned output is $case is refused"; fi
+  ! grep -q '^FORGED' "$TMP/badreceipt-$case.err" || fail "a receipt path forged a stderr line ($case output)"
+  python3 -I -B -c 'import re, sys; sys.exit(1 if re.search("[\u202a-\u202e]", open(sys.argv[1], encoding="utf-8").read()) else 0)' "$TMP/badreceipt-$case.err" || fail "a receipt path wrote a raw bidirectional control to stderr ($case output)"
+done
+grep -Fq 'registered generated output is missing, linked or not a regular file: x\u202e\u000aFORGED' "$TMP/badreceipt-missing.err" || fail 'the missing-output refusal names the escaped path'
+grep -Fq 'registered generated output x\u202e\u000aFORGED: line/RULES.md: not a regular in-root file' "$TMP/badreceipt-fifo.err" || fail 'the unreadable-output refusal names the escaped path'
+pass 'bidirectional controls in file names are escaped in the map, the JSON inventory and refusals, and refused in options'
 
 # An exclusion the scan never reached (a folder that does not exist yet) is still recorded and reused.
 make_scope_fixture "$TMP/notyet"
