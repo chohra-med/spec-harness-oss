@@ -137,7 +137,9 @@ never recur.
 Text rules alone did not stop work that skipped `/sdd` or was placed in a worktree outside the
 repository. So an installed target also carries one `PreToolUse` hook, `hooks/sdd-gate.sh` in this
 repository, staged to `.claude/spec-harness/hooks/sdd-gate.sh` and registered in the untracked
-`.claude/settings.local.json`. For `Edit`, `Write`, `MultiEdit` and `NotebookEdit` it decides from
+`.claude/settings.local.json` only when the staged file is byte-identical to the shipped one and executable
+(`bin/sh-hook-register.py`). A refusal says why, and it removes an earlier registration, which would keep
+running the refused file. For `Edit`, `Write`, `MultiEdit` and `NotebookEdit` it decides from
 the real path and the run state. It guards the repo that registered it (`CLAUDE_PROJECT_DIR`, else the
 repo around the script), never the session's current working folder, and compares folders by identity (a
 differently cased path is the same folder):
@@ -158,7 +160,7 @@ differently cased path is the same folder):
 
 The hook reads the run state (`docs/RUN-STATE.md`) and writes nothing but that log. It fails open: a
 broken hook prints a warning and allows the call, because a guard that locks the person out gets
-switched off. `spec-harness doctor` reports in its `guards` field whether the hook is registered with the expected matcher, whether python3 is there for it, and which runs are open or expired. `spec-harness update --apply` registers it the same way install does. Side effect: when a folder above the root (for example a home folder) is itself a git repository, files outside the root below it, such as Claude Code memory files, count as another working tree and are blocked.
+switched off. `spec-harness doctor` reports in its `guards` field whether the hook is registered with the expected matcher and is a script the registrar accepts, whether python3 is there for it, and which runs are open or expired. `spec-harness update --apply` registers it the same way install does. Side effect: when a folder above the root (for example a home folder) is itself a git repository, files outside the root below it, such as Claude Code memory files, count as another working tree and are blocked.
 It is a gate against mistakes, not a sandbox: `.claude/`, `.spec-harness/` and `specs/` stay writable, so an agent
 can change the hook, its settings or a run state. Known limits: `Bash` writes (a redirect, `sed -i`) are not
 checked, and a session started in another folder loads that folder's settings, not this repository's hook.

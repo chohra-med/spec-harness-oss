@@ -47,7 +47,7 @@ are the same route, written for an agent. The guide numbers its steps differentl
 differ in detail, the guide wins. Step numbers in this section mean the numbers in this section.
 
 **If the user is not there to answer you:** step 2 still decides. If it tells you to stop, stop
-there and change nothing. If it passes, do steps 3, 4, 6 and 8, which only add files (step 3 also merges one hook entry into `.claude/settings.local.json`), using the
+there and change nothing. If it passes, do steps 3, 4, 6 and 8, which only add files (step 3 also merges one hook entry into `.claude/settings.local.json` when the staged hook is the shipped one, and removes an earlier entry when it is not), using the
 default source sample in step 6. Do not edit their instruction files (step 5) and do not initialise
 (step 7). Report exactly what you did and what is waiting for them.
 

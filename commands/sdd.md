@@ -381,7 +381,9 @@ resumable: take the approval again.
 ### Edit guard hook
 
 An installed target registers `.claude/spec-harness/hooks/sdd-gate.sh` as a Claude Code `PreToolUse`
-hook for `Edit`, `Write`, `MultiEdit` and `NotebookEdit` (in the untracked `.claude/settings.local.json`).
+hook for `Edit`, `Write`, `MultiEdit` and `NotebookEdit` (in the untracked `.claude/settings.local.json`),
+but only when that file is byte for byte the hook this harness ships and is executable. Otherwise install and
+update say why, remove an earlier entry for it, and the guard is off: `doctor` reports `hook_registered: MISSING`.
 The hook guards the repo that registered it (`CLAUDE_PROJECT_DIR`, else the repo around the script), never
 the session's current working folder, and it compares folders by identity, so a differently cased path
 is the same folder.

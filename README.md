@@ -272,7 +272,10 @@ reports it until you run `/sdd init` again. An update that writes only `CONFLICT
 `install` also stages a Claude Code `PreToolUse` hook, `.claude/spec-harness/hooks/sdd-gate.sh`, and
 registers it in the target's `.claude/settings.local.json` (never in the committed `settings.json`). The
 merge keeps every other key and hook, running it twice adds nothing, and in a git target the file is added
-to `.git/info/exclude` so it stays untracked. For `Edit`, `Write`, `MultiEdit` and `NotebookEdit` the hook:
+to `.git/info/exclude` so it stays untracked. The hook is registered only when the staged file is
+byte-identical to the one this harness ships and executable. An existing file is kept, as every existing file
+is, so a changed or foreign `sdd-gate.sh` is not registered: the `hook registration:` line says why and what to
+do, and an earlier registration of that file is removed. For `Edit`, `Write`, `MultiEdit` and `NotebookEdit` the hook:
 
 - guards the repo that registered it (`CLAUDE_PROJECT_DIR`, else the repo around the script),
   never the session's current working folder, and compares folders by identity, so a differently cased path is the same folder;
@@ -292,7 +295,7 @@ A block means run `/sdd`. `SDD_BYPASS=1` in the environment lets a call through 
 decision, never for getting past a block that says run `/sdd`. If the hook itself fails it allows the call and
 prints a warning. This is a gate against mistakes, not a sandbox: `.claude/`, `.spec-harness/` and `specs/` stay
 writable, so an agent can change the hook, its settings or a run state, `Bash` writes are not checked, and a
-session started in another folder does not load this repository's hook. `spec-harness update <target> --apply <digest>` registers the hook the same way and prints a `hook registration:` line. `spec-harness doctor <target>` reports `hook_registered` (only when the matcher is the expected one), `hook_python` (python3 on PATH, or the hook fails open) and `runs_current` (open and expired runs).
+session started in another folder does not load this repository's hook. `spec-harness update <target> --apply <digest>` registers the hook the same way and prints a `hook registration:` line. `spec-harness doctor <target>` reports `hook_registered` (OK only when the matcher is the expected one and the script is the shipped, executable hook), `hook_python` (python3 on PATH, or the hook fails open) and `runs_current` (open and expired runs).
 
 ## Uninstall
 

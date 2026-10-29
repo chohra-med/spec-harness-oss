@@ -159,14 +159,17 @@ What lands in the repository:
 | `.claude/skills/spec-harness*`, `.agents/skills/` | skill entry points for Claude Code and Codex |
 | `.memory/` | the project memory bank (see [docs/MEMORY.md](./MEMORY.md)) |
 | `.claude/spec-harness/` | method files, rule packs and optional memory kinds (`memory-kinds/`) that init copies from, and the edit guard hook (`hooks/sdd-gate.sh`) |
-| `.claude/settings.local.json` | merged, not copied: one `PreToolUse` entry that registers the edit guard hook. Untracked (`.git/info/exclude`); `.claude/settings.json` is never written |
+| `.claude/settings.local.json` | merged, not copied: one `PreToolUse` entry that registers the edit guard hook, written only when the staged hook is byte-identical to the shipped one and executable. Untracked (`.git/info/exclude`); `.claude/settings.json` is never written |
 | `ai_rules/`, `RULES.md`, `AGENTS.md`, `CLAUDE.md`, `constitution.md` | rules, only where you had none; `ai_rules/review-lens.md` is an optional PENDING template of standing review checks |
 | `specs/`, `workflows/`, `learning/`, `SPEC-HARNESS.md`, `goal.md` | ticket packets, critical journeys, lessons, status |
 | `learning_human.html` | the interactive explainer for people; delete it once read |
 | `loop.sh` | a legacy placeholder; you can delete it |
 
 **The edit guard hook.** In Claude Code, `.claude/spec-harness/hooks/sdd-gate.sh` runs before every
-`Edit`, `Write`, `MultiEdit` and `NotebookEdit`. It guards the repo that registered it (`CLAUDE_PROJECT_DIR`, else
+`Edit`, `Write`, `MultiEdit` and `NotebookEdit`. It is registered only when the staged file is byte-identical to the
+hook this harness ships and executable. The installer keeps a file that is already there, so a changed or foreign
+`sdd-gate.sh` is not registered: the `hook registration:` line says why and what to do, and an earlier registration
+of that file is removed, because it would keep running the file on every edit. It guards the repo that registered it (`CLAUDE_PROJECT_DIR`, else
 the repo around the script), never the session's current working folder, and compares folders by identity, so a differently
 cased path is the same folder. It blocks a write that lands inside another git working tree (a `.git` folder or file
 between the root and the file, also under `.claude/`, `specs/` and the other allowed folders, or above a file outside
@@ -517,17 +520,20 @@ kept`, or `PID <PID> is still running, or its state is unclear (ps exit <RC>, pr
 Only after the block prints `lock removed`, start a new run with a new evidence directory outside the target. Route A (`npx`, nothing installed):
 
 ```sh
-npx -y github:chohra-med/spec-harness-oss finalize-init . --apply --source <each path you passed to index in step 4> --evidence-dir <new directory outside the target>
+npx -y github:chohra-med/spec-harness-oss finalize-init . --apply --evidence-dir <new directory outside the target>
 ```
 
 Route B (`spec-harness` on your PATH):
 
 ```sh
-spec-harness finalize-init . --apply --source <each path you passed to index in step 4> --evidence-dir <new directory outside the target>
+spec-harness finalize-init . --apply --evidence-dir <new directory outside the target>
 ```
 
-Repeat the same `--source` flags you gave the index step, and give none if you gave none. A run without the original
-sources plans from a different index. The run plans again from the files as they are now.
+The run re-indexes with the `--exclude-dir` and `--source` options the inventory recorded, and plans again from the
+files as they are now. A commit made since the index does not stop it: the recorded `Source HEAD` is not compared. An
+inventory written by an index older than 0.7.0 does not record `--source` paths or an `--exclude-dir` folder the scan
+never reached, so the first refresh of one built with those options can stop with "semantic inventory inputs changed"
+(`packages` or `limitations`): run `/sdd init` once for a model-led refresh; later refreshes reuse the recorded options.
 
 Do not use this step when the status is `STRUCTURAL_READY`, `RECOVERY_CONFLICT` or `RECOVERY_FAILED`: a completed run
 keeps its result, a conflict needs the steps in [Recovery conflict](#recovery-conflict), and a failed restore

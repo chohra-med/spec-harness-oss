@@ -220,7 +220,7 @@
       "source": "commands/sdd.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "b587ba1104fb89c9f2866e3af1cf08eb752533d770c6336e51d16722783b80d5",
+      "sha256": "d1e7be842eb40148686487def5381c287ae89f852f811b532732778297f822dd",
       "mode": "0644"
     },
     {
@@ -356,7 +356,7 @@
       "source": "commands/doctor.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "3e078b045edde80da43f97fb9c006a8a552a215bb16afa739e89124c47662e5e",
+      "sha256": "5453a9b4ffe15822e41b675d6171203062d6fa57db5eb301f14fd00bfc2f4d73",
       "mode": "0644"
     },
     {
@@ -722,7 +722,7 @@
       "tokens": [
         "{{PROJECT_NAME}}"
       ],
-      "sha256": "c393222f4b2d8f02aa34c82a1d442e44fb3264a62bd9fc26701b1a0878f94706",
+      "sha256": "b12afdd522f45afd74c67d1471640ef10deaf39ba68298e0861365b5dbe35612",
       "mode": "0644"
     },
     {
