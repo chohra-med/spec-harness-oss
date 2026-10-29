@@ -27,14 +27,15 @@ Guards (below) never change `structural` or the exit code.
 | Guard | `OK` when | `MISSING` when | `NOT_APPLICABLE` when |
 |---|---|---|---|
 | `claude_imports_agents` | `CLAUDE.md` contains `@AGENTS.md`, so Claude Code loads the same rules. | `CLAUDE.md` is absent, unsafe or has no import. | There is no `AGENTS.md`. |
-| `hook_registered` | `.claude/settings.local.json` has the edit guard entry with the expected matcher (the registrar's own value: the four edit tools) and `.claude/spec-harness/hooks/sdd-gate.sh` is a regular, executable file. | The settings file is absent, unreadable or not valid JSON, has no such entry, the entry's matcher differs from the expected one (some edit tools are then not guarded), or the script is absent, linked or not executable. | There is no `.claude/commands/sdd.md`, so the target does not use the Claude Code route. |
+| `hook_registered` | `.claude/settings.local.json` has the edit guard entry with the expected matcher (the registrar's own value: the four edit tools) and `.claude/spec-harness/hooks/sdd-gate.sh` is a regular, executable file that is byte-identical to the hook this harness ships (the registrar's own check). | The settings file is absent, unreadable or not valid JSON, has no such entry, the entry's matcher differs from the expected one (some edit tools are then not guarded), or the script is absent, linked or not executable, or differs from the shipped hook (changed, or brought by the repository); the note is then the registrar's refusal, with the steps that fix it. | There is no `.claude/commands/sdd.md`, so the target does not use the Claude Code route. |
 | `lens_present` | `ai_rules/review-lens.md` exists. Whether it is filled in is a review matter. | The file is absent or unsafe to read. | Never. |
 | `hook_python` | `python3` is on `PATH`, so the hook can decide. | `python3` is not on `PATH`: the hook cannot decide and fails open, allowing every edit. | There is no `.claude/commands/sdd.md`. |
 | `runs_current` | No run-state or MICRO `ticket.md` has expired. The note lists the open ones (they allow source edits). | A run-state or an open ticket has not been modified for more than 7 days. The hook ignores it; the note lists it. Close it with the `summary` stage, or delete it. | There is no `.claude/commands/sdd.md`. |
 | `memory_complete` | The ten core `.memory/` files are present and are not scaffolds. | Any of them is absent, unsafe or still a scaffold; the note names them. | Never. |
 
 A `MISSING` guard is a to-do for the person, not a failure of the install. Fix the cause (for example
-rerun `spec-harness install <target>` to register the hook), then run doctor again.
+rerun `spec-harness install <target>` to register the hook, or follow the steps in the note when the script
+differs from the shipped hook or is not executable, because install keeps an existing file), then run doctor again.
 
 ## What doctor does not do
 

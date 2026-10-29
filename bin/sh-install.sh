@@ -410,7 +410,9 @@ else
 fi
 
 # Register the edit guard in the untracked .claude/settings.local.json (never settings.json). The merge
-# keeps every other key and hook and is idempotent; a settings file it cannot trust is left as it is.
+# keeps every other key and hook and is idempotent; a settings file it cannot trust is left as it is. A
+# staged hook the registrar refuses is not registered, and an earlier entry for it is removed; the
+# registrar's own line says which, so the PENDING line claims no more than that this run did not register it.
 HOOK_NOTE=
 if command -v python3 >/dev/null 2>&1; then
   HOOK_NOTE="$(python3 -I -B "$SYS_DIR/bin/sh-hook-register.py" add "$ABS" 2>&1)" || true
@@ -419,7 +421,7 @@ else
   HOOK_NOTE="NOT registered: no Python found; the hook is staged but not active"
 fi
 case "$HOOK_NOTE" in
-  "NOT registered"*) PENDING+=(".claude/settings.local.json (the edit guard hook is staged but not registered; see the hook registration line)") ;;
+  "NOT registered"*) PENDING+=(".claude/settings.local.json (the edit guard hook was not registered; the hook registration line says why and what to do)") ;;
 esac
 
 for skill in architecture performance packages; do

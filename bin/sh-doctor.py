@@ -11,7 +11,7 @@ It reports three separate fields, because they are separate facts:
   (`claude_imports_agents`, `hook_registered`, `lens_present`, `memory_complete`) plus two about the
   edit guard hook: `hook_python` (python3 on PATH, or the hook fails open) and `runs_current` (open and
   expired runs and tickets, listed). `hook_registered` is OK only when the registered matcher equals the
-  registrar's. Each is OK, MISSING or NOT_APPLICABLE, with a one-line note in `guards_notes`. Guards never change structural or the
+  registrar's and the registrar accepts the staged script (the shipped bytes, executable). Each is OK, MISSING or NOT_APPLICABLE, with a one-line note in `guards_notes`. Guards never change structural or the
   exit code, so a target installed before the hook existed is not suddenly PENDING.
 
 - memory and index: advisory fields that never change structural or the exit code. `memory` gives the size of
@@ -247,7 +247,12 @@ def hook_state(root):
         return ("MISSING", f"the hook script {HOOK_SCRIPT} is not a regular file")
     if not os.access(script, os.X_OK):
         return ("MISSING", f"the hook script {HOOK_SCRIPT} is not executable")
-    return ("OK", "registered in " + HOOK_SETTINGS + " and the script is executable")
+    # The registrar's own check: a script it would refuse to register (a foreign or changed file) is not the guard.
+    try:
+        REGISTRAR.check_script(root)
+    except REGISTRAR.Refused as refusal:
+        return ("MISSING", str(refusal))
+    return ("OK", "registered in " + HOOK_SETTINGS + "; the script is the shipped edit guard and is executable")
 
 
 HOT_FILES = ("40-active.md", "50-progress.md", "80-feedback.md")

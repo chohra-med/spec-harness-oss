@@ -370,5 +370,19 @@ _, digest, _ = plan(bad)
 out = run(CLI + ["update", str(bad), "--apply", digest], 0, "apply with an untrusted settings file")
 assert "hook registration: NOT registered" in out and (bad / ".claude/settings.local.json").read_text() == "{not json", out
 print("PASS: update --apply registers the hook (merge, idempotent, doctor OK, settings.json untouched) and names a settings file it cannot trust")
+# A hook edited since install is kept (CUSTOMIZED-KEEP), so the registrar refuses it and removes the earlier entry,
+# which would otherwise keep running the edited file on every edit. The hook registration line says so.
+edited = tmp / "hook-edited"
+install(edited, "edited")
+assert doctor(edited)["guards"]["hook_registered"] == "OK", "positive control: registered after install"
+with open(edited / ".claude/spec-harness/hooks/sdd-gate.sh", "a") as handle:
+    handle.write("# local edit\n")
+states, digest, _ = plan(edited)
+assert states.get(".claude/spec-harness/hooks/sdd-gate.sh") == "CUSTOMIZED-KEEP", states
+out = run(CLI + ["update", str(edited), "--apply", digest], 0, "apply over a locally edited hook")
+assert "hook registration: NOT registered" in out and "earlier registration was removed" in out, out
+assert not (edited / ".claude/settings.local.json").exists(), "the earlier registration still runs the edited hook"
+assert doctor(edited)["guards"]["hook_registered"] == "MISSING", doctor(edited)["guards_notes"]
+print("PASS: update --apply over an edited hook removes the earlier registration and says so")
 print("All update fixtures passed.")
 PY

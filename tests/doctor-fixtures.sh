@@ -188,10 +188,14 @@ assert g["hook_registered"] == "MISSING" and "script" in notes["hook_registered"
 target = variant("linked-script"); (target / script_rel).unlink(); (target / script_rel).symlink_to(harness / "hooks/sdd-gate.sh")
 g, notes, *_ = guards_of(target)
 assert g["hook_registered"] == "MISSING", (g, notes)
+# A registered, executable script that is not the shipped hook: the registrar refuses it, and so does doctor.
+target = variant("foreign-script"); (target / script_rel).write_text("#!/bin/sh\necho foreign\n"); (target / script_rel).chmod(0o755)
+g, notes, *_ = guards_of(target)
+assert g["hook_registered"] == "MISSING" and "differs from the shipped edit guard" in notes["hook_registered"], (g, notes)
 target = variant("no-claude-route"); (target / ".claude/commands/sdd.md").unlink()
 g, notes, *_ = guards_of(target)
 assert g["hook_registered"] == "NOT_APPLICABLE" and "Claude" in notes["hook_registered"], (g, notes)
-print("PASS: hook_registered is MISSING for no file, another hook only, bad JSON, no exec bit, no script, a linked script; NOT_APPLICABLE without the Claude route")
+print("PASS: hook_registered is MISSING for no file, another hook only, bad JSON, no exec bit, no script, a linked script, a foreign script; NOT_APPLICABLE without the Claude route")
 
 # Batch 3b: python3 availability, the registered matcher, and open or expired runs. All read only.
 DAY = 24 * 60 * 60

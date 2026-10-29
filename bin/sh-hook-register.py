@@ -10,12 +10,16 @@ runs the same command is not added twice. In a git target it also adds the setti
 (and any container it leaves empty), and deletes the file only when nothing else is left in it.
 
 A settings file that is a link, not a regular file, not valid JSON or not shaped as expected is left
-untouched and named in the output (exit 1). Writes go through sh_safe_io: temporary file, then
+untouched and named in the output (exit 1). A staged hook that is missing, differs from the edit guard this
+harness ships or is not executable is refused too (exit 1): `add` does not register a file it did not stage,
+and it takes out an earlier harness entry the way `remove` does, because that entry would keep running the
+refused file on every edit. Writes go through sh_safe_io: temporary file, then
 atomic replace, with no link followed on the way. Exit 0 on success, 1 when refused, 2 for a bad
 argument. Standard library only.
 """
 import json
 import os
+import shlex
 import stat
 import subprocess
 import sys
@@ -29,6 +33,8 @@ MATCHER = "Edit|Write|MultiEdit|NotebookEdit"
 SCRIPT = ".claude/spec-harness/hooks/sdd-gate.sh"
 COMMAND = '"$CLAUDE_PROJECT_DIR"/' + SCRIPT
 MAX_BYTES = 1024 * 1024
+# The edit guard this harness ships, next to this program's bin/ folder.
+SHIPPED = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "hooks", "sdd-gate.sh")
 
 
 class Refused(Exception):
@@ -90,7 +96,65 @@ def pre_tool_groups(settings, create):
     return groups
 
 
+def command_line(action, root):
+    """This registrar's command for one target, quoted for a shell, as the refusals print it."""
+    return "python3 -I -B %s %s %s" % (shlex.quote(os.path.realpath(__file__)), action, shlex.quote(root))
+
+
+def check_script(root):
+    """Refuse a staged hook that is missing, differs from the shipped edit guard, or is not executable.
+
+    The registered command runs that file on every edit, so a file that came with the repository (the installer
+    keeps every existing file) would otherwise run as the guard, and a file Claude Code cannot execute lets every
+    edit through. update keeps a changed or foreign file too, so the refusal names the steps that work."""
+    try:
+        staged = read_bounded(SCRIPT, MAX_BYTES, root=root)
+    except SafeReadError as error:
+        state = "not staged" if error.reason == "missing" else "not a plain readable file (%s)" % error.reason
+        raise Refused("%s is %s" % (SCRIPT, state))
+    try:
+        with open(SHIPPED, "rb") as handle:
+            shipped = handle.read()
+    except OSError:
+        raise Refused("the shipped edit guard %s cannot be read" % SHIPPED)
+    path = os.path.join(root, SCRIPT)
+    if staged != shipped:
+        # A hand-added entry for this path would be removed by the next refused add, so a custom hook needs its own name.
+        raise Refused("%s differs from the shipped edit guard (it was changed, or it came with the repository). To use the "
+                      "shipped one, replace the file with it and keep its mode (cp -p %s %s), then run %s. This registrar "
+                      "only registers the shipped edit guard: to run your own hook instead, review it, save it under another "
+                      "name and register that name in %s yourself"
+                      % (SCRIPT, shlex.quote(SHIPPED), shlex.quote(path), command_line("add", root), SETTINGS))
+    try:
+        mode = os.lstat(path).st_mode  # the file itself: a link is never followed
+    except OSError:
+        mode = 0
+    if not stat.S_ISREG(mode):
+        raise Refused("%s changed while it was checked" % SCRIPT)
+    if not mode & stat.S_IXUSR:
+        raise Refused("%s is not executable, so Claude Code could not run it and edits would go unguarded. Run chmod +x %s, "
+                      "then run %s" % (SCRIPT, shlex.quote(path), command_line("add", root)))
+
+
+def unregister(root):
+    """After a refusal, take out an earlier harness entry, which would keep running the refused file on every edit.
+
+    Returns the sentence the refusal adds: empty when there was no entry."""
+    try:
+        outcome = remove(root)
+    except (Refused, OSError) as error:
+        return ". Nothing was changed in %s, so an earlier registration in it, if there is one, was not removed (%s)" % (
+            SETTINGS, getattr(error, "strerror", None) or error)
+    if outcome.startswith("removed"):
+        return ". The earlier registration was removed from %s, so this file no longer runs on every edit" % SETTINGS
+    return ""
+
+
 def add(root):
+    try:
+        check_script(root)
+    except Refused as refusal:
+        raise Refused("%s%s" % (refusal, unregister(root)))
     settings = load(root)
     created = settings is None
     if created:

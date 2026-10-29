@@ -215,6 +215,103 @@ HOOK_EXCLUDE_COUNT="$(grep -Fxc '/.claude/settings.local.json' "$HOOK_GIT/.git/i
 if [ "$HOOK_EXCLUDE_COUNT" = 1 ]; then pass 'a second install does not repeat the exclude line'; else fail "a second install does not repeat the exclude line (found $HOOK_EXCLUDE_COUNT)"; fi
 if [ -z "$(find "$HOOK_GIT/.claude" -maxdepth 1 -name '.spec-harness-update-*')" ]; then pass 'the settings merge leaves no temporary file'; else fail 'the settings merge leaves no temporary file'; fi
 
+# A different sdd-gate.sh already in the target (for example one that came with a cloned repository) is kept, as
+# every existing file is, but never registered: the hook command would run it on every edit.
+HOOK_FOREIGN="$TMP/hook-foreign"
+mkdir -p "$HOOK_FOREIGN/.claude/spec-harness/hooks"
+git init -q "$HOOK_FOREIGN"
+printf '#!/bin/sh\necho foreign\n' >"$HOOK_FOREIGN/.claude/spec-harness/hooks/sdd-gate.sh"
+chmod +x "$HOOK_FOREIGN/.claude/spec-harness/hooks/sdd-gate.sh"
+run_cli "$TMP/hook-foreign.log" install "$HOOK_FOREIGN" integrate HookForeign
+assert_absent "$HOOK_FOREIGN/.claude/settings.local.json" 'a foreign sdd-gate.sh in the target is not registered'
+assert_contains "$TMP/hook-foreign.log" 'differs from the shipped edit guard' 'the install report says why the hook was not registered'
+if python3 -I -B "$HOOK_REG" add "$HOOK_FOREIGN" >"$TMP/hook-foreign-add.log" 2>&1; then fail 'the registrar refuses a foreign sdd-gate.sh'; else pass 'the registrar refuses a foreign sdd-gate.sh'; fi
+HOOK_BARE="$TMP/hook-bare"
+mkdir -p "$HOOK_BARE"
+if python3 -I -B "$HOOK_REG" add "$HOOK_BARE" >"$TMP/hook-bare-add.log" 2>&1; then fail 'the registrar refuses a target with no staged hook'; else pass 'the registrar refuses a target with no staged hook'; fi
+assert_absent "$HOOK_BARE/.claude/settings.local.json" 'a refused registration writes no settings file'
+# The refusal names the step that works: copy the shipped hook over it keeping the mode, then add again, or run your
+# own hook under another name (an entry for this path would be removed by the next refused add). update keeps a
+# changed or foreign hook, so it is not that step.
+assert_contains "$TMP/hook-foreign-add.log" "$HARNESS_DIR/hooks/sdd-gate.sh" 'the refusal names the shipped hook path'
+assert_contains "$TMP/hook-foreign-add.log" 'cp -p' 'the refusal says to keep the mode when replacing the hook'
+assert_contains "$TMP/hook-foreign-add.log" 'sh-hook-register.py add' 'the refusal gives the add command to run again'
+assert_contains "$TMP/hook-foreign-add.log" 'save it under another name and register that name in .claude/settings.local.json yourself' 'the refusal says how to run your own hook without the next add removing it'
+if grep -Fq 'add the entry to' "$TMP/hook-foreign-add.log"; then fail 'the refusal does not offer a hand-added entry for this path, which the next refused add removes'; else pass 'the refusal does not offer a hand-added entry for this path, which the next refused add removes'; fi
+if grep -Fq 'spec-harness update' "$TMP/hook-foreign-add.log"; then fail 'the refusal does not send the reader to update, which keeps the file'; else pass 'the refusal does not send the reader to update, which keeps the file'; fi
+
+# A refused add also takes out an earlier registration, which would keep running the changed file on every edit.
+# Only the harness entry goes, as with remove; the file goes only when it held nothing else.
+HOOK_CHANGED="$TMP/hook-changed"
+mkdir -p "$HOOK_CHANGED/.claude/spec-harness/hooks"
+cp -p "$HARNESS_DIR/hooks/sdd-gate.sh" "$HOOK_CHANGED/.claude/spec-harness/hooks/sdd-gate.sh"
+python3 -I -B "$HOOK_REG" add "$HOOK_CHANGED" >"$TMP/hook-changed-1.log" 2>&1
+assert_contains "$HOOK_CHANGED/.claude/settings.local.json" 'sdd-gate.sh' 'positive control: the shipped hook is registered'
+printf '#!/bin/sh\necho changed\n' >"$HOOK_CHANGED/.claude/spec-harness/hooks/sdd-gate.sh"
+python3 -I -B "$HOOK_REG" add "$HOOK_CHANGED" >"$TMP/hook-changed-2.log" 2>&1
+HOOK_RC=$?
+if [ "$HOOK_RC" -eq 1 ]; then pass 'add over a changed hook exits 1'; else fail "add over a changed hook exits 1 (got $HOOK_RC)"; fi
+assert_absent "$HOOK_CHANGED/.claude/settings.local.json" 'a refused add removes the earlier registration and the file that held only it'
+assert_contains "$TMP/hook-changed-2.log" 'earlier registration was removed' 'the refusal says the earlier registration was removed'
+HOOK_KEEP="$TMP/hook-changed-keep"
+mkdir -p "$HOOK_KEEP/.claude/spec-harness/hooks"
+cp -p "$HARNESS_DIR/hooks/sdd-gate.sh" "$HOOK_KEEP/.claude/spec-harness/hooks/sdd-gate.sh"
+printf '{"permissions": {"allow": ["Read"]}, "hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "echo mine"}]}]}}\n' >"$HOOK_KEEP/.claude/settings.local.json"
+cp "$HOOK_KEEP/.claude/settings.local.json" "$TMP/hook-changed-keep-before.json"
+python3 -I -B "$HOOK_REG" add "$HOOK_KEEP" >"$TMP/hook-changed-keep-1.log" 2>&1
+assert_contains "$HOOK_KEEP/.claude/settings.local.json" 'sdd-gate.sh' 'positive control: the hook is registered beside another hook'
+printf '# local edit\n' >>"$HOOK_KEEP/.claude/spec-harness/hooks/sdd-gate.sh"
+python3 -I -B "$HOOK_REG" add "$HOOK_KEEP" >"$TMP/hook-changed-keep-2.log" 2>&1
+HOOK_RC=$?
+if [ "$HOOK_RC" -eq 1 ]; then pass 'add over an edited hook exits 1'; else fail "add over an edited hook exits 1 (got $HOOK_RC)"; fi
+python3 -I -B - "$TMP/hook-changed-keep-before.json" "$HOOK_KEEP/.claude/settings.local.json" <<'PYHOOK4' >"$TMP/hook-changed-keep-check.log" 2>&1
+import json, sys
+assert json.load(open(sys.argv[1])) == json.load(open(sys.argv[2]))
+print("UNREGISTERED: only the harness entry went")
+PYHOOK4
+assert_contains "$TMP/hook-changed-keep-check.log" 'UNREGISTERED: only the harness entry went' 'a refused add keeps every other key and hook'
+# A settings file that cannot be parsed is left byte-for-byte alone, and the refusal says so.
+HOOK_UNPARSED="$TMP/hook-changed-bad-json"
+mkdir -p "$HOOK_UNPARSED/.claude/spec-harness/hooks"
+printf '#!/bin/sh\necho changed\n' >"$HOOK_UNPARSED/.claude/spec-harness/hooks/sdd-gate.sh"
+chmod +x "$HOOK_UNPARSED/.claude/spec-harness/hooks/sdd-gate.sh"
+printf '{"hooks": {"PreToolUse": [{"matcher": "Edit", "hooks": [{"type": "command", "command": "%s"}]}]}, oops\n' '\"$CLAUDE_PROJECT_DIR\"/.claude/spec-harness/hooks/sdd-gate.sh' >"$HOOK_UNPARSED/.claude/settings.local.json"
+HOOK_UNPARSED_HASH="$(hash_file "$HOOK_UNPARSED/.claude/settings.local.json")"
+python3 -I -B "$HOOK_REG" add "$HOOK_UNPARSED" >"$TMP/hook-changed-bad-json.log" 2>&1
+HOOK_RC=$?
+if [ "$HOOK_RC" -eq 1 ]; then pass 'add over a changed hook and an unparsable settings file exits 1'; else fail "add over a changed hook and an unparsable settings file exits 1 (got $HOOK_RC)"; fi
+if [ "$(hash_file "$HOOK_UNPARSED/.claude/settings.local.json")" = "$HOOK_UNPARSED_HASH" ]; then pass 'an unparsable settings file is left byte-identical by a refused add'; else fail 'an unparsable settings file is left byte-identical by a refused add'; fi
+assert_contains "$TMP/hook-changed-bad-json.log" 'is not valid JSON' 'the refusal names the settings file it could not parse'
+assert_contains "$TMP/hook-changed-bad-json.log" 'was not removed' 'the refusal says an earlier registration in it was not removed'
+
+# A staged hook without the owner execute bit is refused: Claude Code could not run it, so edits would go unguarded.
+HOOK_NOEXEC="$TMP/hook-noexec"
+mkdir -p "$HOOK_NOEXEC/.claude/spec-harness/hooks"
+cp "$HARNESS_DIR/hooks/sdd-gate.sh" "$HOOK_NOEXEC/.claude/spec-harness/hooks/sdd-gate.sh"
+chmod 644 "$HOOK_NOEXEC/.claude/spec-harness/hooks/sdd-gate.sh"
+python3 -I -B "$HOOK_REG" add "$HOOK_NOEXEC" >"$TMP/hook-noexec.log" 2>&1
+HOOK_RC=$?
+if [ "$HOOK_RC" -eq 1 ]; then pass 'add refuses a hook without the execute bit (exit 1)'; else fail "add refuses a hook without the execute bit (got exit $HOOK_RC)"; fi
+assert_absent "$HOOK_NOEXEC/.claude/settings.local.json" 'a hook without the execute bit is not registered'
+assert_contains "$TMP/hook-noexec.log" 'is not executable' 'the refusal says the hook is not executable'
+assert_contains "$TMP/hook-noexec.log" 'chmod +x' 'the refusal gives the chmod +x command'
+
+# install over a registered target whose hook was edited since: install keeps the edited file, so the registration
+# is refused and the earlier one removed. The report says that, and does not call the hook staged.
+HOOK_REINSTALL="$TMP/hook-reinstall"
+mkdir -p "$HOOK_REINSTALL"
+git init -q "$HOOK_REINSTALL"
+run_cli "$TMP/hook-reinstall-1.log" install "$HOOK_REINSTALL" integrate HookReinstall
+assert_file "$HOOK_REINSTALL/.claude/settings.local.json" 'positive control: the first install registers the hook'
+printf '# local edit\n' >>"$HOOK_REINSTALL/.claude/spec-harness/hooks/sdd-gate.sh"
+run_cli "$TMP/hook-reinstall-2.log" install "$HOOK_REINSTALL" integrate HookReinstall
+assert_rc 0 'install over an edited hook still stages the rest'
+assert_absent "$HOOK_REINSTALL/.claude/settings.local.json" 'install over an edited hook removes the earlier registration'
+assert_contains "$TMP/hook-reinstall-2.log" 'hook registration: NOT registered' 'the install report says the hook was not registered'
+assert_contains "$TMP/hook-reinstall-2.log" 'earlier registration was removed' 'the install report says the earlier registration was removed'
+if grep -Fq 'staged but not registered' "$TMP/hook-reinstall-2.log"; then fail 'the install report does not call a refused hook staged'; else pass 'the install report does not call a refused hook staged'; fi
+assert_pending "$TMP/hook-reinstall-2.log" 'the edit guard hook was not registered' 'the PENDING line says the hook was not registered'
+
 # An existing settings.local.json keeps every unrelated key and hook, in order, and its file mode.
 HOOK_MERGE="$TMP/hook-merge"
 mkdir -p "$HOOK_MERGE/.claude"
