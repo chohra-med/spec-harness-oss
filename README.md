@@ -24,7 +24,7 @@ You need Bash, git and Python 3.11+. Node is needed only for `npx`. Run these fr
    git switch -c spec-harness-setup
    ```
 
-2. Stage the harness. This copies files and reports `PENDING`; it does not write project rules:
+2. Stage the harness. This copies files, merges one edit guard hook entry into `.claude/settings.local.json`, and reports `PENDING`; it does not write project rules:
 
    ```sh
    npx -y github:chohra-med/spec-harness-oss init . integrate
@@ -107,7 +107,7 @@ Everything in Spec Harness is one of three things. The name is literal: **Spec**
 | Pillar | What it is | What it addresses |
 |---|---|---|
 | **Memory bank** | The context/memory engine: a 10-file `.memory/` bank + an index of the codebase (`context_map`). Persistent project context and a codebase index. | Cold start every session; hallucinated files/symbols. |
-| **Spec-Driven Development** | A feature-owned `spec → goal → plan → tasks → build` packet. The project-bound planner and implementer work with fresh tester, verifier and reviewer contexts; researcher and merger roles are selected when needed. | A structured path from ticket to checkable tasks with project-bound roles. |
+| **Spec-Driven Development** | A feature-owned `spec → goal → plan → tasks → build` packet. The project-bound planner and implementer work with fresh tester, verifier and reviewer contexts; researcher and merger roles are selected when needed. The reviewer reads blind first, then with the plan's gate briefs, and checks the optional project lens `ai_rules/review-lens.md`; the router also names the task `type` (code, doc, research, decision or review). | A structured path from ticket to checkable tasks with project-bound roles. |
 | **Harness** | The ratchet (`AGENTS.md` rules that only tighten after reviewed classification) + the **verifier** (a fresh context, PASS/FAIL vs the feature's checkable goal) + the **tester** (a separate agent that adversarially runs + breaks the critical `workflows/`) + the **learning loop** (feedback is classified before it becomes policy). | Reviewed feedback, independent verification, and checks for critical project workflows. |
 
 </details>
@@ -172,7 +172,7 @@ To install the CLI from a local tarball instead, run `npm pack` from the checkou
 filename it prints. For the current version, that is:
 
 ```sh
-npm install --global ./spec-harness-0.6.0.tgz
+npm install --global ./spec-harness-0.7.0.tgz
 ```
 
 Staging reports `PENDING`. It copies a scaffold; it does not synthesize project rules, run agents,
@@ -192,12 +192,13 @@ matching, and the result of a first real-ticket run remain unverified for this r
 |---|---|
 | [`install`](./bin/sh-install.sh) | Add/refresh the system in any repo. One entry point for **both** "start new" (`new`) and "integrate into existing" (`integrate`). Idempotent. |
 | [`/sdd`](./commands/sdd.md) | Shared entry for project initialization and ticket-text/reference execution. Runs only in a capable client; the shell route stays PENDING/manual. |
-| [`init`](./commands/init.md) | Stage then synthesize project-specific rules, five core skills plus one per major technology, and source-bound roles. Overall READY requires structural checks and a separate fresh semantic review. |
+| [`init`](./commands/init.md) | Stage then synthesize project-specific rules, five core skills plus one per major technology, and source-bound roles. Overall READY requires structural checks, `doctor` reporting `structural: READY` and a separate fresh semantic review. |
 | [`index`](./bin/sh-index.sh) / [`migrate`](./commands/migrate.md) | Adopt an existing repo: inventory the codebase into the index layer, then enrich. |
 | `index <target> --preview` | Prints the bytes `index` would write and writes nothing. |
-| `index <target> --exclude-dir <dir>` | Leaves a generated or vendored directory (for example `ios`, `android`) out of the scan and records it in the inventory. Repeat it on every refresh. |
+| `index <target> --exclude-dir <dir>` | Leaves a generated or vendored directory (for example `ios`, `android`) out of the scan and records it in the inventory. Repeat it on every refresh. When a scan stops at a read limit, `index` prints an `INCOMPLETE:` line and you re-run with this option; when some paths could not be read, it prints an `INCOMPLETE:` line saying so. |
+| `index <target> --same-scope` | Refreshes with the `--exclude-dir` and `--source` options the existing inventory recorded, so nobody has to remember them. A refresh without it that drops a recorded option prints a `SCOPE:` line on stderr; a map that does not fit the format index writes is not reused and gives no `SCOPE:` line. |
 | [`stack`](./bin/sh_stack.py) `<target> [--check]` | Writes `ai_rules/stack.md` from the manifests and lockfiles: the only file that names package versions. `--check` compares it and changes nothing. |
-| [`doctor`](./bin/sh-doctor.py) `<target>` | Read-only setup report with separate structural, semantic and client fields. |
+| [`doctor`](./bin/sh-doctor.py) `<target>` | Read-only setup report with separate structural, semantic and client fields, plus a `guards` field (CLAUDE.md imports AGENTS.md, edit guard hook registered with the right matcher, python3 available to it, open and expired runs, review lens present, memory complete). See [`commands/doctor.md`](./commands/doctor.md). |
 | [`finalize-init`](./bin/sh-finalize-init.py) `<target> [--apply\|--recover] --evidence-dir <dir>` | Guarded refresh of a READY synthesis receipt. It rewrites only the inventory hash markers and the receipt hashes, and it stops when a semantic inventory input changes (packages, rule files, workspace files, lockfiles, workspace declarations, exclusions, scan and limitations; its own synthesis outputs and visit counters are ignored). A dry run by default; `--apply` writes through a journal kept outside the target. It refuses a Markdown context map, which is what `index` writes by default. The refresh works only when the inventory is `ai_rules/project_inventory.json`, and the policy-drift check in `generate-agents --check` does nothing for a Markdown map. |
 | [`tickets`](./commands/tickets.md) | Accept exact ticket text or a retrieved body from an explicitly connected provider → one `specs/<feature>/` packet with its own `goal.md`. Unretrievable names stop for clarification. |
 | [`rules`](./commands/rules.md) | **Per-directory rules**, one line each (`- **ID** sentence. (source: ...)`), in layers with one home per fact: business and decisions in the memory bank, project rules, tool rules and baseline rules (curated packs in `templates/rule-packs/`), standards the owner committed to such as the European Accessibility Act with EN 301 549 ([`standards`](./commands/standards.md)), versions only in `ai_rules/stack.md`. Resolve the nearest `RULES.md` for a path (coding/architecture/packages/testing/reviewing), or generate it from a directory's real code. Each section owned by one agent; deepest-wins cascade. Built for mixed-stack monorepos. |
@@ -266,6 +267,36 @@ Generated synthesis outputs are not touched. If the project has a synthesis rece
 `UPDATE`, `NEW` or `MERGE` file, the update marks synthesis stale, and `spec-harness generate-agents --check`
 reports it until you run `/sdd init` again. An update that writes only `CONFLICT` proposals does not mark it.
 
+## Edit guard hook
+
+`install` also stages a Claude Code `PreToolUse` hook, `.claude/spec-harness/hooks/sdd-gate.sh`, and
+registers it in the target's `.claude/settings.local.json` (never in the committed `settings.json`). The
+merge keeps every other key and hook, running it twice adds nothing, and in a git target the file is added
+to `.git/info/exclude` so it stays untracked. The hook is registered only when the staged file is
+byte-identical to the one this harness ships and executable. An existing file is kept, as every existing file
+is, so a changed or foreign `sdd-gate.sh` is not registered: the `hook registration:` line says why and what to
+do, and an earlier registration of that file is removed. For `Edit`, `Write`, `MultiEdit` and `NotebookEdit` the hook:
+
+- guards the repo that registered it (`CLAUDE_PROJECT_DIR`, else the repo around the script),
+  never the session's current working folder, and compares folders by identity, so a differently cased path is the same folder;
+- blocks a write that lands inside another git working tree: a `.git` entry (a folder, or a file as in a linked
+  worktree) between the root and the file, also under `.claude/`, `specs/` and the other allowed folders, or above a
+  file outside the root; or one that reaches outside through a link. Memory, plan, scratch and temp files outside
+  the root and outside any git tree are allowed. Side effect: when a folder above the root (for example your
+  home folder) is itself a git repository, files outside the root below it, such as Claude Code memory files, are
+  blocked too; keep them outside any git tree or bypass that one write by your own decision;
+- blocks a source edit until some `.spec-harness/runs/*/run-state.json` lists `checkpoint` and not
+  `summary` (run `/sdd`) or an open MICRO `specs/<feature>/ticket.md` (no `RESULT: PASS` line yet; a weaker rule
+  than a checkpoint), and a run-state or ticket not modified for 7 days is expired and no longer opens the
+  gate (the block message names it). It always allows `specs/`, `.spec-harness/`, `.memory/`, `.claude/`, `ai_rules/`, `learning/`, `.agents/`, `SPEC-HARNESS.md`, `AGENTS.md`, `CLAUDE.md` and every `RULES.md` (the files `/sdd init` and learn write).
+
+A block means run `/sdd`. `SDD_BYPASS=1` in the environment lets a call through and appends a line to
+`.spec-harness/bypass.log` only when the call would otherwise have been blocked; it is for the person's own
+decision, never for getting past a block that says run `/sdd`. If the hook itself fails it allows the call and
+prints a warning. This is a gate against mistakes, not a sandbox: `.claude/`, `.spec-harness/` and `specs/` stay
+writable, so an agent can change the hook, its settings or a run state, `Bash` writes are not checked, and a
+session started in another folder does not load this repository's hook. `spec-harness update <target> --apply <digest>` registers the hook the same way and prints a `hook registration:` line. `spec-harness doctor <target>` reports `hook_registered` (OK only when the matcher is the expected one and the script is the shipped, executable hook), `hook_python` (python3 on PATH, or the hook fails open) and `runs_current` (open and expired runs).
+
 ## Uninstall
 
 `spec-harness uninstall <target>` prints a plan only. It reads the install record
@@ -274,7 +305,10 @@ reports it until you run `/sdd init` again. An update that writes only `CONFLICT
 1. Run `spec-harness uninstall <target>` and read the plan.
 2. Delete only the files under `UNCHANGED since install (safe to delete)`.
 3. Keep the files under `EDITED since install (review before deleting)` and `YOURS before install (never delete)`.
-4. Delete the harness state directory, `.spec-harness/`.
+4. Remove the edit guard entry from `.claude/settings.local.json`; the plan prints the command
+   (`python3 -I -B <checkout>/bin/sh-hook-register.py remove <target>`). It removes only the harness entry and
+   keeps every other key and hook.
+5. Delete the harness state directory, `.spec-harness/`.
 
 `ALREADY GONE` names files that no longer exist, so there is nothing to delete. The plan does not list the
 generated synthesis outputs (rules, skills, role bindings and the receipt), so those stay until you remove them
@@ -308,7 +342,7 @@ For `/sdd init` that means: your project instruction files (such as `AGENTS.md`,
 and lockfiles; relevant tests and configuration; the source sample that `index` records; the first-party source the
 procedure opens; and project-local installed skills. Read your client's data terms before you run these steps on private code.
 
-The inventory sample is capped as follows. A package with no `--source` path gets up to five files by default. A `--source` path applies to the package it names; other packages still get the default. The `--source` list is capped at five paths in total. Every sampled file is capped at 128 KiB, the whole sample at 2 MiB, and each instruction file at 256 KiB. A source or instruction file over its cap is left out and recorded as excluded, except a generated output the receipt registers, where `index` stops with a PENDING message and exit 1; a `--source` file over 128 KiB also stops `index` with exit 1. A manifest over 256 KiB is recorded as unreadable and listed under excluded paths. A manifest in any format other than `package.json` and `pyproject.toml` (such as `go.mod`, `Cargo.toml` or `pom.xml`) is marked unsupported at any size, because `index` does not parse that format, so the project cannot pass this check as a real fix until a later release of index reads that format, then re-run index. This is a known limit. After initialisation, `generate-agents --check` fails with a message containing "unsupported or unreadable manifest" until the manifest clears it. The check clears in four ways once index has run again: the manifest is made smaller (for size only), it is moved outside the project folder, it is moved into a directory that is skipped by name (such as `node_modules`, `build`, `dist`, `vendor`, `target` or `coverage`), or it is repaired so that it parses. The skipped-directory move clears the check without the file being read, so it is not a fix. A malformed package.json or pyproject.toml is marked unsupported, or unreadable when it is over 256 KiB. `--check` does not run `index`, so after any change run `index` again, then refresh the synthesis outputs (the generated rule, skill and role files the receipt lists). For the default Markdown context map, which `finalize-init` refuses to refresh, re-run init for a Markdown context map. The init procedure may open more first-party source than the sample (`commands/init.md:18`). The code cannot enforce a bound on that reading, so check the source each rule cites in step 9.
+The inventory sample is capped as follows. A package with no `--source` path gets up to five files by default. A `--source` path applies to the package it names; other packages still get the default. The `--source` list is capped at five paths in total. Every sampled file is capped at 128 KiB, the whole sample at 2 MiB, and each instruction file at 256 KiB. A source or instruction file over its cap is left out and recorded as excluded, except a generated output the receipt registers, where `index` stops with a PENDING message and exit 1; a `--source` file over 128 KiB also stops `index` with exit 1. A manifest over 256 KiB is recorded as unreadable and listed under excluded paths. A manifest in any format other than `package.json`, `pyproject.toml` and `composer.json` (such as `go.mod`, `Cargo.toml` or `pom.xml`) is marked unsupported at any size, because `index` does not parse that format, so the project cannot pass this check as a real fix until a later release of index reads that format, then re-run index. This is a known limit. After initialisation, `generate-agents --check` fails with a message containing "unsupported or unreadable manifest" until the manifest clears it. The check clears in four ways once index has run again: the manifest is made smaller (for size only), it is moved outside the project folder, it is moved into a directory that is skipped by name (such as `node_modules`, `build`, `dist`, `vendor`, `target` or `coverage`), or it is repaired so that it parses. The skipped-directory move clears the check without the file being read, so it is not a fix. A malformed package.json, pyproject.toml or composer.json is marked unsupported, or unreadable when it is over 256 KiB. `--check` does not run `index`, so after any change run `index` again, then refresh the synthesis outputs (the generated rule, skill and role files the receipt lists). For the default Markdown context map, which `finalize-init` refuses to refresh, re-run init for a Markdown context map. The init procedure may open more first-party source than the sample (`commands/init.md:18`). The code cannot enforce a bound on that reading, so check the source each rule cites in step 9.
 
 Three method or role files can reach the network. `skill-finder` (`commands/skill-finder.md`, step 2) runs `npx skills find <query>` when Vercel Skills discovery (Vercel's skill search) is available. Step 1 (line 5) sets the search scope from the inspected project's structure, task and evidenced need. The procedure does not define the query text: the client chooses it, and whatever query the client sends goes to that service; its `npx` may also fetch the `skills` package from the npm registry. `package-finder` (`commands/package-finder.md`, step 3, line 7) can query Context7 (a package-documentation service) when it is available, sending the library name and a query. Step 3 builds the resolve query from the step 2 target constraints (line 7). The procedure does not fix the literal query text, including the query-docs query. Step 2 (line 6) is where the target's version and its runtime, native-platform and peer constraints are identified. The `sdd-design-verifier` role (`agents/sdd-design-verifier.md`, line 39) runs `npx -y impeccable detect --json <changed UI dirs>` (`impeccable` is the UI-linter package from npm); if `impeccable` is missing, `npx -y` fetches it from the npm registry, and if `npx` is unavailable the role must say so (line 44). Six instruction files also direct the model to look up official documentation on the web: `commands/init.md` (line 44), `commands/rules.md` (line 23), `templates/project-skills/spec-harness-architecture.md` and `spec-harness-performance.md` (line 16 of each), and `templates/project-skills/spec-harness-packages.md` (line 19) and `spec-harness-tech.md` (line 20). Whether any of these reaches the network depends on the client's tools. UNVERIFIED here, meaning not tested in this repository.
 
@@ -324,9 +358,10 @@ adopted.
 2. [`ARCHITECTURE.md`](./ARCHITECTURE.md). The diagrams: the 3 pillars, the SDD flow, the
    ratchet, and the verifier + learning loop wired in.
 3. [`docs/GUARDRAILS.md`](./docs/GUARDRAILS.md). Current procedures for evidence, reviewed learning, and delivery authority.
-4. [`docs/COMPANION-SKILLS.md`](./docs/COMPANION-SKILLS.md). Understand-Anything, graphify, diagram-design and the methods that ship inside.
-5. [`docs/MCP-SERVERS.md`](./docs/MCP-SERVERS.md). A dated illustrative MCP map; recheck vendor details before use.
-6. [`commands/init.md`](./commands/init.md). Start here to use it on a project.
+4. [`docs/MEMORY.md`](./docs/MEMORY.md). Where each fact lives in `.memory/`, and the optional memory kinds.
+5. [`docs/COMPANION-SKILLS.md`](./docs/COMPANION-SKILLS.md). Understand-Anything, graphify, diagram-design and the methods that ship inside.
+6. [`docs/MCP-SERVERS.md`](./docs/MCP-SERVERS.md). A dated illustrative MCP map; recheck vendor details before use.
+7. [`commands/init.md`](./commands/init.md). Start here to use it on a project.
 
 ## More from Code Meet AI
 
