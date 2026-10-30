@@ -37,7 +37,7 @@ command in the steps below.
 ### Route A: `npx`, nothing to install
 
 ```sh
-npx -y github:chohra-med/spec-harness-oss help
+npx -y github:chohra-med/spec-harness-oss#v0.7.0 help
 ```
 
 `npx` downloads the repository from GitHub each time and runs it. Good for a first try. To make
@@ -95,13 +95,13 @@ Use this when you want to read the source first, work offline, pin a version for
    change a project you already staged; re-running `init` there only adds files that are missing.
 
 With route B, every command below that starts with
-`npx -y github:chohra-med/spec-harness-oss` becomes `spec-harness`:
+`npx -y github:chohra-med/spec-harness-oss#v0.7.0` becomes `spec-harness`:
 
 | Step | Route A | Route B |
 |---|---|---|
-| 2. Stage | `npx -y github:chohra-med/spec-harness-oss init . integrate` | `spec-harness init . integrate` |
-| 4. Inventory | `npx -y github:chohra-med/spec-harness-oss index .` | `spec-harness index .` |
-| 5. Check | `npx -y github:chohra-med/spec-harness-oss generate-agents --check .` | `spec-harness generate-agents --check .` |
+| 2. Stage | `npx -y github:chohra-med/spec-harness-oss#v0.7.0 init . integrate` | `spec-harness init . integrate` |
+| 4. Inventory | `npx -y github:chohra-med/spec-harness-oss#v0.7.0 index .` | `spec-harness index .` |
+| 5. Check | `npx -y github:chohra-med/spec-harness-oss#v0.7.0 generate-agents --check .` | `spec-harness generate-agents --check .` |
 
 **Let an agent do it.** With a checkout on your machine, open your project in Claude Code or Codex
 and say: "Read `~/tools/spec-harness-oss/AGENTS.md` and add Spec Harness to this project." That file
@@ -127,7 +127,7 @@ README's `## Uninstall` section.
 ### 2. Stage the harness
 
 ```sh
-npx -y github:chohra-med/spec-harness-oss init . integrate   # route A
+npx -y github:chohra-med/spec-harness-oss#v0.7.0 init . integrate   # route A
 spec-harness init . integrate                                # route B, from your project root
 ```
 
@@ -211,7 +211,7 @@ a startup sequence, the initialiser reads and preserves them.
 ### 4. Inventory the code
 
 ```sh
-npx -y github:chohra-med/spec-harness-oss index .
+npx -y github:chohra-med/spec-harness-oss#v0.7.0 index .
 ```
 
 This writes the inventory: package boundaries, manifests and a small sample of representative source
@@ -229,7 +229,7 @@ On a large app the default sample may miss the files that show how the app is re
 Choose up to five yourself, five in total across the repository, and pass the same flags every time you re-index:
 
 ```sh
-npx -y github:chohra-med/spec-harness-oss index . \
+npx -y github:chohra-med/spec-harness-oss#v0.7.0 index . \
   --source src/store/api/baseApi.ts \
   --source src/navigation/RootNavigator.tsx \
   --source src/components/Button.tsx
@@ -264,7 +264,7 @@ The source sample is capped. A package with no `--source` path gets up to five f
 It then runs the structural check:
 
 ```sh
-npx -y github:chohra-med/spec-harness-oss generate-agents --check .
+npx -y github:chohra-med/spec-harness-oss#v0.7.0 generate-agents --check .
 ```
 
 `READY: ...` means the receipt, hashes and citations are consistent. It does not mean the rules are
@@ -520,7 +520,7 @@ kept`, or `PID <PID> is still running, or its state is unclear (ps exit <RC>, pr
 Only after the block prints `lock removed`, start a new run with a new evidence directory outside the target. Route A (`npx`, nothing installed):
 
 ```sh
-npx -y github:chohra-med/spec-harness-oss finalize-init . --apply --evidence-dir <new directory outside the target>
+npx -y github:chohra-med/spec-harness-oss#v0.7.0 finalize-init . --apply --evidence-dir <new directory outside the target>
 ```
 
 Route B (`spec-harness` on your PATH):
@@ -568,7 +568,7 @@ then run recovery again. From the target root:
 3. Run recovery with the same evidence directory. Route A (`npx`, nothing installed):
 
    ```sh
-   npx -y github:chohra-med/spec-harness-oss finalize-init . --recover --evidence-dir "$EVIDENCE"
+   npx -y github:chohra-med/spec-harness-oss#v0.7.0 finalize-init . --recover --evidence-dir "$EVIDENCE"
    ```
 
    Route B (`spec-harness` on your PATH):

@@ -66,7 +66,7 @@ default source sample in step 6. Do not edit their instruction files (step 5) an
    With no checkout on the machine:
 
    ```sh
-   npx -y github:chohra-med/spec-harness-oss init . integrate
+   npx -y github:chohra-med/spec-harness-oss#v0.7.0 init . integrate
    ```
 
    Exit code 0 with a `status` line that says `PENDING` is success. It copies files, and merges one edit guard hook entry into `.claude/settings.local.json` (the `hook registration` line in the report says what happened; other keys and hooks there are kept).
@@ -84,7 +84,7 @@ default source sample in step 6. Do not edit their instruction files (step 5) an
    is the fenced `## Spec Harness` block under the heading "3. Existing instruction files" in the
    guide. Show it to the user and add it to their file only when they agree.
 6. **Inventory the code**: `bash /path/to/spec-harness-oss/bin/spec-harness index .`, or
-   `npx -y github:chohra-med/spec-harness-oss index .` with no checkout. On a large project,
+   `npx -y github:chohra-med/spec-harness-oss#v0.7.0 index .` with no checkout. On a large project,
    ask the user which source files best show how the code is written and pass up to five with
    `--source <path>`.
 7. **Initialise.** In Claude Code the user types `/sdd init`. If you are doing it yourself, follow

@@ -7,8 +7,8 @@
 ```text
 bash <spec-harness>/bin/sh-gen-agents.sh <target>  # from a checkout
 bash <spec-harness>/bin/sh-gen-agents.sh --check <target>  # from a checkout
-npx -y github:chohra-med/spec-harness-oss generate-agents <target>        # no checkout
-npx -y github:chohra-med/spec-harness-oss generate-agents --check <target>  # no checkout
+npx -y github:chohra-med/spec-harness-oss#v0.7.0 generate-agents <target>        # no checkout
+npx -y github:chohra-med/spec-harness-oss#v0.7.0 generate-agents --check <target>  # no checkout
 ```
 
 The `npx` lines run the same subcommand through the package's `spec-harness` CLI, which routes `generate-agents` to `bin/sh-gen-agents.sh`. Use them when no harness checkout is on the machine.

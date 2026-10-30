@@ -16,7 +16,7 @@ rules --check <file-path>
 
 ## Required evidence
 
-1. Run `spec-harness index <target>` (from a checkout, `bash <spec-harness>/bin/sh-index.sh <target>`; with no install, `npx -y github:chohra-med/spec-harness-oss index <target>`) and read `ai_rules/project_inventory.json` when present, otherwise the generated `ai_rules/context_map.md`.
+1. Run `spec-harness index <target>` (from a checkout, `bash <spec-harness>/bin/sh-index.sh <target>`; with no install, `npx -y github:chohra-med/spec-harness-oss#v0.7.0 index <target>`) and read `ai_rules/project_inventory.json` when present, otherwise the generated `ai_rules/context_map.md`.
 2. Read applicable project instructions first, including startup sequences. Preserve their precedence and existing text.
 3. For each package, open its actual representative source and relevant tests/configuration. Cite `path:line` and the source SHA-256. Inventory paths are discovery evidence, not architecture evidence.
 4. Read the package manifest. The inventory parser supports `package.json`, `pyproject.toml` and `composer.json`; any other format stays visibly `unsupported` and must not be interpreted from its filename.
@@ -73,7 +73,7 @@ A first initialisation writes receipt schema 4, which checks these homes. Each f
 
 ```bash
 bash <spec-harness>/bin/sh-gen-agents.sh --check <target>  # from a checkout
-npx -y github:chohra-med/spec-harness-oss generate-agents --check <target>   # no checkout
+npx -y github:chohra-med/spec-harness-oss#v0.7.0 generate-agents --check <target>   # no checkout
 ```
 
 The check must reject PENDING templates, false or stale source citations, stale role blocks, missing skills and unresolved conflicts. With schema 4 it also rejects unreadable or pointer rule lines, a rule ID defined twice, two rules that say the same thing, a version outside `ai_rules/stack.md`, a stale stack, a tool module outside its version range, a reworded pack rule, an unaccepted convention and an open rule conflict. A successful static check validates structure and hashes; a fresh reviewer still judges whether each cited line supports its rule.

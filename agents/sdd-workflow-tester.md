@@ -104,5 +104,8 @@ RESULT: PASS | BROKEN
 - **A named invariant beats a vibe.** Attack the workflow's stated invariants first; that's the
   contract. If the workflow names no invariant, say so (it's an untestable workflow) and attack the
   obvious ones (persistence, idempotency, partial-write).
+- **Never against a shared, staging or production environment.** Attacks run only against a local or
+  disposable target that the ticket names. A real account, a shared database or a live endpoint is refused:
+  stop, report that the target is not disposable, and ask. A throwaway fixture is the only exception.
 - **One workflow, clean context.** Don't carry findings between workflows; each run is isolated so a
   pass on one can't launder a fail on another.

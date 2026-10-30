@@ -25,4 +25,4 @@ This source procedure is a generic scaffold. During initialization, create one p
 
 Each copy lives at `.claude/skills/spec-harness-tech-<technology>/SKILL.md`, names the package paths it covers, carries the inventory-hash source-bound marker and cites the lines that support it.
 
-Record its name, path, package paths, citations and hash in `.claude/agents/.init-synthesis.json` beside the core skills. Run `spec-harness generate-agents --check <target>` (with no install: `npx -y github:chohra-med/spec-harness-oss generate-agents --check <target>`); a passing structural check does not replace a fresh semantic review.
+Record its name, path, package paths, citations and hash in `.claude/agents/.init-synthesis.json` beside the core skills. Run `spec-harness generate-agents --check <target>` (with no install: `npx -y github:chohra-med/spec-harness-oss#v0.7.0 generate-agents --check <target>`); a passing structural check does not replace a fresh semantic review.
