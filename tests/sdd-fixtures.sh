@@ -681,12 +681,12 @@ TECH_WIRING = {
     "commands/init.md": "spec-harness-tech-<technology>", "commands/sdd.md": "a skill per major technology",
     "bin/sh-gen-agents.sh": "spec-harness-tech-<technology>/SKILL.md", "bin/sh-install.sh": "architecture performance packages tech",
     "templates/project-skills/spec-harness-tech.md": "## Derive",
-    "README.md": "npx -y github:chohra-med/spec-harness-oss init . integrate",
+    "README.md": "npx -y github:chohra-med/spec-harness-oss#v0.7.0 init . integrate",
     "docs/GETTING-STARTED.md": "3. Existing instruction files",
 }
 
 def wiring_contract(files):
-    return all(token in files[path] for path, token in TECH_WIRING.items()) and "npx -y github:chohra-med/spec-harness-oss <subcommand>" in files["commands/sdd.md"]
+    return all(token in files[path] for path, token in TECH_WIRING.items()) and "npx -y github:chohra-med/spec-harness-oss#v0.7.0 <subcommand>" in files["commands/sdd.md"]
 
 d = docs(root)
 ok, checks = role_contracts(d)

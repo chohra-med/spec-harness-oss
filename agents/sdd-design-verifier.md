@@ -36,7 +36,7 @@ documented accepted-exceptions list before judging.
 
 ### Gate 1: Deterministic detector (impeccable)
 ```bash
-npx -y impeccable detect --json <changed UI dirs>
+npx -y impeccable@4.5.2 detect --json <changed UI dirs>
 ```
 - Diff the findings against the project's accepted-exceptions list (GEN:rules above, or the
   project's documented list). **Any NEW finding = FAIL.** Pre-existing accepted exceptions

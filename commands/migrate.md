@@ -6,7 +6,7 @@
 ## Invocation
 
 ```text
-spec-harness index <target>   # with no install: npx -y github:chohra-med/spec-harness-oss index <target>
+spec-harness index <target>   # with no install: npx -y github:chohra-med/spec-harness-oss#v0.7.0 index <target>
 /sdd init
 ```
 
