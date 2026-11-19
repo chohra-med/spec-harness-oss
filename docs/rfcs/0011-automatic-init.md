@@ -5,7 +5,7 @@ Status: proposal, written for review. No code change in this RFC.
 ## Problem
 
 Init, as shipped in 0.7.0, stages files and then stops at many questions that need technical
-knowledge. On the Myelino backend (PR 80) the result was: memory files filled from the README,
+knowledge. On a real NestJS backend the result was: memory files filled from the README,
 which is only the NestJS starter text, plus "None recorded yet" everywhere. Skills, role
 bindings and conventions were not derived from the code. The person running init had to
 answer questions they could not answer, and the reader of the output could not tell where to
