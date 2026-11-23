@@ -1,0 +1,6 @@
+exit 1
+PENDING: synthesis readiness check failed
+- policy source is missing, unsafe or stale: CONTRIBUTING.md
+- policy_coverage CONTRIB-1 refers to an unregistered or stale policy source: CONTRIBUTING.md
+- policy_coverage CONTRIB-2 refers to an unregistered or stale policy source: CONTRIBUTING.md
+- project policy file changed after indexing: CONTRIBUTING.md

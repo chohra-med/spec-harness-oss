@@ -51,7 +51,7 @@ show_help() {
   echo "front door: spec-harness init <target> [new|integrate] [name]   # stages files; reports PENDING"
   echo "SDD entry: /sdd init or /sdd <ticket text or connected reference>"
   echo "shell sdd: spec-harness sdd ... prints the route and exits 2/PENDING; no model stages run"
-  echo "commands: init <target> | install | status | update | uninstall | index | stack | finalize-init | doctor | run-state | pr-packet | sdd | tickets | rules | conventions | technology-profiles | generate-agents | spec | plan | tasks | build | verify | tester | learn | audit | pr-prepare | loop (legacy placeholder)"
+  echo "commands: init <target> | install | status | update | uninstall | index | stack | finalize-init | doctor | run-state | pr-packet | sdd | tickets | rules | conventions | technology-profiles | find | generate-agents | spec | plan | tasks | build | verify | tester | learn | audit | pr-prepare | loop (legacy placeholder)"
   echo "docs: $DIR/commands/  agents: $DIR/agents/  architecture: $DIR/ARCHITECTURE.md"
 }
 
@@ -87,7 +87,7 @@ case "$cmd" in
            echo "Manual procedure: $DIR/commands/sdd.md";
            cat "$DIR/commands/sdd.md";
            exit 2 ;;
-  verify|tester|learn|teach|tickets|rules|conventions|technology-profiles|spec|plan|tasks|build|audit|migrate|ship|pr-prepare)
+  verify|tester|learn|teach|tickets|rules|conventions|technology-profiles|find|spec|plan|tasks|build|audit|migrate|ship|pr-prepare)
            echo "PENDING: documentation only; '$cmd' did not run a model stage, test, verification, or external action.";
            echo "Continue through the shared procedure: $DIR/commands/sdd.md";
            cat "$DIR/commands/$cmd.md";

@@ -13,6 +13,7 @@ policy ledger can require that a captured requirement's anchor is a rule ID.
 """
 import hashlib
 import re
+from types import MappingProxyType
 
 import sh_stack
 
@@ -34,6 +35,13 @@ COMMENT = re.compile(r"<!--.*?-->", re.S)
 # the owner committed to is an obligation a decision cannot override; only the business layer can.
 RANK = {"baseline": 0, "tool": 1, "project": 2, "decision": 3, "standard": 4, "business": 5}
 MEMORY_LAYERS = ((".memory/10-product.md", "business"), (".memory/60-decisions.md", "decision"))
+
+# Preserve only the exact historical CLEAN-04 line; tests exercise the real pack comparison.
+LEGACY_PACK_RULE_LINES = MappingProxyType({
+    "baseline-clean-code": frozenset({
+        "- **CLEAN-04** Write comments that explain why the code exists, not what it does. (source: Google Engineering Practices, code review guide, https://google.github.io/eng-practices/review/)"
+    }),
+})
 
 
 def parse(text, strict=True):
@@ -157,7 +165,7 @@ def check(root, receipt, read, fail, modules, rule_paths, consumers, pack_dir):
             shipped[name] = rel
             pack_lines = {rule["line"] for rule in parse(pack_text)[0]}
             for rule in rules_by_file[rel]:
-                if rule["line"] not in pack_lines:
+                if rule["line"] not in pack_lines and rule["line"] not in LEGACY_PACK_RULE_LINES.get(name, frozenset()):
                     fail(f"{rel}: rule {rule['id']} differs from pack {name}; copy pack lines byte for byte, override in a higher layer")
             pack_layer, pack_applies = LAYER.search(pack_text), APPLIES.search(pack_text)
             if not pack_layer or pack_layer.group(1) != layer or (pack_applies.group(0) if pack_applies else None) != (applies.group(0) if applies else None):

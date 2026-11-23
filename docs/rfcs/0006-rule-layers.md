@@ -37,7 +37,7 @@ One fact, one home, checked by the readiness check for receipt schema 4.
 - **Stack.** `bin/sh_stack.py` (`spec-harness stack`) builds `ai_rules/stack.md` deterministically from
   `package.json` or `pyproject.toml` and the lockfile. The check rebuilds it and compares bytes.
   `index` does not hash it as policy.
-- **Packs.** `templates/rule-packs/` ships six baseline packs and five tool packs, each rule citing an
+- **Packs.** `templates/rule-packs/` ships six baseline packs and five tool packs (at the time; RFC 0012 adds `baseline-design`), each rule citing an
   official source. Targets copy pack lines byte for byte and may leave a rule out but not reword it.
   In v1 packs are recommended, not required.
 - **Standards.** Init asks the owner once which named standards and laws the company has, must meet or
@@ -52,13 +52,13 @@ One fact, one home, checked by the readiness check for receipt schema 4.
 - **Consumers.** Skills and role `GEN:rules` blocks name rule IDs and link to the stack. The check fails
   when one copies a rule sentence of eight words or more, or names a stack version.
 - **Ledger.** A schema 4 `captured` row anchors to a rule ID defined in its rule file.
-- **Companion.** `init` offers Understand-Anything every time and installs it only on the user's yes.
+- **Companion.** `init` does not offer Understand-Anything. It mentions it once, only when the person asks for a visual map, and installs it only on the user's yes.
 
 ## Compatibility
 
 Schemas 1, 2 and 3 keep their meaning; only schema 4 receipts are asked for layers. A first
 initialisation writes schema 4. A schema 4 receipt with no project policy file records empty
-`policy_sources` and `policy_coverage` lists. The installer stages thirteen pack files, one new
+`policy_sources` and `policy_coverage` lists. The installer stages thirteen pack files (at the time), one new
 directory, `.claude/spec-harness/rule-packs/`, and the `standards` method with its skill.
 
 ## Limits
@@ -68,7 +68,7 @@ directory, `.claude/spec-harness/rule-packs/`, and the `standards` method with i
 - Duplicate detection (v1) flags rules with the same set of words. Two rules that say the same thing in
   different words still need the reviewer.
 - The policy ledger is optional in v1 and checked when the receipt has one.
-- Version detection (v1) covers each stack version written in full, such as `57.0.27`; a bare "SDK 57" is not caught.
+- Version detection (v1) covers each stack version written in full, such as `52.0.11`; a bare "SDK 52" is not caught.
 - Lockfiles read: `package-lock.json`, `yarn.lock`, `uv.lock`, `poetry.lock`. `pnpm-lock.yaml` and
   `bun.lock` are named in the stack as not read, and their locked versions show as unknown.
 - Pack sources were checked on 2026-10-21. Pack content changes only in this repository.

@@ -1,0 +1,3 @@
+exit 1
+PENDING: synthesis readiness check failed
+- package .: rule module is missing, unsafe or stale: ai_rules/rules/coding.md

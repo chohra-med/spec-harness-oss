@@ -22,7 +22,7 @@ do not substitute generic agents.
 
 1. Research only when a material fact is unsettled; cite the actual source or primary reference.
 2. After reviewing the actual target source and tests for the task, pass the fresh implementer context the Ponytail owner at `.claude/commands/spec-harness/ponytail.md` (source checkout fallback: `commands/ponytail.md`) before edits. The bound implementer, on the model its tier resolved to in the shared SDD stage map, makes one task-sized change and records changed paths and revision. Its hand-back ends with a status line. What happens after each status, the briefs and the lens are owned by `.claude/commands/sdd.md` section 6; follow them there.
-3. The tester runs only after `DONE` or `DONE_WITH_CONCERNS`: the fresh bound tester (given the `### Tester brief` from `plan.md` when there is one, as `.claude/commands/sdd.md` section 6 says), using its separately confirmed model/context, runs the listed commands and adversarial cases. Save actual commands,
+3. The tester runs only after `DONE` or `DONE_WITH_CONCERNS`: the fresh bound tester (which reads the `### Tester brief` in `specs/<feature>/gate-briefs.md` when there is one, as `.claude/commands/sdd.md` section 6 says), using its separately confirmed model/context, runs the listed commands and adversarial cases. Save actual commands,
    outputs and its context/model identity to `specs/<feature>/gates/tester.md`.
 4. The separate fresh bound verifier, using its separately confirmed model/context, checks each literal criterion in
    `specs/<feature>/goal.md`; save result and evidence to `gates/verifier.md`.

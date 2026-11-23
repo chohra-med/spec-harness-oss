@@ -65,7 +65,7 @@ guarantee correct outputs or prevent every mistake. The bundled `bin/loop.sh` is
 └──────────────────────────┬────────────────────────────────────┘
                            ↓ orchestrated by
 ┌─ Layer 4 — AGENTS (.claude/agents/) ──────────────────────────┐
-│  researcher → planner → implementer → tester → VERIFIER → reviewer
+│  researcher → planner → plan goldfish → implementer → tester → VERIFIER → reviewer
 │  UI diffs add a second gate after the verifier: DESIGN-VERIFIER
 │  (impeccable detect + ui-ux-pro-max + design-taste as PASS/FAIL)
 │  Small fixes: implementer → VERIFIER only. After a ticket: LEARNER.
@@ -240,21 +240,24 @@ write this code, you have no stake in it passing,"* and runs each end-state chec
 ## 5. The agent pipeline (Layer 4, expanded)
 
 ```
-  ┌────────────┐   ┌──────────┐   ┌─────────────┐   ┌────────┐   ┌──────────┐   ┌──────────┐
-  │ researcher │──▶│ planner  │──▶│ implementer │──▶│ tester │──▶│ VERIFIER │──▶│ reviewer │
-  │ as needed  │   │ feature  │   │ ONE task    │   │ fresh  │   │ fresh    │   │ fresh    │
-  │ cites :LN  │   │ goal.md  │   │ writes code │   │ suite  │   │ PASS/    │   │ findings │
-  │ no hallcn. │   │ ordered  │   │ + tests     │   │ green? │   │ /goal    │   │ changes  │
-  └────────────┘   └──────────┘   └─────────────┘   └────────┘   └──────────┘   └──────────┘
-       reads            reads          reads            runs        criterion       diff+rules
-       source/rules     spec+goal      rules+research   commands    by criterion    +goal+tests
+  ┌────────────┐   ┌──────────┐   ┌──────────┐   ┌─────────────┐   ┌────────┐   ┌──────────┐   ┌──────────┐
+  │ researcher │──▶│ planner  │──▶│ plan     │──▶│ implementer │──▶│ tester │──▶│ VERIFIER │──▶│ reviewer │
+  │ as needed  │   │ feature  │   │ goldfish │   │ ONE task    │   │ fresh  │   │ fresh    │   │ fresh    │
+  │ cites :LN  │   │ goal.md  │   │ fresh,   │   │ writes code │   │ suite  │   │ PASS/    │   │ findings │
+  │ no hallcn. │   │ ordered  │   │ READY?   │   │ + tests     │   │ green? │   │ /goal    │   │ changes  │
+  └────────────┘   └──────────┘   └──────────┘   └─────────────┘   └────────┘   └──────────┘   └──────────┘
+      reads           reads          reads            reads           runs       criterion      diff+rules
+   source/rules     spec+goal     packet only    rules+research     commands    by criterion   +goal+tests
 ```
 
+- **plan goldfish** (FULL, and LITE with a delegated planner) reads the packet in a fresh context before the
+  owner's checkpoint and returns READY or NOT-READY; it never opens the gate briefs or gate records.
 - **tester** reports which selected tests ran and what they returned.
 - **verifier** checks the named end-state in `specs/<feature>/goal.md`; a green suite alone does not establish that the feature goal was met.
 - **reviewer** answers *"is it RIGHT?"* (style, scope, acceptance criteria, the human-readable
-  quality gate). It reviews in two passes: Pass 1 is blind to the gate briefs and gate records, Pass 2
-  reads them and writes what the brief missed. When the project has `ai_rules/review-lens.md`, it gives
+  quality gate). It reviews in two passes: Pass 1 is blind to the gate briefs and to every gate record
+  except the ticket re-read (`gates/source-recheck.md`), which is ticket input; Pass 2 reads them
+  and writes what the brief missed. When the project has `ai_rules/review-lens.md`, it gives
   every standing lens item a verdict.
 
 The implementer ends its hand-back with a status (`DONE`, `DONE_WITH_CONCERNS`, `BLOCKED` or

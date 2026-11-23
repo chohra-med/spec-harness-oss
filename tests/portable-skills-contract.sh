@@ -89,7 +89,7 @@ from pathlib import Path
 import sys
 before = {line.split(None, 1)[1].removeprefix('./'): line.split(None, 1)[0] for line in Path(sys.argv[1]).read_text().splitlines()}
 after = {line.split(None, 1)[1].removeprefix('./'): line.split(None, 1)[0] for line in Path(sys.argv[2]).read_text().splitlines()}
-assert len(before) == len(after) == 21, f"expected 21 generated skill files, got {len(before)} and {len(after)}"
+assert len(before) == len(after) == 22, f"expected 22 generated skill files, got {len(before)} and {len(after)}"
 round3 = {
     "spec-harness/SKILL.md": "335ca8be1300fe8ad5f3320ab32a6dd91e08a9bc51e24677ac62e723a6230e54",
     "spec-harness-audit/SKILL.md": "0b6c32a2e499f310bbdfe14543c505574e0e779b3f6ef245a163d1ef335df96e",
@@ -106,8 +106,8 @@ round3 = {
     "spec-harness-spec/SKILL.md": "a29ddfaffd693515c18d40276a9e21c07fc45ec2b2efbafca4ab1f794d752d55",
     "spec-harness-teach/SKILL.md": "1f7d01f3275370d7348d957e0d5df7280a7dddebf0f45bd7e5135159356006ac",
     "spec-harness-tasks/SKILL.md": "f66dfe9fe20033beb0a813de35eb863574b068a40f931ac16a6a6f283aae9ab4",
-    "spec-harness-tester/SKILL.md": "3682f43525470837a5f43447316eefa316eb7b291ca829201a986f5464726c1e",
-    "spec-harness-tickets/SKILL.md": "03ddee75207191baa675272fb83cd9046aaac7422f9f3ce8430f915c9a46ca39",
+    "spec-harness-tester/SKILL.md": "30ecfbb613c6b02eacf1726794f083f97da763f3f5a6964fbd32d83c67873b7d",
+    "spec-harness-tickets/SKILL.md": "38354e9b7a8c431346e50fa7ebd02b9ac6100dd5e8f82dd2568dae0bdb126cbf",
     "spec-harness-verify/SKILL.md": "bb80fc7a80e4afb0102308f22044121361fa3c1734d2973320c5a251b0d1abc3",
 }
 # Method adapters added after round 3 (conventions, technology profiles, standards) are frozen too.
@@ -116,6 +116,8 @@ added = {
     "spec-harness-technology-profiles/SKILL.md": "55da510c4e8b61cf5e034fbc6cef6460e91eae78b3b3f5cff9b3973e7c6e9527",
     # 2026-10-21: the standards method (commands/standards.md) was added and frozen.
     "spec-harness-standards/SKILL.md": "d5434c7abf09f54a7d8706dec981fe4be321c4db47f00d7522cbcf3afe74d1c2",
+    # 2026-11-17: the agent guide skill (spec-harness-guide) was added; its body is in bin/sh-make-skills.sh.
+    "spec-harness-guide/SKILL.md": "7c34b95ce5b77ce73cffd1876d6b6fdb86fd7cd03fd6d112aa4101709d752ac2",
 }
 assert set(round3) | set(added) == set(before) == set(after), "generated skill path set differs from frozen round 3 plus the added methods"
 for path, digest in added.items():
@@ -127,6 +129,7 @@ assert "implementation work" in trigger and "code" in trigger, "generated Ponyta
 # 2026-10-18: spec-harness-plan gained the MICRO carve-out for Grill Me, so its entry was re-frozen.
 # 2026-10-21: spec-harness-build names the implementer status gate and /sdd section 6, so its entry was re-frozen.
 # 2026-10-30: spec-harness-generate-agents names the pinned v0.7.0 fetch line (npx -y github:...#v0.7.0), so its entry was re-frozen.
+# 2026-11-07: the tickets and tester descriptions lost their angle brackets (tests/skill-lint.sh), so both were re-frozen.
 changed = sorted(path for path in round3 if round3[path] != after[path])
 assert changed == [], f"generated skill text differs from frozen round 3: {changed}"
 assert not any("Malik" in (Path(sys.argv[3]).parents[1] / path).read_text() for path in round3), "generated skill names the author"

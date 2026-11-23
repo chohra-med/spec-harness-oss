@@ -973,4 +973,29 @@ for odd in '{"n":1'"$(printf '0%.0s' $(seq 5000))"'}' '{"generated_by":"spec-har
 done
 pass 'list-like names, empty workspace patterns, long crafted lines and unholdable JSON values are handled'
 
+# ai_rules/index/ is the harness's generated code index, derived from the source: index prunes it with
+# one fixed exclusion row, so refreshing its contents leaves the inventory bytes unchanged.
+mkdir -p "$TMP/genindex/src" "$TMP/genindex/ai_rules/index/cards" "$TMP/genindex/ai_rules/index/tables"
+printf '{"name":"genindex-fixture"}\n' > "$TMP/genindex/package.json"
+printf 'export const a = 1;\n' > "$TMP/genindex/src/a.ts"
+printf '# Team map\nKept as written.\n' > "$TMP/genindex/ai_rules/context_map.md"
+printf '# Card a\n- exports a\n' > "$TMP/genindex/ai_rules/index/cards/a.md"
+printf '{"rows":[]}\n' > "$TMP/genindex/ai_rules/index/tables/b.json"
+printf 'v1\n' > "$TMP/genindex/ai_rules/index/stamp"
+bash "$INDEX" "$TMP/genindex" > /dev/null || fail 'index with a generated ai_rules/index exits 0'
+python3 -I -B - "$TMP/genindex/ai_rules/project_inventory.json" <<'PY' || fail 'ai_rules/index must give exactly one generated index row and no rule_files row'
+import json, sys
+inventory = json.load(open(sys.argv[1], encoding="utf-8"))
+rows = [row for row in inventory["exclusions"] if row["path"] == "ai_rules/index" or row["path"].startswith("ai_rules/index/")]
+assert rows == [{"path": "ai_rules/index", "category": "generated index", "reason": "the harness's code index is derived from the source, not project evidence"}], rows
+assert [row for row in inventory["exclusions"] if row["category"] == "generated index"] == rows, inventory["exclusions"]
+assert not [row for row in inventory["rule_files"] if row["path"].startswith("ai_rules/index/")], inventory["rule_files"]
+PY
+cp "$TMP/genindex/ai_rules/project_inventory.json" "$TMP/genindex-first.json"
+printf '# Card a\n- exports a and b\n' > "$TMP/genindex/ai_rules/index/cards/a.md"
+printf 'v2\n' > "$TMP/genindex/ai_rules/index/stamp"
+bash "$INDEX" "$TMP/genindex" > /dev/null || fail 'reindex after refreshing ai_rules/index exits 0'
+cmp -s "$TMP/genindex-first.json" "$TMP/genindex/ai_rules/project_inventory.json" || fail 'refreshing ai_rules/index changed the inventory bytes'
+pass 'ai_rules/index is pruned with one generated index row; refreshing its contents leaves the inventory bytes unchanged'
+
 printf 'All index fixtures passed.\n'
