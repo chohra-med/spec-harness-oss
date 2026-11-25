@@ -338,6 +338,18 @@ def apply_plan(root, record, name, rows, digest):
     return 0
 
 
+GUIDE_SKILL = ".claude/skills/spec-harness-guide/SKILL.md"
+
+
+def agent_guide_line(root):
+    """Where an agent reads how to use, update and check Spec Harness: the installed skill, else the source copy."""
+    installed = os.path.join(root, GUIDE_SKILL)
+    if os.path.isfile(installed) and not os.path.islink(installed):
+        return f"Agent guide       : {installed}"
+    source = os.path.join(HARNESS, "skills", "spec-harness-guide", "SKILL.md")
+    return f"Agent guide       : {source} (source copy; this install does not have the skill yet, update adds it)"
+
+
 def status(root):
     record = load_record(root)
     version, commit, dirty = source_identity()
@@ -361,6 +373,7 @@ def status(root):
     if stale is not None:
         print(f"  synthesis         : marked stale by an update ({STALE}); refresh it through init")
     print(f"  update available  : {'yes' if available else 'no'}")
+    print("  " + agent_guide_line(root))
     if available:
         print("Next: spec-harness update <target>   (prints the plan and its digest; nothing is written)")
     return 0

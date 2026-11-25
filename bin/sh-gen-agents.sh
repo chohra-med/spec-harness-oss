@@ -30,6 +30,7 @@ from pathlib import Path
 # Isolated mode leaves bin/ off sys.path; the shared bounded reader is imported by explicit path.
 bin_dir = sys.argv.pop(1)
 sys.path.insert(0, bin_dir)
+import sh_anchor
 import sh_rule_layers
 from sh_safe_io import MAX_FILE_BYTES, MAX_RECEIPT_BYTES, SafeReadError, read_bounded, read_bounded_result, safe_relative
 # Keep in step with bin/sh-index.sh: the in-package read limit and the marker of the staged harness loop.
@@ -170,8 +171,8 @@ if frequent is not None and has_unresolved_scaffold(frequent):
 # (the same exclusions as check_policy_ledger). They add provenance only; each package still needs a
 # source citation (a representative source, or an in-package source file for rule modules, skills and roles).
 policy_hashes = {}
-HARNESS_POLICY_PATHS = {"ai_rules/rules/frequent_rules.md", "ai_rules/globalRules.md", "ai_rules/updated_rules.md", "ai_rules/review-lens.md", "ai_rules/stack.md"}
-HARNESS_POLICY_PREFIXES = (".claude/commands/", ".claude/spec-harness/", ".claude/agents/", ".claude/skills/", ".agents/", "ai_rules/rules/core.md", "ai_rules/rules/context_management.md")
+# Harness-owned paths have one owner, bin/sh_inventory_frame.py, shared with the inventory frame.
+from sh_inventory_frame import is_harness_owned
 # In-package source citations use the same file classes as the indexer. Keep these sets in step with bin/sh-index.sh.
 SOURCE_SUFFIXES = {
     ".c", ".cc", ".cpp", ".cs", ".dart", ".ex", ".exs", ".go", ".h", ".hpp",
@@ -230,7 +231,7 @@ for row in inventory.get("rule_files", []) if isinstance(inventory.get("rule_fil
         if isinstance(package, dict) and row.get("path") in (package.get("applicable_instructions") or []):
             policy_hashes[(package.get("path"), row["path"])] = row["sha256"]
 def is_project_policy(path, data):
-    if path in HARNESS_POLICY_PATHS or path.startswith(HARNESS_POLICY_PREFIXES) or path in registered_rule_paths:
+    if is_harness_owned(path) or path in registered_rule_paths:
         return False
     return data is not None and not has_unresolved_scaffold(data)
 
@@ -290,7 +291,7 @@ def in_package_source(package_path, path):
         return None, "not a source type"
     # The staged root loop.sh is the harness's placeholder; keep in step with bin/sh-index.sh (harness_loop).
     harness_loop = path == "loop.sh" and HARNESS_LOOP_MARKER in (read_bounded_result(path, 65536, root=str(root))[0] or b"")
-    if harness_loop or path in HARNESS_POLICY_PATHS or path.startswith(HARNESS_POLICY_PREFIXES) or path in registered_rule_paths:
+    if harness_loop or is_harness_owned(path) or path in registered_rule_paths:
         return None, "harness file"
     if any(fold(other) != folded and (folded == "." or fold(other).startswith(folded + "/")) and (low == fold(other) or low.startswith(fold(other) + "/")) for other in package_paths):
         return None, "nested package"
@@ -417,7 +418,7 @@ def is_memory_source(path):
     return path.startswith(".memory/")
 
 def span_digest(lines, start, end):
-    return digest("\n".join(lines[start - 1:end]).encode())
+    return sh_anchor.text_sha256(lines, start, end)
 
 # Memory policy sources whose bytes changed since synthesis, each with its rows found by text.
 changed_memory = {}
@@ -448,8 +449,7 @@ def check_policy_ledger():
         source_paths.add(path)
         # Schema 4: a generated rule output or an installed harness file is not project policy; listing
         # it would make the ledger cover its own output.
-        if schema_version == 4 and (path in registered_rule_paths or path == "ai_rules/rules/frequent_rules.md"
-                                    or path.startswith((".claude/commands/", ".claude/spec-harness/", ".claude/agents/"))):
+        if schema_version == 4 and (path in registered_rule_paths or is_harness_owned(path)):
             fail(f"policy source is a generated output or harness file, not project policy: {path}")
             continue
         data = safe_file(path)
@@ -503,20 +503,18 @@ def check_policy_ledger():
                 fail(f"policy source is missing, unsafe or stale: {item.get('path')} (memory source: give each of its ledger rows a text_sha256 so ordinary edits keep READY; row {requirement} has none)")
             elif text_hash is not None:
                 # At its recorded span first; otherwise moved, when exactly one span of the same length matches.
-                span = end - start + 1
-                if end <= len(lines) and span_digest(lines, start, end) == text_hash:
+                status, found = sh_anchor.locate(lines, start, end, text_hash)
+                if status == "same":
                     located = start
                     changed_memory[identity]["rows"] += 1
+                elif status == "moved":
+                    located = found
+                    changed_memory[identity]["rows"] += 1
+                    changed_memory[identity]["moved"] += 1
+                elif status == "ambiguous":
+                    fail(f"policy requirement {requirement}: its text appears more than once in {item.get('path')}; re-ground this ledger row")
                 else:
-                    found = [first for first in range(1, len(lines) - span + 2) if span_digest(lines, first, first + span - 1) == text_hash]
-                    if len(found) == 1:
-                        located = found[0]
-                        changed_memory[identity]["rows"] += 1
-                        changed_memory[identity]["moved"] += 1
-                    elif found:
-                        fail(f"policy requirement {requirement}: its text appears more than once in {item.get('path')}; re-ground this ledger row")
-                    else:
-                        fail(f"policy requirement {requirement}: its text in {item.get('path')} changed or is gone; re-ground this ledger row")
+                    fail(f"policy requirement {requirement}: its text in {item.get('path')} changed or is gone; re-ground this ledger row")
         elif end > len(lines):
             fail(f"policy_coverage {requirement} has an invalid source span: {item.get('path')}:{start}-{end}")
         elif text_hash is not None:
@@ -575,8 +573,10 @@ def check_policy_drift():
         if not isinstance(row, dict) or not safe_rel(row.get("path")):
             fail("project inventory has a missing or unsafe rule_files path")
             continue
-        # Receipt-owned generated rules are checked against the receipt above, not the inventory.
-        if row.get("ownership") == "receipt-generated" or row["path"] in registered_rule_paths or row.get("read_status") != "read":
+        # Receipt-owned generated rules are checked against the receipt above, not the inventory. A
+        # harness-owned file (frequent_rules.md, an installed rule-pack README) is not project policy.
+        if (row.get("ownership") == "receipt-generated" or row["path"] in registered_rule_paths or row.get("read_status") != "read"
+                or is_harness_owned(row["path"])):
             continue
         data = safe_file(row["path"])
         if data is None or digest(data) != row.get("sha256"):
@@ -785,16 +785,18 @@ cat > "$TEMP_PROMPT" <<'EOF_PROMPT'
 
 ## Execute in this order
 
-0. For an already initialized target, before reindexing snapshot the exact old receipt, inventory, every selected package rule, all project skills and each selected role file. Confirm prior synthesis and separate semantic-review evidence, source-bound markers, receipt paths/citations/output hashes, and the authorized generated region for each output. A matching receipt hash alone never authorizes replacement. If preimage, ownership or no-intervening-edit evidence is missing, preserve that output byte-for-byte and record `CONFLICT/PENDING`. Keep populated human `RULES.md` without a clearly authorized generated region untouched.
-1. Read the target's `AGENTS.md`, `RULES.md`, `CONTRIBUTING.md`, `ai_rules/globalRules.md`, `ai_rules/rules/frequent_rules.md`, `ai_rules/context_map.md` or `ai_rules/project_inventory.json`, `.memory/`, `.cursor/rules/`, `.agents/`, `README.md` and every startup path those instructions name. Follow startup instructions. Read the selected inventory and inspect project structure; enumerate package boundaries, manifests, lockfiles, installed skills, exclusions and unsupported formats before deriving any project guidance.
-2. Open the actual representative source files, imports/resolution evidence and relevant tests/config for every package. Cite exact line spans and SHA-256 for the file that shows each claim; never repeat a span only to cover another package. Confirm declared dependency ranges separately from resolved/installed versions. Do not make package-use, architecture, SOLID or performance claims from inventory labels or names alone. Surface policy/source conflicts; do not silently replace existing policy.
-3. After steps 1-2, apply relevant reusable methods from the installed `ponytail.md`, `grill-me.md`, `package-finder.md`, `skill-finder.md`, `conventions.md`, `technology-profiles.md` and `standards.md` owners (source checkout fallback: `commands/`). Open only relevant skill candidates, check exposed capabilities, and record selected/excluded evidence in the existing owned outputs. Match package documentation identity/version to target runtime/native/peer constraints; unavailable coverage, provenance or tooling stays PENDING. Do not install packages or third-party skills.
-4. Sort every fact into its one home first (`rules.md`, Rule layers): run `spec-harness stack <target>` for `ai_rules/stack.md`, put business rules in `.memory/10-product.md` and decisions in `.memory/60-decisions.md`, copy the baseline packs and matching tool packs from `.claude/spec-harness/rule-packs/` byte for byte, research a tool without a pack from its official documentation, and propose repeated code patterns to the owner before writing them as rules. Write every rule as `- **ID** sentence. (source: ...)`, once. Fill only empty rule sections or explicit PENDING scaffolds. Produce one package-scoped `RULES.md` output record for every inventory package, with all five standard sections and citations. Do not copy rules across package boundaries. Ask which optional memory kinds fit (`content`, `automation`, `research`; code needs none) and copy only the chosen files from `.claude/spec-harness/memory-kinds/<kind>/` into `.memory/`, never over an existing file.
-5. Maintain the core skills `.claude/skills/spec-harness-architecture/SKILL.md`, `.claude/skills/spec-harness-performance/SKILL.md` and `.claude/skills/spec-harness-packages/SKILL.md` (schema 2 or later also `.claude/skills/spec-harness-quality/SKILL.md` and `.claude/skills/spec-harness-conduct/SKILL.md`), plus one `.claude/skills/spec-harness-tech-<technology>/SKILL.md` per major technology the source actually uses (at most five, per the `tech` method). First initialization and guarded refresh follow `commands/init.md` step 5, which owns those rules. Use the corresponding installed method file. Each generated skill includes `<!-- source-bound: inventory-sha256=<raw inventory file hash> -->`.
-6. Bind the required roles `sdd-planner`, `sdd-implementer`, `sdd-tester`, `sdd-verifier` and `sdd-reviewer` inside their existing `GEN:rules` regions. After reindex, enumerate every selected role GEN block and each skill marker whose raw inventory hash changed, even when only one package's source changed. Refresh all such verified generated marker consumers and their receipt hashes. The project-aware planner binding is required for ticket planning. Require separate fresh contexts for tester, verifier and reviewer. Preserve each canonical role file outside its GEN block byte-for-byte, including its duties, safeguards, procedures and output format. Add package-specific rules inside the block; do not replace role behavior with generic evidence notes. Bind merger only with an explicit cited authority and current need. Select research, design or workflow roles only from observed project/task evidence. Cite package-specific source lines, record exclusions and preserve bytes outside owned markers.
-7. Write `.claude/agents/.init-synthesis.json` using schema 4 on a first initialization (`stack` and `rule_conflicts`; the policy ledger is optional in v1) (schema 1 on a guarded refresh of an existing schema-1 receipt), as described in `.claude/commands/spec-harness/generate-agents.md` (source checkout fallback: `commands/generate-agents.md`). It must use the exact package paths from the inventory, include output hashes and citation path/line/hash records, and remain `PENDING` for missing, conflicting, unsupported or stale evidence.
-8. Follow guarded refresh owned by `.claude/commands/sdd.md`. Before any reindex, use step 0's snapshots; a receipt hash is not write authority. Preserve populated human rules without an authorized generated region, custom/mismatched skills and unproven outputs byte-for-byte as `CONFLICT/PENDING`. After re-grounding affected claims, enumerate and refresh every stale raw-inventory marker consumer across all project skills and selected role GEN blocks, then, as the last write of the refresh, delete `.spec-harness/synthesis-stale.json` if it exists (a harness update leaves that marker, and the check refuses READY while it is present), then run `spec-harness generate-agents --check <target>` (with no install: `npx -y github:chohra-med/spec-harness-oss#v0.7.0 generate-agents --check <target>`). A failed check names the missing, stale, conflicting or unsupported evidence. A passing result confirms recorded structure and current cited bytes; it does not establish that the claim follows from its citation. In a separate fresh reviewer context, inspect each generated rule, skill and role claim against its cited source span; check package scope, policy conflicts, and whether any recommendation is mislabeled as observed behavior. Record that review and its outcome. If a source cannot be read or does not independently support the claim, or no independent review context is available, leave overall initialization PENDING.
-A passing --check proves structural integrity and current cited bytes only. Before declaring overall initialization READY, a separate fresh reviewer must check that each cited span supports its rule, skill and role claim, package boundaries are respected, and conflicts or unsupported recommendations are surfaced. Record that independent review; if no such context is available, keep overall initialization PENDING even when --check prints READY. Feature goals, test results, human approval and release remain separate. Do not claim a role was dispatched unless the current native client confirms that capability and run.
+The run sheet (`## Run sheet` in `.claude/commands/spec-harness/init.md`, steps R0 to R14) owns the order of a whole initialization. These steps are numbered 0 to 8 and each names the run sheet steps it matches. Run sheet R0 to R2 (pre-flight, staging, the human page) come before step 1; R14 (hand back) comes after step 8.
+
+0. (Refresh only: run sheet resume rule, before R3.) For an already initialized target, before reindexing snapshot the exact old receipt, inventory, every selected package rule, all project skills and each selected role file. Confirm prior synthesis and separate semantic-review evidence, source-bound markers, receipt paths/citations/output hashes, and the authorized generated region for each output. A matching receipt hash alone never authorizes replacement. If preimage, ownership or no-intervening-edit evidence is missing, preserve that output byte-for-byte and record `CONFLICT/PENDING`. Keep populated human `RULES.md` without a clearly authorized generated region untouched.
+1. (Run sheet R3 to R5.) Read the target's `AGENTS.md`, `RULES.md`, `CONTRIBUTING.md`, `ai_rules/globalRules.md`, `ai_rules/rules/frequent_rules.md`, `ai_rules/context_map.md` or `ai_rules/project_inventory.json`, `.memory/`, `.cursor/rules/`, `.agents/`, `README.md` and every startup path those instructions name. Follow startup instructions. Read the selected inventory and inspect project structure; enumerate package boundaries, manifests, lockfiles, installed skills, exclusions and unsupported formats before deriving any project guidance.
+2. (Run sheet R6.) Open the actual representative source files, imports/resolution evidence and relevant tests/config for every package. Cite exact line spans and SHA-256 for the file that shows each claim; never repeat a span only to cover another package. Confirm declared dependency ranges separately from resolved/installed versions. Do not make package-use, architecture, SOLID or performance claims from inventory labels or names alone. Surface policy/source conflicts; do not silently replace existing policy.
+3. (Run sheet R6.) After steps 1-2, apply relevant reusable methods from the installed `ponytail.md`, `grill-me.md`, `package-finder.md`, `skill-finder.md`, `conventions.md`, `technology-profiles.md` and `standards.md` owners (source checkout fallback: `commands/`). Open only relevant skill candidates, check exposed capabilities, and record selected/excluded evidence in the existing owned outputs. Match package documentation identity/version to target runtime/native/peer constraints; unavailable coverage, provenance or tooling stays PENDING. Do not install packages or third-party skills.
+4. (Run sheet R7 and R8.) Sort every fact into its one home first (`rules.md`, Rule layers): run `spec-harness stack <target>` for `ai_rules/stack.md`, put business rules in `.memory/10-product.md` and decisions in `.memory/60-decisions.md`, copy the baseline packs and matching tool packs from `.claude/spec-harness/rule-packs/` byte for byte, research a tool without a pack from its official documentation, and propose repeated code patterns to the owner before writing them as rules. Write every rule as `- **ID** sentence. (source: ...)`, once. Fill only empty rule sections or explicit PENDING scaffolds. Produce one package-scoped `RULES.md` output record for every inventory package, with all five standard sections and citations. Do not copy rules across package boundaries. Ask which optional memory kinds fit (`content`, `automation`, `research`; code needs none) and copy only the chosen files from `.claude/spec-harness/memory-kinds/<kind>/` into `.memory/`, never over an existing file.
+5. (Run sheet R9.) Maintain the core skills `.claude/skills/spec-harness-architecture/SKILL.md`, `.claude/skills/spec-harness-performance/SKILL.md` and `.claude/skills/spec-harness-packages/SKILL.md` (schema 2 or later also `.claude/skills/spec-harness-quality/SKILL.md` and `.claude/skills/spec-harness-conduct/SKILL.md`), plus one `.claude/skills/spec-harness-tech-<technology>/SKILL.md` per major technology the source actually uses (at most five, per the `tech` method). First initialization and guarded refresh follow `commands/init.md` step 5, which owns those rules. Use the corresponding installed method file. Each generated skill includes `<!-- source-bound: inventory-sha256=<raw inventory file hash> -->`.
+6. (Run sheet R10.) Bind the required roles `sdd-planner`, `sdd-implementer`, `sdd-tester`, `sdd-verifier` and `sdd-reviewer` inside their existing `GEN:rules` regions. After reindex, enumerate every selected role GEN block and each skill marker whose raw inventory hash changed, even when only one package's source changed. Refresh all such verified generated marker consumers and their receipt hashes. The project-aware planner binding is required for ticket planning. Require separate fresh contexts for tester, verifier and reviewer. Preserve each canonical role file outside its GEN block byte-for-byte, including its duties, safeguards, procedures and output format. Add package-specific rules inside the block; do not replace role behavior with generic evidence notes. Bind merger only with an explicit cited authority and current need. Select research, design or workflow roles only from observed project/task evidence. Cite package-specific source lines, record exclusions and preserve bytes outside owned markers.
+7. (Run sheet R11.) Write `.claude/agents/.init-synthesis.json` using schema 4 on a first initialization (`stack` and `rule_conflicts`; the policy ledger is optional in v1) (schema 1 on a guarded refresh of an existing schema-1 receipt), as described in `.claude/commands/spec-harness/generate-agents.md` (source checkout fallback: `commands/generate-agents.md`). It must use the exact package paths from the inventory, include output hashes and citation path/line/hash records, and remain `PENDING` for missing, conflicting, unsupported or stale evidence.
+8. (Refresh only for the guarded-refresh part; run sheet R12 and R13 for the check and the review.) Follow guarded refresh owned by `.claude/commands/sdd.md`. Before any reindex, use step 0's snapshots; a receipt hash is not write authority. Preserve populated human rules without an authorized generated region, custom/mismatched skills and unproven outputs byte-for-byte as `CONFLICT/PENDING`. After re-grounding affected claims, enumerate and refresh every stale raw-inventory marker consumer across all project skills and selected role GEN blocks, then, as the last write of the refresh, delete `.spec-harness/synthesis-stale.json` if it exists (a harness update leaves that marker, and the check refuses READY while it is present), then run `spec-harness generate-agents --check <target>` (with no install: `npx -y github:chohra-med/spec-harness-oss#v0.7.0 generate-agents --check <target>`). A failed check names the missing, stale, conflicting or unsupported evidence. A passing result confirms recorded structure and current cited bytes; it does not establish that the claim follows from its citation. In a separate fresh reviewer context, inspect each generated rule, skill and role claim against its cited source span; check package scope, policy conflicts, and whether any recommendation is mislabeled as observed behavior. Record that review and its outcome in `.spec-harness/init-review.md` in the target (the reviewer writes it; the format is in step 9 of `commands/init.md`). If a source cannot be read or does not independently support the claim, or no independent review context is available, leave overall initialization PENDING.
+A passing --check proves structural integrity and current cited bytes only. Before declaring overall initialization READY, a separate fresh reviewer must check that each cited span supports its rule, skill and role claim, package boundaries are respected, and conflicts or unsupported recommendations are surfaced. Record that independent review in `.spec-harness/init-review.md`; if no such context is available, keep overall initialization PENDING even when --check prints READY. Feature goals, test results, human approval and release remain separate. Do not claim a role was dispatched unless the current native client confirms that capability and run.
 EOF_PROMPT
 require_python "generate-agents"
 # The work order names the target only relatively: an absolute path would put a personal directory

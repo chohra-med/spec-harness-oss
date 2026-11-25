@@ -419,6 +419,30 @@ assert state["status"] == "CURRENT" and state["source_head"] == head == state["c
 git("add", "index.js", cwd=repo)
 git("commit", "-q", "-m", "later", cwd=repo)
 assert doctor(repo, 1)["index"]["status"] == "STALE", doctor(repo, 1)["index"]
+# This record is the generated Markdown context map (what index writes by default). finalize-init refuses that map,
+# so the note sends the person to index and then the guarded refresh in /sdd.
+stale_note = doctor(repo, 1)["index"]["note"]
+assert ("run spec-harness index <target>, then the guarded refresh in /sdd" in stale_note and "run spec-harness finalize-init" not in stale_note
+        and "sh-index.sh" not in stale_note), stale_note
+print("RED control observed: a STALE generated Markdown context map is sent to index and the guarded refresh, not to finalize-init, which refuses that map")
+# A STALE JSON inventory (index writes it when the target keeps its own context_map.md) on an initialised target is
+# refreshed by finalize-init, which re-indexes by itself; running index alone first would make the receipt's check
+# fail and stop finalize-init.
+json_repo = tmp / "index-json-repo"
+write_package(json_repo)
+fx.write(json_repo / "ai_rules/context_map.md", "# Team map\nKept as written.\n")
+git("init", "-q", cwd=json_repo)
+git("add", "-A", cwd=json_repo)
+git("commit", "-q", "-m", "first", cwd=json_repo)
+subprocess.run(["bash", str(harness / "bin/sh-index.sh"), str(json_repo)], check=True, capture_output=True)
+assert (json_repo / "ai_rules/project_inventory.json").is_file() and doctor(json_repo, 1)["index"]["status"] == "CURRENT"
+(json_repo / "index.js").write_text("export {};\n")
+git("add", "index.js", cwd=json_repo)
+git("commit", "-q", "-m", "later", cwd=json_repo)
+json_state = doctor(json_repo, 1)["index"]
+assert json_state["status"] == "STALE", json_state
+assert "run spec-harness finalize-init <target>" in json_state["note"] and "sh-index.sh" not in json_state["note"], json_state["note"]
+print("PASS: doctor's STALE note names finalize-init and does not say to run index alone")
 
 incomplete = tmp / "index-incomplete"
 shutil.copytree(repo, incomplete, symlinks=True)

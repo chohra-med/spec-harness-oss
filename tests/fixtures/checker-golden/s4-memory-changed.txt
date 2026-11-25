@@ -1,0 +1,4 @@
+exit 1
+PENDING: synthesis readiness check failed
+- policy requirement MEM-1: its text in .memory/40-active.md changed or is gone; re-ground this ledger row
+- policy source changed and not every ledger row was found by its text: .memory/40-active.md (0 of 1)

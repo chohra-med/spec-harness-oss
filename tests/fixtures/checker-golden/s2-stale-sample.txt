@@ -1,0 +1,26 @@
+exit 1
+PENDING: synthesis readiness check failed
+- package .: source citation hash is fake or stale: src/App.tsx
+- package .: missing representative-source citations for package(s): .
+- rule module ai_rules/rules/coding.md: source citation hash is fake or stale: src/App.tsx
+- rule module ai_rules/rules/coding.md: missing source citations (a policy file never counts as source evidence)
+- skill spec-harness-architecture: source citation hash is fake or stale: src/App.tsx
+- skill spec-harness-architecture: missing source citations (a policy file never counts as source evidence)
+- skill spec-harness-performance: source citation hash is fake or stale: src/App.tsx
+- skill spec-harness-performance: missing source citations (a policy file never counts as source evidence)
+- skill spec-harness-packages: source citation hash is fake or stale: src/App.tsx
+- skill spec-harness-packages: missing source citations (a policy file never counts as source evidence)
+- skill spec-harness-quality: source citation hash is fake or stale: src/App.tsx
+- skill spec-harness-quality: missing source citations (a policy file never counts as source evidence)
+- skill spec-harness-conduct: source citation hash is fake or stale: src/App.tsx
+- skill spec-harness-conduct: missing source citations (a policy file never counts as source evidence)
+- role sdd-planner: source citation hash is fake or stale: src/App.tsx
+- role sdd-planner: missing source citations (a policy file never counts as source evidence)
+- role sdd-implementer: source citation hash is fake or stale: src/App.tsx
+- role sdd-implementer: missing source citations (a policy file never counts as source evidence)
+- role sdd-tester: source citation hash is fake or stale: src/App.tsx
+- role sdd-tester: missing source citations (a policy file never counts as source evidence)
+- role sdd-verifier: source citation hash is fake or stale: src/App.tsx
+- role sdd-verifier: missing source citations (a policy file never counts as source evidence)
+- role sdd-reviewer: source citation hash is fake or stale: src/App.tsx
+- role sdd-reviewer: missing source citations (a policy file never counts as source evidence)

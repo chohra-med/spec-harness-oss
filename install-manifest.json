@@ -164,7 +164,15 @@
       "source": "agents/sdd-planner.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "35a12337a3fd92dda0e1a40ec6e5c6d7e62d4081f94f320af8cb6912bf231455",
+      "sha256": "204bb55a11f41dadf9e7dffb188624c35ee75018c4237fa3e2c6ed34a8de3f44",
+      "mode": "0644"
+    },
+    {
+      "destination": ".claude/agents/sdd-plan-goldfish.md",
+      "source": "agents/sdd-plan-goldfish.md",
+      "render": "copy",
+      "tokens": [],
+      "sha256": "5bba76426cfb15fb044249b4828625c6903ee8ce53bfd09c59e98afdbc692be0",
       "mode": "0644"
     },
     {
@@ -180,7 +188,7 @@
       "source": "agents/sdd-reviewer.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "1acfbb36ae9a547b7583cc7e3072e9562085622af4e0e669265fe01913bbf9a9",
+      "sha256": "aaaadf8f0cb1d1293a381885168a353cdf7df80c6e6b2251fd643416c18313f3",
       "mode": "0644"
     },
     {
@@ -196,7 +204,7 @@
       "source": "agents/sdd-tester.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "926e1dc7b5984eb8b85c23e015e781345d6e1df491dbba63fb2ffc006c3d3930",
+      "sha256": "7d943b9e489f9a0e60ffd84cb49282a26fdbfd4babd99bee9b6d7d15a623f10c",
       "mode": "0644"
     },
     {
@@ -204,7 +212,7 @@
       "source": "agents/sdd-verifier.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "40dd68a412bf8de4d1078d675a54894c22e3dfc58cc0586f283a2f90d20ca850",
+      "sha256": "d8a4164419b03e0ad2d6bd9f154caccbfbf922d06291855da1f5406106944e7d",
       "mode": "0644"
     },
     {
@@ -220,7 +228,23 @@
       "source": "commands/sdd.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "c173e990b5e9257fa69d5b2ecbbd4801f43ee00c215a1a1ae080112f7161da9b",
+      "sha256": "221251247827f2dfa35b08f64567c737ec62979484ae2b59797a971bb7a69cce",
+      "mode": "0644"
+    },
+    {
+      "destination": ".claude/spec-harness/dispatch-check.py",
+      "source": "bin/sh-dispatch-check.py",
+      "render": "copy",
+      "tokens": [],
+      "sha256": "01ade6758cd26555d5b55c84b1709bee0af98b8cbad009cb7cf8868763d90b64",
+      "mode": "0644"
+    },
+    {
+      "destination": ".claude/spec-harness/sh_safe_io.py",
+      "source": "bin/sh_safe_io.py",
+      "render": "copy",
+      "tokens": [],
+      "sha256": "4e5428632fdba326f31f779f3a5629a48c3a60408b2e0b7dd062450f02ec19fa",
       "mode": "0644"
     },
     {
@@ -236,7 +260,7 @@
       "source": "commands/build.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "b18f8cb7a005d95a6544aab52387c1a6a20abe253e0d72188b7232d99e96742c",
+      "sha256": "86a26e8a92890abd53d9285b5e579440e79e1bcea43260b052eadf0b923e1254",
       "mode": "0644"
     },
     {
@@ -248,11 +272,19 @@
       "mode": "0644"
     },
     {
+      "destination": ".claude/commands/spec-harness/find.md",
+      "source": "commands/find.md",
+      "render": "copy",
+      "tokens": [],
+      "sha256": "ac33cb9ec4c9fda465e13761ccdbf45fa062482437e83995817b255e2ca2711d",
+      "mode": "0644"
+    },
+    {
       "destination": ".claude/commands/spec-harness/generate-agents.md",
       "source": "commands/generate-agents.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "4a8e6b298df4fa3b7182ba5acd2d13d789ae3306ef982f72a1cb286ad75b70e0",
+      "sha256": "620eb4b68f473262303809af953cd941a54d8098cd7d93d8e90aa62ce1a9f546",
       "mode": "0644"
     },
     {
@@ -268,7 +300,7 @@
       "source": "commands/init.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "e2c6d4505e6119cf3a86474e03d05a055b683cd55b10f4be5f951ae3b90dcc63",
+      "sha256": "08c244de3e3b6d3d7df8cbf3b7b317e5d0684580896429082426742b45cfbf9a",
       "mode": "0644"
     },
     {
@@ -300,7 +332,7 @@
       "source": "commands/plan.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "50543a7efc6af7665a3e53667ed89c1a43c78ab9919a507f47f68babd17dd965",
+      "sha256": "ae107552733d78a7804d5d2a2efdafecaacb769f060da85633d13219fea9c196",
       "mode": "0644"
     },
     {
@@ -316,7 +348,7 @@
       "source": "commands/rules.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "ebd21bf8d22c9b11a0eded39768c78488c3a3cd718f8423050793f3661f354c4",
+      "sha256": "b3eb75c77a73bd46e020f250a94c218d09148fe8cc6b9b543c311e5ad278b7d6",
       "mode": "0644"
     },
     {
@@ -332,7 +364,7 @@
       "source": "commands/skill-finder.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "b919c2e0315ad8c9baa080d373fd211da038b9e7da5c6b9a89173c14a360d69d",
+      "sha256": "a284a16e6b572e3d3f1f23bb4d982792c0eb44da5c1ef98b86eeaa16931acf6c",
       "mode": "0644"
     },
     {
@@ -340,7 +372,7 @@
       "source": "commands/technology-profiles.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "f585164f011176b373c98fce7ab906902a6f0e1036c4344804a4bac402462716",
+      "sha256": "a7a2bdad2f1567a97ba770d6186a9b260419d3f89ecd1ed25c532a9ac6cdd8f6",
       "mode": "0644"
     },
     {
@@ -348,7 +380,7 @@
       "source": "commands/conventions.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "37abd0ee4b9b830a8452a22dba20cfd070a6f1cd358d2b974458f458eba89cb8",
+      "sha256": "7668fd2edc369d9fd225a7a0a5437acd481dbedddb1b868a0907171b069fb1a1",
       "mode": "0644"
     },
     {
@@ -356,7 +388,7 @@
       "source": "commands/doctor.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "5453a9b4ffe15822e41b675d6171203062d6fa57db5eb301f14fd00bfc2f4d73",
+      "sha256": "ca8e1ff8ee23b80478d76c8d91c1dd12045518e338dd1d482113523e547bccb4",
       "mode": "0644"
     },
     {
@@ -540,7 +572,7 @@
       "source": "skills/spec-harness-tester/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "3682f43525470837a5f43447316eefa316eb7b291ca829201a986f5464726c1e",
+      "sha256": "30ecfbb613c6b02eacf1726794f083f97da763f3f5a6964fbd32d83c67873b7d",
       "mode": "0644"
     },
     {
@@ -548,7 +580,7 @@
       "source": "skills/spec-harness-tickets/SKILL.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "03ddee75207191baa675272fb83cd9046aaac7422f9f3ce8430f915c9a46ca39",
+      "sha256": "38354e9b7a8c431346e50fa7ebd02b9ac6100dd5e8f82dd2568dae0bdb126cbf",
       "mode": "0644"
     },
     {
@@ -604,7 +636,7 @@
       "source": "templates/project-skills/spec-harness-quality.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "3c26b5829ac3be3b8e5589cc32fc5ed9d670dcb62c99f885f429607938e01ddc",
+      "sha256": "f1dc43ea42a9090b4a1676633ce08e6ae45db4d577044b4ad4c6c8122180fd42",
       "mode": "0644"
     },
     {
@@ -752,7 +784,7 @@
       "tokens": [
         "{{PROJECT_NAME}}"
       ],
-      "sha256": "3ed6aed47c11d60c1fe47f2279e1b219efec9daa19168a6fa7a4df29722bfcf2",
+      "sha256": "30f96d6dcd34b0248b4a077e5accc8ea6dbfdef26415d5e89a362e4b657dfdba",
       "mode": "0644"
     },
     {
@@ -772,7 +804,7 @@
       "tokens": [
         "{{PROJECT_NAME}}"
       ],
-      "sha256": "a8f470c3252167cbefb862e53c90eb3adf7ce9027902b7bc48b9d7fa86de860c",
+      "sha256": "229bbb3bfeaf1c6b5e24320a3f68f2f7eb8699bd42d7d4b8d5422d44c71130da",
       "mode": "0644"
     },
     {
@@ -858,7 +890,7 @@
       "source": "learning_human.html",
       "render": "copy",
       "tokens": [],
-      "sha256": "045d24d729b431fbff803eb4b13dca0e704e9db535f6237142106a7dfae4bdb4",
+      "sha256": "e6d580322344368943d1769eb27f4aef429c16a61a603444c1d1985f92278721",
       "mode": "0644"
     },
     {
@@ -890,7 +922,7 @@
       "source": "commands/pr-prepare.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "0abfacca8096847dc88d946fe53227c801723aad92bdc6ca03dc5a8bcfaaff9b",
+      "sha256": "ce620740c0ed0e7440bfc6004c17844e8b757f3d68be18af3cd0af15d6d7e862",
       "mode": "0644"
     },
     {
@@ -898,7 +930,7 @@
       "source": "templates/rule-packs/README.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "3227fa8c64bf3b3c951d698d24b8d271a090351dcbccaebcfcebfd8100cdfd6e",
+      "sha256": "c7e01b2e23027a638b58f4c3f8cb692104209241aa4b3a3337a25482ce13be48",
       "mode": "0644"
     },
     {
@@ -914,7 +946,15 @@
       "source": "templates/rule-packs/baseline-clean-code.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "d0f7b41695e7f22b12e64c3eb5fca8b3a0af8054045e60b90ac35c8ea18ab6c5",
+      "sha256": "d08f93bd40b33a955542226b2932e8c173346c7c98746493f242777c37a2e2fc",
+      "mode": "0644"
+    },
+    {
+      "destination": ".claude/spec-harness/rule-packs/baseline-design.md",
+      "source": "templates/rule-packs/baseline-design.md",
+      "render": "copy",
+      "tokens": [],
+      "sha256": "12313c3d93c2a46e9500fe8570744cc43f8f875c295a3bcfa4b22eea2c880db7",
       "mode": "0644"
     },
     {
@@ -962,7 +1002,7 @@
       "source": "templates/rule-packs/tool-expo.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "334106fbbf1229d59b826897c24c710291a09aebcd86d910771f9323974582ae",
+      "sha256": "c879b754944b8f4a4cf807928d9a310057f48cb578fd385c4e56a604c644d2a7",
       "mode": "0644"
     },
     {
@@ -970,7 +1010,7 @@
       "source": "templates/rule-packs/tool-react-native.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "0858e16969425bdf89c786347cc0c830f254b65939cf3660aefb8fc85e04620f",
+      "sha256": "a4af8719824131e715b7c1b8ff5f13e6fb57b09f4d0c08fd745b840a33be63ee",
       "mode": "0644"
     },
     {
@@ -994,7 +1034,7 @@
       "source": "commands/standards.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "86224ea19c27add633950c6c96f43e88282491279036f2e30a3d820a46c28b02",
+      "sha256": "797e71faf02f75216853241968cad84bd2acec68845eec7ce99a6bea19f7761d",
       "mode": "0644"
     },
     {
@@ -1011,6 +1051,22 @@
       "render": "copy",
       "tokens": [],
       "sha256": "d5434c7abf09f54a7d8706dec981fe4be321c4db47f00d7522cbcf3afe74d1c2",
+      "mode": "0644"
+    },
+    {
+      "destination": ".agents/skills/spec-harness-guide/SKILL.md",
+      "source": "skills/spec-harness-guide/SKILL.md",
+      "render": "copy",
+      "tokens": [],
+      "sha256": "7c34b95ce5b77ce73cffd1876d6b6fdb86fd7cd03fd6d112aa4101709d752ac2",
+      "mode": "0644"
+    },
+    {
+      "destination": ".claude/skills/spec-harness-guide/SKILL.md",
+      "source": "skills/spec-harness-guide/SKILL.md",
+      "render": "copy",
+      "tokens": [],
+      "sha256": "7c34b95ce5b77ce73cffd1876d6b6fdb86fd7cd03fd6d112aa4101709d752ac2",
       "mode": "0644"
     },
     {
@@ -1074,7 +1130,7 @@
       "source": "docs/MEMORY.md",
       "render": "copy",
       "tokens": [],
-      "sha256": "5aafb7b998ca1e090534c5b21acadd9eb4c60f4ff4de2231b28ff78bc3f52d34",
+      "sha256": "0e6408f13a3f8362b4b125c1bb9ffb6e1d0ef3ec391357a4d4347e4380ada7e3",
       "mode": "0644"
     }
   ],

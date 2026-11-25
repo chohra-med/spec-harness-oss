@@ -1017,12 +1017,16 @@ def s3_ledger(value):
 # every marker consumer to the new raw inventory hash.
 s3_ledger(s3_receipt)
 write(s3_path, json.dumps(s3_receipt, indent=2) + "\n")
+# The installer stages this harness-owned README; written before the reindex, it is a hashed rule_files row.
+rule_pack_readme = ".claude/spec-harness/rule-packs/README.md"
+write(schema3 / rule_pack_readme, "# Rule packs\n\nCurated rule packs staged by the installer.\n")
 run(["bash", str(index), str(schema3)], 0, "schema 3 reindex")
 s3_inventory = schema3 / "ai_rules/project_inventory.json"
 s3_hash = sha(s3_inventory)
 s3_rows = json.loads(s3_inventory.read_text())["rule_files"]
 assert next(row for row in s3_rows if row["path"] == module_rel).get("ownership") == "receipt-generated"
 assert next(row for row in s3_rows if row["path"] == "RULES.md").get("ownership") == "receipt-generated"
+assert all("sha256" in next(row for row in s3_rows if row["path"] == rel) for rel in ("ai_rules/rules/frequent_rules.md", rule_pack_readme, "AGENTS.md")), s3_rows
 for row, file in s3_rows_with_files(s3_receipt):
     file.write_text(file.read_text().replace(s3_receipt["inventory_sha256"], s3_hash))
     row["sha256"] = sha(file)
@@ -1066,10 +1070,22 @@ def captured_without_anchor(v):
 s3_red("captured without anchor", captured_without_anchor, "captured policy requirement CONTRIB-1 has no registered rule output")
 s3_red("stale policy source", lambda v: (schema3 / "CONTRIBUTING.md").write_text("# Contributing\n- changed\n- policy\n"),
        "policy source is missing, unsafe or stale: CONTRIBUTING.md", files=(schema3 / "CONTRIBUTING.md",))
-s3_red("policy drift after indexing", lambda v: (schema3 / "ai_rules/rules/frequent_rules.md").write_text("# Frequent rules\n- A new rule after indexing.\n"),
-       "project policy file changed after indexing: ai_rules/rules/frequent_rules.md", files=(schema3 / "ai_rules/rules/frequent_rules.md",))
+s3_red("policy drift after indexing", lambda v: (schema3 / "AGENTS.md").write_text((schema3 / "AGENTS.md").read_text() + "A new rule after indexing.\n"),
+       "project policy file changed after indexing: AGENTS.md", files=(schema3 / "AGENTS.md",))
 s3_red("missing quality skill", lambda v: v.__setitem__("skills", [row for row in v["skills"] if row["name"] != "spec-harness-quality"]), "missing: spec-harness-quality")
 assert "READY:" in run(["bash", str(bind), "--check", str(schema3)], 0, "schema 3 restored GREEN")
+def harness_file_edit(target, rel, label):
+    # A harness-owned file changed after indexing (an update or the installer rewrote it) is no policy drift.
+    path = target / rel
+    saved = path.read_bytes()
+    try:
+        write(path, path.read_text() + "- A note added after indexing.\n")
+        assert "READY:" in run(["bash", str(bind), "--check", str(target)], 0, label)
+    finally:
+        path.write_bytes(saved)
+
+for rel in ("ai_rules/rules/frequent_rules.md", rule_pack_readme):
+    harness_file_edit(schema3, rel, f"schema 3 with an edited {rel}")
 # The same target with a schema 2 receipt (no ledger) still validates: schema 2 keeps its meaning.
 s2_value = copy.deepcopy(s3_receipt)
 s2_value["schema_version"] = 2
@@ -1078,6 +1094,119 @@ write(s3_path, json.dumps(s2_value, indent=2) + "\n")
 assert "READY: 3 packages, 5 skills" in run(["bash", str(bind), "--check", str(schema3)], 0, "schema 2 without a ledger GREEN")
 write(s3_path, json.dumps(s3_receipt, indent=2) + "\n")
 print("PASS: schema 2 receipts keep validating without a ledger; schema 3 enforces it")
+
+# Schema 4 policy drift: the shared fixture hashes frequent_rules.md, the rule-pack README and the
+# project AGENTS.md in its receipt-time inventory. Harness-owned files may change; project files may not.
+sys.path.insert(0, str(root / "tests/lib"))
+import ready_fixture
+schema4 = tmp / "schema-4-drift"
+ready_fixture.build(schema4, root, schema=4, ledger=True)
+s4_path = schema4 / ".claude/agents/.init-synthesis.json"
+s4_rows = json.loads((schema4 / "ai_rules/project_inventory.json").read_text())["rule_files"]
+assert all("sha256" in next(row for row in s4_rows if row["path"] == rel) for rel in ("ai_rules/rules/frequent_rules.md", rule_pack_readme, "AGENTS.md")), s4_rows
+for rel in ("ai_rules/rules/frequent_rules.md", rule_pack_readme):
+    harness_file_edit(schema4, rel, f"schema 4 with an edited {rel}")
+print("PASS: a changed harness-owned file (frequent_rules.md, a rule-pack README) is not a policy drift failure under schemas 3 and 4")
+agents_saved = (schema4 / "AGENTS.md").read_bytes()
+try:
+    write(schema4 / "AGENTS.md", (schema4 / "AGENTS.md").read_text() + "Run the tests before a change.\n")
+    drift = run(["bash", str(bind), "--check", str(schema4)], 1, "schema 4 edited AGENTS.md")
+    assert "- project policy file changed after indexing: AGENTS.md" in drift, drift
+finally:
+    (schema4 / "AGENTS.md").write_bytes(agents_saved)
+print("RED control observed: a changed project instruction file still fails the schema 4 drift check")
+
+# Unregistered receipt-time inventory policy must reach the drift check, not the ledger check.
+exact_rule_names = ("ai_rules/rules/core.md", "ai_rules/rules/context_management.md")
+drift_cases = [(name + suffix, False) for name in exact_rule_names for suffix in ("-extra.md", ".backup.md", "/nested.md")]
+drift_cases += [(name, True) for name in exact_rule_names]
+drift_cases.append((".claude/spec-harness/rule-packs/README.md", True))
+for case_number, (rel, harness_owned) in enumerate(drift_cases):
+    target = tmp / f"unregistered-drift-{case_number}"
+    source = target / rel
+    # The builder writes its normal rule-pack README; seed the same bytes before indexing.
+    content = ready_fixture.INSTRUCTION_FILES.get(rel, "# Synthetic policy\n- Keep this rule.\n")
+    write(source, content)
+    ready_fixture.build(target, root, schema=4, ledger=True)
+    inventory_path = target / "ai_rules/project_inventory.json"
+    receipt_path = target / ".claude/agents/.init-synthesis.json"
+    inventory_bytes = inventory_path.read_bytes()
+    receipt_bytes = receipt_path.read_bytes()
+    rows = [row for row in json.loads(inventory_bytes)["rule_files"] if row.get("path") == rel]
+    original = source.read_bytes()
+    assert len(rows) == 1 and rows[0].get("read_status") == "read" and rows[0].get("sha256") == hashlib.sha256(original).hexdigest(), (rel, rows)
+    assert rows[0].get("ownership") != "receipt-generated", (rel, rows)
+    value = json.loads(receipt_bytes)
+    assert all(row.get("path") != rel for row in value["policy_sources"] + value["policy_coverage"]), rel
+    assert all(package.get("rules_path") != rel and all(module.get("path") != rel for module in package.get("rule_modules", [])) for package in value["packages"]), rel
+    assert "READY:" in run(["bash", str(bind), "--check", str(target)], 0, f"unregistered drift {rel} initial")
+    try:
+        source.write_bytes(original + b"- Changed policy after indexing.\n")
+        output = run(["bash", str(bind), "--check", str(target)], 0 if harness_owned else 1, f"unregistered drift {rel} changed")
+        if harness_owned:
+            assert "READY:" in output, (rel, output)
+        else:
+            assert f"project policy file changed after indexing: {rel}" in output, (rel, output)
+            assert f"policy source is missing, unsafe or stale: {rel}" not in output, (rel, output)
+    finally:
+        source.write_bytes(original)
+    assert "READY:" in run(["bash", str(bind), "--check", str(target)], 0, f"unregistered drift {rel} restored")
+    assert inventory_path.read_bytes() == inventory_bytes and receipt_path.read_bytes() == receipt_bytes, rel
+print("PASS: unregistered receipt-time policy drift rejects lookalikes and exempts exact harness files and directory child")
+# Registration boundaries: a valid, covered ledger entry may not make a harness file project policy.
+sys.path.insert(0, str(root / "bin"))
+from sh_inventory_frame import is_harness_owned
+harness_sources = (
+    "ai_rules/index/x.md", "ai_rules/rules/frequent_rules.md", "ai_rules/globalRules.md",
+    "ai_rules/updated_rules.md", "ai_rules/review-lens.md", "ai_rules/stack.md",
+    ".claude/commands/registration-probe.md", ".claude/spec-harness/registration-probe.md",
+    ".claude/agents/registration-probe.md", ".claude/skills/registration-probe.md",
+    ".agents/registration-probe.md", "ai_rules/rules/core.md", "ai_rules/rules/context_management.md",
+)
+project_sources = ("ci/registration-control.yml", ".agentsx/registration-control.md", "ai_rules/indexx/registration-control.md") + tuple(
+    name + suffix for name in ("ai_rules/rules/core.md", "ai_rules/rules/context_management.md")
+    for suffix in ("-extra.md", ".bak", "/nested.md")
+)
+assert all(is_harness_owned(rel) for rel in harness_sources)
+assert all(not is_harness_owned(rel) for rel in project_sources)
+s4_saved = s4_path.read_bytes()
+
+def registration_control(rel, schema, expected_exit, needle, stale=False):
+    source = schema4 / rel
+    saved = source.read_bytes() if source.exists() else None
+    source.parent.mkdir(parents=True, exist_ok=True)
+    if saved is None:
+        write(source, "# Synthetic policy source\n")
+    try:
+        value = json.loads(s4_saved)
+        value["schema_version"] = schema
+        source_hash = sha(source)
+        value["policy_sources"].append({"path": rel, "sha256": source_hash, "requirement_ids": ["REG-1"]})
+        value["policy_coverage"].append({"id": "REG-1", "path": rel, "sha256": source_hash, "line_start": 1, "line_end": 1,
+                                         "disposition": "not-applicable", "reason": "Synthetic registration boundary control."})
+        write(s4_path, json.dumps(value, indent=2) + "\n")
+        if stale:
+            source.write_bytes(source.read_bytes() + b"changed after binding\n")
+        output = run(["bash", str(bind), "--check", str(schema4)], expected_exit, f"schema {schema} registration {rel}")
+        assert needle in output, (rel, output)
+    finally:
+        s4_path.write_bytes(s4_saved)
+        if saved is None:
+            source.unlink()
+        else:
+            source.write_bytes(saved)
+    assert "READY:" in run(["bash", str(bind), "--check", str(schema4)], 0, "schema 4 restored GREEN")
+
+for rel in harness_sources:
+    registration_control(rel, 4, 1, f"policy source is a generated output or harness file, not project policy: {rel}")
+    registration_control(rel, 3, 0, "READY:")
+    registration_control(rel, 3, 1, f"policy source is missing, unsafe or stale: {rel}", stale=True)
+for rel in project_sources:
+    registration_control(rel, 4, 0, "READY:")
+    registration_control(rel, 4, 1, f"policy source is missing, unsafe or stale: {rel}", stale=True)
+    registration_control(rel, 3, 0, "READY:")
+    registration_control(rel, 3, 1, f"policy source is missing, unsafe or stale: {rel}", stale=True)
+print("PASS: schema 4 rejects every harness-source class, preserves project boundaries, and schema 3 validates bound sources")
 
 # Memory policy sources: a ledger row anchored by the hash of its own span text survives ordinary
 # edits elsewhere in a .memory/ file (notes are added every session); its own text changing does not.
@@ -1254,6 +1383,13 @@ mem_check("memory source sha256 not a string", memory_text, 1, "policy source is
 assert not (schema3 / ".memory").exists()
 assert "READY:" in run(["bash", str(bind), "--check", str(schema3)], 0, "schema 3 restored GREEN after memory controls")
 print("PASS: memory ledger rows anchored by text survive ordinary memory edits; their own text changing still fails")
+
+# Schema 1 to 4 receipts must keep the 0.7.0 checker's output byte for byte: the golden files in
+# tests/fixtures/checker-golden/ were recorded with that checker before any change to it.
+golden = subprocess.run(["python3", "-I", "-B", str(root / "tests/lib/golden_check.py")], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+print(golden.stdout, end="")
+assert golden.returncode == 0, f"golden check failed (exit {golden.returncode})"
+
 
 print("All synthesis contract fixtures passed.")
 PY

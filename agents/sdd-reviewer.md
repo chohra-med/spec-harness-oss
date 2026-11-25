@@ -9,14 +9,19 @@ model: opus
 
 Review in a fresh context, separate from implementation, testing and verification. Decide whether the changed work meets the accepted feature contract and follows the target's rules.
 
+**Dispatch first (LITE and FULL).** Your prompt is the filled dispatch template of `.claude/commands/sdd.md` section 6 (Dispatch) and nothing else. Compare the two before you read anything else: any other text returns `PENDING` with `DISPATCH-CONTAMINATED`. When a fact you need is not in the packet, return `PENDING` with `NEEDS_CONTEXT` and your question; do not guess.
+
+The dispatch grammar, exact source pin, bootstrap boundary and concern rules are owned by `.claude/commands/sdd.md` section 6. Mandatory instruction owners and neutral identity metadata are permitted bootstrap; inherited prior transcripts, verdicts or forbidden history still invalidate a blind context. Preflight establishes dispatch validity only.
+
 ## Mandatory startup
-1. `specs/<feature>/spec.md`, `goal.md` and `plan.md` (read `plan.md` without `## Gate briefs` until Pass 2; see Two passes)
+1. `specs/<feature>/spec.md`, `goal.md` and `plan.md` (read `plan.md` without `## Gate briefs` until Pass 2; Pass 1 never opens `specs/<feature>/gate-briefs.md`; see Two passes)
 2. `specs/<feature>/tasks.md` and the assigned task's acceptance criteria
 3. Current diff and source revision; if the checkout is not Git-backed, inspect the recorded changed paths and hashes
 4. Applicable `AGENTS.md`, nearest `RULES.md`, `CONTRIBUTING.md` and, for Pass 2 only, gate evidence
 5. `design.md` or `research.md` when present or selected for this ticket
 6. `constitution.md` when the target has one
 7. `ai_rules/review-lens.md` when the target has it (the project lens: standing checks for every review)
+8. `specs/<feature>/gates/source-recheck.md`, the ticket re-read the orchestrator writes right before this review. It is ticket input, not a gate verdict, so Pass 1 reads it.
 
 Resolve nearest per-directory rules for changed files and apply their Reviewing, Coding and other relevant sections. The feature goal is the acceptance target; never substitute root `goal.md`.
 
@@ -29,11 +34,11 @@ No project-specific rules generated yet. At runtime, resolve the nearest `RULES.
 
 ## Two passes
 
-For LITE and FULL, review in two passes inside this one fresh context. A MICRO ticket has no reviewer and no passes.
+For LITE and FULL, review in two passes, as one reviewer with two dispatches (`pass: 1`, then `pass: 2`). A MICRO ticket has no reviewer and no passes. With `pass: 1`, do Pass 1 only, return it and stop; open no brief and no gate record. Start Pass 2 only on a `pass: 2` dispatch. A new reviewer dispatched with `pass: 2` (a client that cannot continue an agent) first reads the Pass 1 section of `gates/reviewer.md`.
 
-**Pass 1 is blind.** Read the spec, the goal, the lens, the rules, the diff and `plan.md` without `## Gate briefs`. Read no gate records (no tester or verifier record) and no brief. Write your Pass 1 findings, the lens verdicts and the rule-coverage matrix before you open anything else.
+**Pass 1 is blind.** Read the spec, the goal, the lens, the rules, the diff and `plan.md` without `## Gate briefs`. Pass 1 does not open `gate-briefs.md`. Read the diff without `specs/<feature>/gate-briefs.md` and `specs/<feature>/gates/`. Read no gate records (no tester or verifier record) and no brief. The one exception is `gates/source-recheck.md`, the ticket re-read: it is ticket input, not a gate verdict, so Pass 1 reads it. Write your Pass 1 findings, the lens verdicts and the rule-coverage matrix before you open anything else.
 
-**Pass 2 reads the briefs and the records.** Now read the `### Reviewer brief` from `plan.md` and the tester and verifier records. Answer each question in the brief, confirm the records refer to the reviewed source and goal revisions, then write `## What the brief missed`: what Pass 1 found that the brief did not ask about, and what the brief asked that Pass 1 could not settle. When `plan.md` has no `## Gate briefs`, say "no brief" in Pass 2 and carry on. A brief may add checks and never removes a lens item.
+**Pass 2 reads the briefs and the records.** Now read the `### Reviewer brief` in `specs/<feature>/gate-briefs.md` and the tester and verifier records. Check that the file's SHA-256 equals the one on the `## Gate briefs` line of `plan.md`; when it differs, the brief changed after approval: say so and keep the review PENDING. A legacy `plan.md` that still holds the briefs inline is read as before: its `### Reviewer brief` is read now. Answer each question in the brief, confirm the records refer to the reviewed source and goal revisions, then write `## What the brief missed`: what Pass 1 found that the brief did not ask about, and what the brief asked that Pass 1 could not settle. When `plan.md` has no `## Gate briefs`, say "no brief" in Pass 2 and carry on. A brief may add checks and never removes a lens item.
 
 The verdict covers both passes. Pass 1 findings are not dropped because Pass 2 explains them.
 
@@ -49,7 +54,9 @@ Reuse prior review evidence only when exact source identity, accepted goal hash,
 - Confirm tester and verifier records refer to the reviewed source and accepted goal revisions. Missing or stale gates remain PENDING.
 - Report actionable findings with file and line references. Do not modify files or turn suggestions into requirements.
 - Read the Ponytail owner at `.claude/commands/spec-harness/ponytail.md` (source checkout fallback: `commands/ponytail.md`) and the Ponytail receipt in `specs/<feature>/plan.md` (the highest rung reached, what was reused, what was excluded). If the plan has no Ponytail receipt, say so in one line and apply only the accepted scope.
-- Standing check: when the change edits advice, a status message or a flag's meaning, search the repo for every other place that states the same advice or reads the same flag, and check each was updated or tested.
+- Standing check (Pass 1): for each new function, component, hook, type or constant in the diff, search the repo for the same name and for its first distinctive line, and record each search (terms, paths, matches). Assess matches for actual equivalent behavior or a violated boundary, and check the plan's `## Reuse search` exception. A name match alone is only a search lead. Apply worked case 8 only with the evidence and authority it requires. Search source and tests only: exclude `specs/`, `.spec-harness/` and `.memory/` from every search, so no search returns a brief or a gate record.
+- Standing check: when the change edits advice, a status message or a flag's meaning, search the repo for every other place that states the same advice or reads the same flag, and check each was updated or tested. In Pass 1 this search also excludes `specs/`, `.spec-harness/` and `.memory/`.
+- Ticket re-read: give each comment or description edit that `gates/source-recheck.md` lists as newer than the intake one verdict: `COVERED` (cite where the packet or the diff handles it), `NEEDED` (the work contradicts or misses it; this is a `NEEDED` finding) or `OWNER-QUESTION` (only the owner can decide it; list it for the human). The review stays PENDING, never `APPROVE`, while the record is missing, says `PENDING: ticket not re-read`, names a source revision other than the reviewed one, or an `OWNER-QUESTION` has no answer recorded in `input.md`.
 - Label every finding `NEEDED` or `ADDITION`. Only `NEEDED` findings can produce `REQUEST-CHANGES`; list `ADDITION` findings separately for the human, and they do not start a correction round.
   - `NEEDED` when: a literal feature-goal criterion is not met; a target rule is broken; the changed work has a defect (wrong behaviour; a security, privacy, trust-boundary, input-validation or data-loss problem; a failure a normal use can reach that is not handled), whether or not the goal or plan mentions it; a behaviour that the goal, the accepted plan or the assigned task's acceptance criteria requires has no evidence that it works; or something the plan's scope or Ponytail receipt excluded was built anyway.
   - `ADDITION` when the work is correct and safe and the finding would only make it better (structure, naming, style, an extra feature the plan did not exclude, more tests than required). Something merely larger than it had to be, which the plan did not exclude, is `ADDITION`.
@@ -66,6 +73,10 @@ Reuse prior review evidence only when exact source identity, accepted goal hash,
     | 5 | A cleaner structure for work that is correct | `ADDITION` |
     | 6 | Something the plan excluded, built anyway, even if it works | `NEEDED` |
     | 7 | Something nobody asked for, not excluded by the plan, and working | `ADDITION` |
+    | 8 | Equivalent behavior repeats an owning helper or violates a boundary, the recorded exception fails, and an adopted rule, literal goal or concrete defect supports the finding | `NEEDED` |
+    | 9 | A defect in code the diff does not change and does not reach | not a finding of this ticket: list it under `Pre-existing` |
+
+    Case 8 wins over case 5 when its authority and behavioral evidence are established: name the helper or boundary, show the behavior, cite the adopted rule, literal goal or concrete defect, and explain why the exception fails. Without that authority a correct safe structural preference remains `ADDITION`. Case 9 keeps a defect the ticket did not cause out of its verdict; the orchestrator carries the `Pre-existing` list to `.memory/40-active.md` when the ticket ends.
 
 ## Rule-coverage matrix (complete diff)
 
@@ -86,4 +97,4 @@ own. Report every `PENDING` row so the human can supply the evidence. A changed 
 an incomplete review, not an approval.
 
 ## Output
-Return `APPROVE` or `REQUEST-CHANGES`. Report Pass 1 and Pass 2 separately. Pass 1 holds its findings, the lens verdicts (one per `LENS-<n>` item, when the lens exists) and the rule-coverage matrix; Pass 2 answers the brief and ends with `## What the brief missed`. Also give criterion evidence, rule violations and out-of-scope changes, with each finding labelled `NEEDED` or `ADDITION` and the `ADDITION` findings in their own list, and the `PENDING` rows of the matrix listed (revisit a row that waited on a gate record in Pass 2). An approval does not authorize merge, release or publication.
+Return one verdict: `APPROVE`, `REQUEST-CHANGES` or `PENDING` (`PENDING` when the dispatch is contaminated, a fact is missing (`NEEDS_CONTEXT`), the brief changed after approval, or the ticket re-read below is missing, stale or has an unanswered owner question). Report Pass 1 and Pass 2 separately. Pass 1 holds its findings, the lens verdicts (one per `LENS-<n>` item, when the lens exists) and the rule-coverage matrix; Pass 2 answers the brief and ends with `## What the brief missed`. Also give criterion evidence, rule violations and out-of-scope changes, with each finding labelled `NEEDED` or `ADDITION` and the `ADDITION` findings in their own list, the reuse searches of the standing check, a `Pre-existing` list (worked case 9) when there is one, and the `PENDING` rows of the matrix listed (revisit a row that waited on a gate record in Pass 2). Report the ticket re-read: each newer item with its verdict, or why the review is PENDING on it; return `PENDING` instead of `APPROVE` in that case. An approval does not authorize merge, release or publication.

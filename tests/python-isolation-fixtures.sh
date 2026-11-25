@@ -9,7 +9,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 . "$ROOT/tests/lib/portable.sh"
 require_tools bash git
 require_python311
-TMP="$(mktemp -d "${TMPDIR:-/tmp}/sh-python-isolation.XXXXXX")" || exit 1
+TMP_PARENT="$(cd "${TMPDIR:-/tmp}" && pwd -P)" || exit 1
+TMP="$(mktemp -d "$TMP_PARENT/sh-python-isolation.XXXXXX")" || exit 1
 trap 'rm -rf "$TMP"' EXIT
 CLI="$ROOT/bin/spec-harness"
 failures=0
@@ -74,6 +75,44 @@ else
   fail "finalize-init was hijacked (rc=$rc): $out"
 fi
 rm -f "$target"/HIJACKED-*
+
+# A missing input must be distinguished from a refused reader.
+dispatch_missing() { [[ "$1" -eq 2 && "$2" == "PENDING: missing path: $target/missing-payload" ]]; }
+
+# The installed checker imports only its explicit staged sibling, even from a hostile cwd.
+(cd "$target" && bash "$CLI" init . integrate >"$TMP/dispatch-init.log" 2>&1)
+out="$(cd "$target" && python3 -I -B "$target/.claude/spec-harness/dispatch-check.py" --dispatch "$target/missing-payload" 2>&1)"; rc=$?
+if dispatch_missing "$rc" "$out" && ! hijacked "$target"; then
+  pass 'installed dispatch checker isolates imports and uses its staged sibling'
+else
+  fail "installed dispatch checker missing, hijacked or failed unexpectedly (rc=$rc): $out"
+fi
+rm -f "$target"/HIJACKED-*
+# Removing the reader from this disposable target must not satisfy the missing-input assertion.
+mv "$target/.claude/spec-harness/sh_safe_io.py" "$TMP/saved-dispatch-reader.py"
+out="$(cd "$target" && python3 -I -B "$target/.claude/spec-harness/dispatch-check.py" --dispatch "$target/missing-payload" 2>&1)"; rc=$?
+if [[ "$rc" -eq 2 && "$out" == 'PENDING: missing, unsafe or modified safe-reader sibling' ]] && ! dispatch_missing "$rc" "$out"; then
+  pass 'reader refusal cannot pass the missing-dispatch assertion'
+else
+  fail "reader refusal incorrectly satisfies missing-dispatch assertion (rc=$rc): $out"
+fi
+mv "$TMP/saved-dispatch-reader.py" "$target/.claude/spec-harness/sh_safe_io.py"
+
+# An existing custom sibling is preserved, but must never execute inside the shipped checker.
+custom="$TMP/custom-dispatch-reader"
+mkdir -p "$custom/.claude/spec-harness"
+cat > "$custom/.claude/spec-harness/sh_safe_io.py" <<'PLANTED'
+from pathlib import Path
+Path(__file__).with_name('SIDE_EFFECT').write_text('executed')
+PLANTED
+custom_hash="$(sha256_file "$custom/.claude/spec-harness/sh_safe_io.py")"
+(cd "$custom" && bash "$CLI" init . integrate >"$TMP/custom-reader-init.log" 2>&1)
+out="$(cd "$custom" && python3 -I -B "$custom/.claude/spec-harness/dispatch-check.py" --dispatch "$custom/missing-payload" 2>&1)"; rc=$?
+if [[ "$rc" -eq 2 && "$out" == 'PENDING: missing, unsafe or modified safe-reader sibling' ]] && [[ ! -e "$custom/.claude/spec-harness/SIDE_EFFECT" ]] && [[ "$(sha256_file "$custom/.claude/spec-harness/sh_safe_io.py")" == "$custom_hash" ]]; then
+  pass 'custom safe-reader sibling is preserved and never executed by shipped checker'
+else
+  fail "custom safe-reader sibling executed or was not refused (rc=$rc): $out"
+fi
 
 # PYTHONPATH must not reach the programs either.
 out="$(cd "$TMP" && PYTHONPATH="$target" bash "$CLI" index "$target" 2>&1)"; rc=$?

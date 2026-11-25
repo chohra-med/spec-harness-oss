@@ -21,12 +21,14 @@ wins; record the difference in the report.
    with its head, base and status. Update every pending one in the same task. Leave a PR that you did
    not update as PENDING and name its owner.
 2. **Read the skills first.** Read the project's instructions, PR template and contribution rules.
-   Invoke the project's branch-name, commit-message and PR-description skills before writing a branch
-   name, a commit message or PR text. Record that the skill was read in this session.
+   Invoke the project's own branch-name, commit-message and PR-description skills before writing a
+   branch name, a commit message or PR text; where the project has none, follow
+   `.claude/commands/spec-harness/conventions.md` (source checkout fallback: `commands/conventions.md`).
+   Record which skill or method was read in this session.
 3. **Branch and commits.** Confirm the branch name follows the repository convention. Split commits by
    purpose with the commit-message skill. A local development checkpoint is not publication history;
    keep the two apart.
-4. **Rebase and ship checks.** Rebase onto the current base branch. Run the project's pre-push checks
+4. **Rebase and ship checks.** Select the destination from current project policy or an explicit selection consistent with it, and use the same pinned base for Before evidence, packet checks and ship checks. If it cannot be resolved, stop and report PENDING; do not substitute another branch. Rebase onto the current base branch unless project policy says otherwise. Run the project's pre-push checks
    on the exact HEAD that will be pushed, and record that commit hash with each result. Do not push
    when a required check is missing, failed or ran on another commit. A check the project leaves to CI
    follows `commands/ship.md`.

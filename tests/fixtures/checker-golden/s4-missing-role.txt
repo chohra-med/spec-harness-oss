@@ -1,0 +1,3 @@
+exit 1
+PENDING: synthesis readiness check failed
+- required role bindings missing: sdd-tester

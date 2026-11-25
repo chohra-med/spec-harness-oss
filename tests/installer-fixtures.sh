@@ -132,6 +132,34 @@ assert_contains "$NEW/AGENTS.md" "$SENSITIVE_NAME" 'project name is written lite
 assert_absent "$TMP/SHOULD_NOT_EXIST" 'project name is never evaluated as shell code'
 if grep -Eq 'status[[:space:]]*:[[:space:]]*READY|READY: true' "$TMP/new.log"; then fail 'fresh scaffold is never called READY'; else pass 'fresh scaffold is never called READY'; fi
 
+# Dispatch preflight and its unchanged safe-reader sibling are staged byte-identically.
+for pair in 'dispatch-check.py:sh-dispatch-check.py' 'sh_safe_io.py:sh_safe_io.py'; do
+  dest="${pair%%:*}"; source="${pair#*:}"
+  if cmp -s "$NEW/.claude/spec-harness/$dest" "$HARNESS_DIR/bin/$source"; then
+    pass "dispatch helper $dest is byte-identical"
+  else
+    fail "dispatch helper $dest is byte-identical"
+  fi
+done
+for role in tester verifier reviewer plan-goldfish; do
+  if cmp -s "$NEW/.claude/agents/sdd-$role.md" "$HARNESS_DIR/agents/sdd-$role.md" &&
+    grep -Fq 'exact source pin, bootstrap boundary and concern rules' "$NEW/.claude/agents/sdd-$role.md"; then
+    pass "installed $role uses the central dispatch grammar"
+  else
+    fail "installed $role uses the central dispatch grammar"
+  fi
+done
+HELPER_KEEP="$TMP/custom-dispatch-helpers"
+mkdir -p "$HELPER_KEEP/.claude/spec-harness"
+printf 'custom checker\n' >"$HELPER_KEEP/.claude/spec-harness/dispatch-check.py"
+printf 'custom reader\n' >"$HELPER_KEEP/.claude/spec-harness/sh_safe_io.py"
+run_cli "$TMP/custom-dispatch.log" init "$HELPER_KEEP" new HelperKeep
+assert_rc 0 'custom dispatch helpers do not block installation'
+assert_contains "$HELPER_KEEP/.claude/spec-harness/dispatch-check.py" 'custom checker' 'custom checker is preserved'
+assert_contains "$HELPER_KEEP/.claude/spec-harness/sh_safe_io.py" 'custom reader' 'custom reader is preserved'
+assert_conflict "$TMP/custom-dispatch.log" '.claude/spec-harness/dispatch-check.py' 'custom checker is reported as a conflict'
+assert_conflict "$TMP/custom-dispatch.log" '.claude/spec-harness/sh_safe_io.py' 'custom reader is reported as a conflict'
+
 # Existing startup text may reference a missing file; preserve it and keep the setup pending.
 MISSING_REF="$TMP/missing-startup-reference"
 mkdir -p "$MISSING_REF"
@@ -187,6 +215,8 @@ HOOK_REG="$HARNESS_DIR/bin/sh-hook-register.py"
 HOOK_GIT="$TMP/hook-git"
 mkdir -p "$HOOK_GIT"
 git init -q "$HOOK_GIT"
+# Keep these fixture assertions independent of the user's global ignore rules.
+git -C "$HOOK_GIT" config --local core.excludesFile /dev/null
 run_cli "$TMP/hook-git.log" install "$HOOK_GIT" integrate HookGit
 assert_rc 0 'install into a git target with the hook'
 assert_file "$HOOK_GIT/.claude/spec-harness/hooks/sdd-gate.sh" 'install stages the edit guard hook'
@@ -388,6 +418,7 @@ assert_contains "$TMP/hook-link.log" 'hook registration: NOT registered' 'the re
 HOOK_IGN="$TMP/hook-ignored"
 mkdir -p "$HOOK_IGN"
 git init -q "$HOOK_IGN"
+git -C "$HOOK_IGN" config --local core.excludesFile /dev/null
 printf '.claude/settings.local.json\n' >"$HOOK_IGN/.gitignore"
 run_cli "$TMP/hook-ignored.log" install "$HOOK_IGN" integrate HookIgnored
 assert_rc 0 'install into a target that already ignores the settings file'

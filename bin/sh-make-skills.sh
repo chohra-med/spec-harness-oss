@@ -11,6 +11,153 @@ mkdir -p "$OUT"
 STAGE="$(mktemp -d "${TMPDIR:-/tmp}/sh-make-skills.XXXXXX")"
 trap 'rm -rf "$STAGE"' EXIT
 
+# The body of the agent guide skill (spec-harness-guide). Unlike the thin routes below, this skill carries
+# its own text: it must work in an install that is older than the source and in the source repository.
+guide_body() {
+  cat <<'EOF_GUIDE'
+Use this skill when the person asks how to use or update Spec Harness, whether an install is current,
+what changed between versions, or whether a fix has landed. It answers four things:
+
+1. What Spec Harness is.
+2. How to read the installed version.
+3. How to update from an older version.
+4. How to confirm that the fixes landed.
+
+Reading and checking change nothing. Updating changes the project, so it needs the person's yes.
+
+## Set up the commands once
+
+Run every command here from the root of the project that has Spec Harness installed (the target).
+Most agent tools start a new shell for every command, so a variable set in one command is gone in the
+next. Start **every** block below with this line, in the same command, with the real folder in place
+of the example:
+
+```sh
+SRC=/folder/of/the/spec-harness/checkout; SH="bash $SRC/bin/spec-harness"
+```
+
+`SRC` is the Spec Harness source checkout (the folder that holds `bin/spec-harness` and
+`CHANGELOG.md`). Ask the person when you do not know it. `SH` is the command; write `SH=spec-harness`
+instead when that command is on the PATH.
+
+With no checkout on the machine, ask the person. Do not use `npx` unless they say yes: it downloads
+the published package, which can be older than the source you were pointed at.
+
+## 1. What Spec Harness is
+
+Spec Harness is a set of markdown procedures, agent role files and a small Bash command. It is
+installed into a project. It gives the project a memory bank (`.memory/`), source-backed rules
+(`ai_rules/`), a planner, an implementer, independent tester, verifier and reviewer roles, and a
+learning loop. It never edits the project's application source during install.
+
+In the installed project:
+
+- `SPEC-HARNESS.md` says whether setup is `PENDING` or ready.
+- `/sdd` (file `.claude/commands/sdd.md`) is the procedure for every code ticket. Codex reads
+  `.agents/skills/sdd/SKILL.md`.
+- `.spec-harness/install.json` records which version and commit were installed.
+
+In the source repository, `AGENTS.md` says which of four jobs you were given, and
+`docs/GETTING-STARTED.md` is the human guide.
+
+## 2. Read the installed version
+
+```sh
+SRC=/folder/of/the/spec-harness/checkout; SH="bash $SRC/bin/spec-harness"
+INSTALLED=$(python3 -I -B -c "import json; print(json.load(open('.spec-harness/install.json'))['harness_version'])" 2>/dev/null)
+echo "installed: ${INSTALLED:-unknown (no install record)}"
+python3 -I -B -c "import json,sys; print('source:', json.load(open(sys.argv[1]))['version'])" "$SRC/package.json"
+$SH status .
+```
+
+`status` prints the installed and source versions and commits, a count of files by state, and
+`update available : yes` or `no`. It also prints an `Agent guide:` line with the path of this skill.
+
+No `.spec-harness/install.json` means the install is older than 0.4.0. Its version is unknown. Treat
+it as the oldest version and read the whole changelog.
+
+## 3. Update from an older version
+
+Steps 1 to 3 only read. Step 4 needs the person's yes.
+
+1. Get the new source. Use the person's checkout. Running `git -C "$SRC" pull --ff-only` needs the
+   network, so ask first. Never edit the install by copying files by hand.
+2. Make sure the project has no uncommitted work you could lose: `git status --short`. If tracked
+   files are modified, stop and tell the person.
+3. Read the plan. It writes nothing. Each line is one file and one state:
+
+```sh
+SRC=/folder/of/the/spec-harness/checkout; SH="bash $SRC/bin/spec-harness"
+$SH update .
+```
+
+   - `UNCHANGED`: already current.
+   - `UPDATE`: not edited locally; the new file replaces it.
+   - `MERGE`: edited locally and changed upstream; a clean three-way merge is written.
+   - `CONFLICT`: the merge overlaps. A `.spec-harness-proposed` file is written next to it. Show the
+     person both versions in the chat, ask which lines to keep, and write the file only after their yes.
+   - `CUSTOMIZED-KEEP`: edited locally; kept as it is.
+   - `NEW`: a file the new version adds. `REMOVED-UPSTREAM`: no longer shipped; listed, never deleted.
+
+4. Apply exactly the plan the person approved, with the digest the plan printed:
+
+```text
+SRC=/folder/of/the/spec-harness/checkout; SH="bash $SRC/bin/spec-harness"
+$SH update . --apply DIGEST
+```
+
+5. If the project has a synthesis receipt, the update marks synthesis stale. Run `/sdd init` (guarded
+   refresh) and then the check in section 4.
+
+An older install does not have this skill. `status` run from the new source prints its source path in
+the `Agent guide:` line, and the update adds it to the project.
+
+## 4. Confirm the fixes landed
+
+1. Read the installed version (section 2).
+2. Read the changelog entries between the installed version and the source. This prints every
+   entry above the installed version's heading (`Unreleased` is the newest, then each version):
+
+```sh
+SRC=/folder/of/the/spec-harness/checkout; SH="bash $SRC/bin/spec-harness"
+INSTALLED=$(python3 -I -B -c "import json; print(json.load(open('.spec-harness/install.json'))['harness_version'])" 2>/dev/null)
+if [ -z "$INSTALLED" ]; then cat "$SRC/CHANGELOG.md"
+else awk -v v="$INSTALLED" '/^## /{ if ($0 == "## " v || index($0, "## " v " ") == 1) exit } {print}' "$SRC/CHANGELOG.md"; fi
+```
+
+   With no install record the whole changelog is printed.
+
+3. Run the read-only checks. Before `/sdd init` has run, both can print `PENDING`; that is expected,
+   not a fault.
+
+```sh
+SRC=/folder/of/the/spec-harness/checkout; SH="bash $SRC/bin/spec-harness"
+$SH doctor .
+$SH generate-agents --check .
+```
+
+4. For each fix in the changelog, find the file it names, then read the installed copy:
+
+```sh
+SRC=/folder/of/the/spec-harness/checkout; SH="bash $SRC/bin/spec-harness"
+$SH update . | grep -F ".claude/commands/spec-harness/init.md"
+grep -n -F "## Run sheet" .claude/commands/spec-harness/init.md
+```
+
+   The first line shows the state of that file. The second shows a phrase the fix added (the phrase
+   here is an example; take yours from the changelog entry).
+
+5. Report each fix with one word and the output line that shows it:
+
+   - `landed`: the file's state is `UNCHANGED`, or the phrase is in the installed file.
+   - `not landed`: the state is `UPDATE`, `MERGE`, `NEW` or `CONFLICT`, or the phrase is missing.
+   - `cannot tell`: the state is `CUSTOMIZED-KEEP` (edited locally), the file is a synthesis output,
+     or the fix is in the source command only (check it by running that command against the source).
+
+Never report a fix as landed from the changelog alone.
+EOF_GUIDE
+}
+
 # name|doc|agents|description (description = the model-invocation trigger; keep it phrase-rich)
 emit() {
   local name="$1" doc="$2" agents="$3" desc="$4" role="$5" shared_route="${6:-no}"
@@ -21,6 +168,9 @@ emit() {
     printf 'description: %s\n' "$desc"
     printf -- '---\n\n'
     printf '# %s\n\n%s\n\n' "$name" "$role"
+    if [ "$shared_route" = guide ]; then
+      guide_body
+    else
     printf '## Run it\n'
     if [ "$shared_route" = method ]; then
       printf '1. **Load this reusable method owner**: `.claude/commands/spec-harness/%s.md` (installed project) or source `commands/%s.md`. This method is usable during initialization before a synthesis receipt or feature goal exists.\n' "$doc" "$doc"
@@ -54,6 +204,7 @@ emit() {
       printf -- '- Every correction or FAIL cause goes through `spec-harness-learn` classification.\n'
       printf -- '- Never commit, push or merge unless asked.\n'
     fi
+    fi
   } > "$dir/SKILL.md"
   echo "  staged $name"
 }
@@ -67,7 +218,7 @@ emit spec-harness-install "init" "researcher" \
 "Stage the harness, then follow \`.claude/commands/spec-harness/init.md\` as a capable model (source checkout fallback: \`commands/init.md\`): read the inventory, applicable project rules and actual representative source; derive package-scoped rules, the core project skills (five on first initialisation) and a skill per major technology; bind project-aware planner, implementer, fresh tester, verifier and reviewer roles; record evidence and run the structural/provenance check. A separate fresh reviewer must confirm claim support before overall initialization is READY. Shell staging remains PENDING."
 
 emit spec-harness-tickets "tickets" "researcher, planner" \
-"Intake exact ticket text or a retrieved body from an explicitly connected provider. Use when the user asks to run /sdd on ticket text, a connected issue, or a feature request. Bare issue names without a retrievable body stop for clarification. Produces a feature-owned specs/<feature>/ packet and goal." \
+"Intake exact ticket text or a retrieved body from an explicitly connected provider. Use when the user asks to run /sdd on ticket text, a connected issue, or a feature request. Bare issue names without a retrievable body stop for clarification. Produces a feature-owned packet and goal under specs/." \
 "Use \`commands/sdd.md\` for the full route. Preserve exact input, pin its provenance and source/rule state, then create a checkable feature-specific spec and goal. Never write the ticket back without separate approval." yes
 
 emit spec-harness-spec "spec" "researcher" \
@@ -97,6 +248,10 @@ for method in ponytail grill-me package-finder skill-finder conventions technolo
     "Read the installed method owner at .claude/commands/spec-harness/$method.md and follow it. This skill is only a route; it does not replace the shared SDD procedure or prove native client discovery." method
 done
 
+emit spec-harness-guide "" "" \
+'"Explain Spec Harness and keep an install of it current: what it is, how to read the installed version, how to update from an older version, and how to confirm that fixes landed. Use when asked how to use or update Spec Harness, whether an install is current or out of date, what changed between versions, or whether a fix has landed."' \
+"Read this whole skill before you act. It answers four things and runs only commands that exist in the harness." guide
+
 emit spec-harness-tasks "tasks" "planner" \
 "Break an accepted feature plan into ordered, testable tasks. Use when the user says 'break this into tasks' or 'what are the steps'." \
 "Use the bound planner. Each task names repo-relative files, a criterion from \`specs/<feature>/goal.md\`, a real test command, dependencies and any authority boundary." yes
@@ -110,7 +265,7 @@ emit spec-harness-verify "verify" "verifier" \
 "Resolve the bound verifier from \`.claude/agents/.init-synthesis.json\`; check each literal criterion in \`specs/<feature>/goal.md\` with evidence. Root \`goal.md\` is not a substitute." yes
 
 emit spec-harness-tester "tester" "workflow-tester" \
-"Adversarially validate the app's critical workflows. For each journey in workflows/, a clean-context agent RUNS it end-to-end and actively tries to BREAK it (bad inputs, kill mid-flow, races, double-submit, offline, boundary values), then reports which are BROKEN, ranked P0 first. Use when the user says 'test the workflows', 'try to break the app', 'which critical flows are broken', 'run the workflow tester', or 'is checkout/onboarding still working'. The tester checks reality against critical journeys alongside the verifier's goal check. \`--scan\` and \`tester <id>\` use a capable client; the shell reports PENDING/manual. A BROKEN result sends its repro and candidate guard through reviewed learning; policy changes require approval." \
+"Adversarially validate the app's critical workflows. For each journey in workflows/, a clean-context agent RUNS it end-to-end and actively tries to BREAK it (bad inputs, kill mid-flow, races, double-submit, offline, boundary values), then reports which are BROKEN, ranked P0 first. Use when the user says 'test the workflows', 'try to break the app', 'which critical flows are broken', 'run the workflow tester', or 'is checkout/onboarding still working'. The tester checks reality against critical journeys alongside the verifier's goal check. \`--scan\` and \`tester\` with a journey ID use a capable client; the shell reports PENDING/manual. A BROKEN result sends its repro and candidate guard through reviewed learning; policy changes require approval." \
 "Load the workflows/ bank (P0 first). For each workflow spawn a fresh sdd-workflow-tester (clean context, no stake): it runs the journey via how_to_run, then attacks its invariants (bad inputs · kill mid-flow · races/double-submit · offline · boundary · replay) and returns PASS or BROKEN with a concrete repro. Aggregate a ranked report; send each BROKEN repro, likely cause and candidate guard through commands/learn.md for capture, classification and review. Apply a policy change only after approval. The shell prints PENDING/manual; a capable client may propose candidate workflows from app evidence (routes/entry points/write paths) for human confirmation."
 
 emit spec-harness-learn "learn" "learner" \

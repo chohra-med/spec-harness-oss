@@ -80,6 +80,16 @@ record = json.loads((target / ".spec-harness/install.json").read_text())
 assert record["harness_commit"] == commit and record["project_name"] == "demo"
 out = run(CLI + ["status", str(target)], 0, "status")
 assert f"installed commit  : {commit}" in out and f"source commit     : {commit}" in out and "update available  : no" in out, out
+guide_installed = os.path.realpath(target) + "/.claude/skills/spec-harness-guide/SKILL.md"
+assert f"Agent guide       : {guide_installed}" in out and "(source copy" not in out, out
+# An install from before the guide skill existed: status names the source copy instead.
+guide_file = target / ".claude/skills/spec-harness-guide/SKILL.md"
+guide_bytes = guide_file.read_bytes()
+guide_file.unlink()
+old_out = run(CLI + ["status", str(target)], 0, "status of an install without the guide skill")
+assert f"Agent guide       : {os.path.realpath(harness)}/skills/spec-harness-guide/SKILL.md (source copy" in old_out, old_out
+assert (harness / "skills/spec-harness-guide/SKILL.md").is_file()
+guide_file.write_bytes(guide_bytes)
 states, digest, out = plan(target)
 assert states and set(states.values()) == {"UNCHANGED"}, out
 assert "Nothing to apply." in out
@@ -87,7 +97,7 @@ before = fx.snapshot(target)
 run(CLI + ["update", str(target), "--apply", digest], 0, "apply the empty plan")
 after = fx.snapshot(target)
 assert {k: v for k, v in after.items() if k != ".spec-harness/install.json"} == {k: v for k, v in before.items() if k != ".spec-harness/install.json"}
-print(f"PASS: fresh install -> {len(states)} files UNCHANGED; status shows installed and source commit; no update available")
+print(f"PASS: fresh install -> {len(states)} files UNCHANGED; status shows installed and source commit, the installed Agent guide path (the source path for an install without it); no update available")
 
 # 2. Template changes upstream: UPDATE (untouched file), CUSTOMIZED-KEEP (local edit, template
 #    unchanged), MERGE (both changed, no overlap), CONFLICT (overlap), NEW, REMOVED-UPSTREAM, rename.

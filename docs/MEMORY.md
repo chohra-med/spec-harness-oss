@@ -8,7 +8,7 @@ A project keeps what an agent must remember in `.memory/`. Each fact lives in ex
 |---|---|---|
 | Product | What the project is, who it is for, what it must do | `.memory/10-product.md` |
 | Decisions | Choices made, with the reason and the date | `.memory/60-decisions.md` |
-| Active | What is being worked on right now | `.memory/40-active.md` |
+| Active | What is being worked on right now, and open follow-ups from ended tickets | `.memory/40-active.md` |
 | Progress | What is done and what is next | `.memory/50-progress.md` |
 | Lessons | What went wrong or right and the rule it produced | `.memory/80-feedback.md` |
 
