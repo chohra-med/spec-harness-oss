@@ -6,7 +6,7 @@
 
 Spec Harness wraps spec-driven development with project memory, source-backed rules, independent checks, and a learning loop that turns reviewed corrections into rules.
 
-Created by [**Malik Chohra**](https://getwireai.com?utm_source=github&utm_medium=readme&utm_campaign=creator) · [Code Meet AI newsletter](https://codemeetai.substack.com?utm_source=github&utm_medium=readme&utm_campaign=newsletter)
+Created by [**Malik Chohra**](https://malikchohra.com/start?utm_source=github&utm_medium=readme&utm_campaign=hub) · [Code Meet AI newsletter](https://codemeetai.substack.com?utm_source=github&utm_medium=readme&utm_campaign=newsletter)
 
 Sponsored by [AI Mobile Launcher](https://aimobilelauncher.com?utm_source=github&utm_medium=readme&utm_campaign=sponsor) and [CasaInnov](https://casainnov.com?utm_source=github&utm_medium=readme&utm_campaign=sponsor)
 
