@@ -15,8 +15,11 @@ This source procedure is a generic scaffold. During initialization, create a pro
 4. Mention SOLID only when source shows a concrete boundary or testability issue, with a `path:line` citation. Otherwise omit it or label it `REVIEW HEURISTIC`, not a project fact.
 5. Do not invent a metric, a line-count limit or a style rule. Write `not established` where the source gives no evidence.
 
+6. Assess documentation at the selected API surface: retain useful caller-facing purpose, use, side effects and errors; do not require comments on trivial private helpers or repeat types and existing descriptions. Keep stricter owner policy authoritative.
+7. Assess reuse by actual behavior and justified independent change, and cohesion by concrete dependency or change scenarios. Consider substitution, interface width and dependency direction only at a relevant changed boundary; never prescribe speculative interfaces or a line/file threshold.
+
 ## Output contract
 
-The project copy names the package paths it covers, separates `OBSERVED` rules from `RECOMMENDATION` and `REVIEW HEURISTIC` entries, and cites every observed rule. A linter or formatter configuration is cited as a configuration fact, not as proof of code quality. Unsupported or unreadable packages are listed and remain PENDING.
+The project copy includes the pack/topic coverage table required by `rules.md`, including adopted IDs, exclusions or unresolved reasons, provenance, evidence and higher-policy resolution. The project copy names the package paths it covers, separates `OBSERVED` rules from `RECOMMENDATION` and `REVIEW HEURISTIC` entries, and cites every observed rule. A linter or formatter configuration is cited as a configuration fact, not as proof of code quality. Unsupported or unreadable packages are listed and remain PENDING.
 
 Record output path, citations and source hashes in `.claude/agents/.init-synthesis.json`. After changing a cited source or rule, refresh only affected bindings. Run `spec-harness generate-agents --check <target>` (with no install: `npx -y github:chohra-med/spec-harness-oss#v0.7.0 generate-agents --check <target>`); a passing structural check does not replace a fresh semantic review.

@@ -39,7 +39,9 @@ These steps sit alongside the Grill Me and Ponytail receipts above; they replace
    fallback: `commands/conventions.md`). Record each convention the plan relies on with its label
    (`EXPLICIT`, `OBSERVED`, `ADOPTED BASELINE` or `PROPOSED`) and its source. A `PROPOSED` convention
    is not applied as if it were project policy.
-2. **Stop at the Grill Me checkpoint.** Before any implementation, present the material decision
+2. **Stop at the Grill Me checkpoint.** A FULL plan (and a LITE plan from a delegated planner) first goes
+   to the plan goldfish, `sdd-plan-goldfish`, in a fresh context (`.claude/commands/sdd.md` section 4);
+   its result is shown at the checkpoint. Before any implementation, present the material decision
    frontier from the Grill Me method, each question with a recommended answer, and the plan summary.
    Wait for the person who owns the ticket to approve the plan or answer the questions. Record the
    approval in the run state, not in `plan.md`: the `checkpoint` object of
@@ -55,13 +57,17 @@ These steps sit alongside the Grill Me and Ponytail receipts above; they replace
 - decisions with context, options, choice and reason;
 - the hardest technical risk and its smallest testable approach;
 - reused source paths/symbols and package boundaries;
+- `## Reuse search`: a table with the columns Symbol, Search run (terms and paths), Candidates found,
+  Decision (reuse, extend or new), Reason and Ponytail rung, with one row for each new function,
+  component, hook, type or constant the plan adds. When the plan adds no new symbol, one row reads
+  `none: no new symbol`. LITE and FULL do not reach the checkpoint without it;
 - changed-file outline and the order that protects the accepted goal;
 - the Ponytail receipt and Grill Me rulings/open questions;
 - the conventions relied on, with their labels and sources;
 - no approval status: the Grill Me approval (approver, time and plan hash) is recorded only in the run
   state `checkpoint`, so the approved bytes of this file never change after approval;
 - source, rule and goal hashes this plan assumes;
-- for LITE and FULL, `## Gate briefs` with `### Tester brief` and `### Reviewer brief`: the orchestrator's extra cases and questions for each gate. A brief may add checks and never drops a lens item (`ai_rules/review-lens.md`). The briefs sit inside the approved bytes, so a later edit needs a new approval. A MICRO ticket has no plan and no briefs.
+- for LITE and FULL, `## Gate briefs`: one line with the path `specs/<feature>/gate-briefs.md` and that file's SHA-256. That file holds `### Tester brief` and `### Reviewer brief`: the orchestrator's extra cases and questions for each gate. A brief may add checks and never drops a lens item (`ai_rules/review-lens.md`). The approved `plan.md` bytes carry the briefs' hash, so a brief edit needs a new approval. The briefs live outside `plan.md` so that the reviewer's blind Pass 1 and the plan goldfish never open them. A MICRO ticket has no plan and no briefs.
 
 An unanswered material decision or changed input hash returns the packet to PENDING for resolution
 or re-planning.

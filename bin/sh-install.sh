@@ -195,10 +195,14 @@ for source in "$SYS_DIR"/commands/*.md; do
   plan_copy ".claude/commands/spec-harness/${source##*/}" "$source"
 done
 plan_copy .claude/commands/sdd.md "$SYS_DIR/commands/sdd.md"
+plan_copy .claude/spec-harness/dispatch-check.py "$SYS_DIR/bin/sh-dispatch-check.py"
+plan_copy .claude/spec-harness/sh_safe_io.py "$SYS_DIR/bin/sh_safe_io.py"
 plan_copy .agents/skills/sdd/SKILL.md "$SYS_DIR/templates/install/agents-skill-sdd.md"
 for method in ponytail grill-me package-finder skill-finder conventions technology-profiles standards; do
   plan_copy ".agents/skills/spec-harness-$method/SKILL.md" "$SYS_DIR/skills/spec-harness-$method/SKILL.md"
 done
+# The agent guide skill reaches other agent tools too (the skills glob further down stages the Claude copy).
+plan_copy .agents/skills/spec-harness-guide/SKILL.md "$SYS_DIR/skills/spec-harness-guide/SKILL.md"
 for method in architecture performance packages tech quality conduct; do
   plan_copy ".claude/spec-harness/methods/spec-harness-${method}.md" "$SYS_DIR/templates/project-skills/spec-harness-${method}.md"
 done

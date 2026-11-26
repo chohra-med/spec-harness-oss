@@ -22,6 +22,12 @@ Guards (below) never change `structural` or the exit code.
 | `guards` | Six checks that keep the setup from breaking quietly. Each value is `OK`, `MISSING` or `NOT_APPLICABLE`; `guards_notes` gives one line of reason for each. |
 | `paths`, `synthesis_check`, `prerequisites`, `platform` | The evidence behind the fields above. |
 
+When `index` is `STALE`, its note depends on the record doctor read. For the JSON inventory
+(`ai_rules/project_inventory.json`, written when the target keeps its own `context_map.md`) it says to run
+`spec-harness finalize-init <target>`, which re-indexes and re-binds by itself; do not run `index` first (before
+initialisation, run `spec-harness index`). For the generated Markdown context map, which `index` writes by default and
+`finalize-init` refuses, it says to run `spec-harness index <target>`, then the guarded refresh in `/sdd`.
+
 ## Guards
 
 | Guard | `OK` when | `MISSING` when | `NOT_APPLICABLE` when |

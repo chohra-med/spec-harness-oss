@@ -400,7 +400,9 @@ def index_state(root):
         # A link or other unsafe map is not read; the JSON record next to it may still be used.
         map_unsafe = error.reason != "missing"
         map_bytes = None
-    if map_bytes is not None and generated_map(map_bytes):
+    # finalize-init refreshes only the JSON inventory, so the STALE advice depends on which record this is.
+    json_record = not (map_bytes is not None and generated_map(map_bytes))
+    if not json_record:
         text = map_bytes.decode("utf-8", "replace")
         complete_line = re.search(r"(?m)^- Scan complete: `(true|false)`", text)
         head_line = re.search(r"(?m)^- Source HEAD: `([0-9a-f]+|none)`", text)
@@ -447,7 +449,7 @@ def index_state(root):
     elif head != state["current_head"] and only_index_files_changed(root, head, state["current_head"]):
         state.update(status="CURRENT", note="HEAD moved only through the index's own two files (context map and inventory); the source is unchanged since the index ran")
     elif head != state["current_head"]:
-        state.update(status="STALE", note="HEAD is not the commit the index records, or that commit is not in local history; run sh-index.sh")
+        state.update(status="STALE", note="HEAD is not the commit the index records, or that commit is not in local history; " + ("run spec-harness finalize-init <target>, which re-indexes and re-binds by itself (do not run index first; before initialisation, run spec-harness index)" if json_record else "run spec-harness index <target>, then the guarded refresh in /sdd (finalize-init refreshes only ai_rules/project_inventory.json, and this record is the generated Markdown context map)"))
     else:
         state.update(status="CURRENT", note="the inventory matches the root's git HEAD (uncommitted changes are not checked)")
     return state

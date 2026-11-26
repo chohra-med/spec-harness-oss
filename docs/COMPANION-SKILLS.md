@@ -9,7 +9,7 @@ checks for them and uses them when present. It never installs one without your y
 | **Ponytail** | Yes (`commands/ponytail.md`) | The smallest correct change: reuse first, no speculative abstraction | planning, implementing |
 | **Grill Me** | Yes (`commands/grill-me.md`) | Questions that ground a plan in the real source before any code | planning |
 | **teach** | Yes (`commands/teach.md`) | Explains a system to a human as one interactive page | onboarding, after setup |
-| **Understand-Anything** | No; offered on every `init` | A knowledge graph of the codebase with a dashboard, guided tours and diff impact | indexing, onboarding, review |
+| **Understand-Anything** | No; mentioned once, only when you ask for a visual map | A knowledge graph of the codebase with a dashboard, guided tours and diff impact | indexing, onboarding, review |
 | **graphify** | No | A visual, queryable map of the codebase | indexing |
 | **diagram-design** | No | An editorial design system for diagrams | every diagram |
 | **Superpowers** | No | Planned companion; not wired in yet | later |
@@ -18,8 +18,9 @@ checks for them and uses them when present. It never installs one without your y
 
 [Understand-Anything](https://github.com/Egonex-AI/Understand-Anything) (MIT) builds a knowledge
 graph of a codebase and gives you a dashboard, guided tours, plain-language explanations of a file
-or function, and the likely impact of a diff. `/sdd init` offers it every time; it is installed only
-when you say yes.
+or function, and the likely impact of a diff. `/sdd init` does not offer it. An agent mentions it once,
+and only when you ask for a visual map of the code. This project has not reviewed it: read its hooks and its
+install steps yourself before you add it. It is installed only when you say yes.
 
 In Claude Code:
 

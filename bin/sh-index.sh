@@ -748,6 +748,9 @@ for directory, dirnames, filenames in os.walk(root, topdown=True, followlinks=Fa
             add_exclusion(path_rel, "repository metadata", "repository metadata is not scanned")
         elif name == ".spec-harness" and relative_dir == ".":
             add_exclusion(path_rel, "harness state", "install record, base copies and run state are not project evidence")
+        elif name == "index" and relative_dir == "ai_rules":
+            # One fixed row: refreshing the generated index never changes the inventory bytes.
+            add_exclusion(path_rel, "generated index", "the harness's code index is derived from the source, not project evidence")
         elif name in IGNORED_DIRS:
             add_exclusion(path_rel, "generated/dependency directory", "directory class is excluded")
         elif name.lower() in PRIVATE_DIRS:

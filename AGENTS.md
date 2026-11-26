@@ -1,7 +1,7 @@
 # AGENTS.md: how an agent uses and navigates this repository
 
 You are an agent (Claude Code, Codex or similar) and a person has pointed you at this repository.
-Read this file first. It tells you what the repository is, what to do for the three things people
+Read this file first. It tells you what the repository is, what to do for the four things people
 usually ask, and where every fact lives.
 
 **Do not confuse this file with `templates/AGENTS.md`.** This file is for agents working *with* or
@@ -15,13 +15,14 @@ rules, a planner, an implementer, independent tester, verifier and reviewer role
 loop. It adds no dependency to the project and never edits the project's application source during
 install.
 
-## First, work out which of three jobs you were given
+## First, work out which of four jobs you were given
 
 | The person says something like | Your job | Go to |
 |---|---|---|
 | "add / install / set up Spec Harness in my project" | Install it into **their project** | [Job 1](#job-1-install-spec-harness-into-the-users-project) |
 | "run this ticket", "use sdd", "plan / build / verify this" | Run the workflow **inside a project that already has it** | [Job 2](#job-2-run-the-workflow-in-a-project-that-has-it) |
 | "change / fix / extend Spec Harness itself" | Work **on this repository** | [Job 3](#job-3-work-on-this-repository) |
+| "is my Spec Harness current", "update Spec Harness", "did the fixes land" | Check or update an **existing install** | [Job 4](#job-4-update-an-installed-project-and-confirm-the-fixes) |
 
 If you cannot tell which, ask. Do not start installing anything on a guess.
 
@@ -91,6 +92,8 @@ default source sample in step 6. Do not edit their instruction files (step 5) an
    `.claude/commands/sdd.md` section 1 and `.claude/commands/spec-harness/init.md` in the target.
    This step reads their code and writes rules, skills and role bindings, so use the strongest
    model available and do it only with the user present to review the result.
+   The ordered steps, each with its command, expected output, check and failure action, are in the
+   "Run sheet" section of `.claude/commands/spec-harness/init.md`.
 8. **Check**: `bash /path/to/spec-harness-oss/bin/spec-harness generate-agents --check .` (or the
    `npx` form). After initialisation it must print `READY`. Before initialisation it prints
    `PENDING: missing or unsafe synthesis receipt` and exits 1; that is the expected state, not a fault.
@@ -135,7 +138,7 @@ from. Read them here to understand the method; act on the installed copies in th
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Diagrams of the layers and the flow | you need the design |
 | [`commands/sdd.md`](./commands/sdd.md) | **The central procedure**: routes, model tiers, ticket classes, light route, gates | almost always; start here |
 | `commands/*.md` | One contract per stage (`init`, `plan`, `build`, `verify`, `learn`, ...) | you touch that stage |
-| `agents/sdd-*.md` | The thirteen role files, with `model:` and `tools:` frontmatter | you touch a role |
+| `agents/sdd-*.md` | The fourteen role files, with `model:` and `tools:` frontmatter | you touch a role |
 | `bin/spec-harness` | CLI dispatcher | you add or trace a subcommand |
 | `bin/sh-install.sh` | Stages files into a target; refuses unsafe paths | install behaviour |
 | `hooks/sdd-gate.sh`, `bin/sh-hook-register.py` | The edit guard hook that the installer stages, and the helper that merges (or removes) its entry in a target's `.claude/settings.local.json` | you change the guard or its registration |
@@ -206,6 +209,15 @@ suite locally before you push, and report the exit lines and the failing log as 
   https://github.com/multica-ai/andrej-karpathy-skills. Apply them only where they do not conflict
   with this file.
 
+## Job 4: update an installed project and confirm the fixes
+
+Read the skill [`skills/spec-harness-guide/SKILL.md`](./skills/spec-harness-guide/SKILL.md) and follow it.
+In an installed project the same skill is `.claude/skills/spec-harness-guide/SKILL.md` and
+`.agents/skills/spec-harness-guide/SKILL.md`. It answers four things: what Spec Harness is, how to read
+the installed version, how to update from an older version, and how to confirm that the fixes landed.
+An install made before the skill existed does not have it; run `spec-harness status <target>` from this
+checkout and read the path on its `Agent guide:` line.
+
 ## Quick answers
 
 | Question | Answer |
@@ -214,6 +226,7 @@ suite locally before you push, and report the exit lines and the failing log as 
 | Does it need Node? | Only for `npx`. A checkout needs `bash`, `git` and `python3` 3.11+ |
 | What do the exit codes mean? | The owner is [`docs/GETTING-STARTED.md` § Exit codes](./docs/GETTING-STARTED.md#exit-codes). Same codes: `0` the shell step finished (status may still be PENDING). `1` a check failed and said what is missing, or `index`/`finalize-init` refused an argument, precondition or busy lock. `2` no target given, an unknown command, a bad argument, or a subcommand that only prints a procedure for a model to follow. `130` `finalize-init` interrupted by Ctrl-C or SIGTERM during `--apply`, rolled back |
 | What does `PENDING` mean? | Files are staged; a model or reviewer has not done its part yet |
+| Is an install current, and how do I update it? | Job 4 above |
 | How do I undo an install? | The "Undo" section of `docs/GETTING-STARTED.md` |
 | Which model should plan? | The strongest available. Implement on a fast cheap one. Review on what the budget allows. See `Model tiers` |
 | A named model is not available | Use the nearest tier, say so and record it. Do not stop the work. If a *separate fresh context* is not available, that gate stays PENDING |

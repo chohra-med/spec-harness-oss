@@ -18,3 +18,10 @@ project, derive rules or skills, bind roles, or create feature-specific acceptan
   fresh reviewer confirm the claims after the structural check.
 - Keep each ticket's acceptance in `specs/<feature>/goal.md`; preserve the root goal scaffold.
 - Re-run the relevant checks before calling this setup READY.
+
+## Version and update
+- The installed version is `harness_version` in `.spec-harness/install.json`.
+- To check that this install is current, update it, or confirm that fixes landed, read
+  `.claude/skills/spec-harness-guide/SKILL.md` (other agent tools: `.agents/skills/spec-harness-guide/SKILL.md`).
+- An install made before that skill existed does not have it yet. `spec-harness status <this folder>`,
+  run from the new source, prints its path on the `Agent guide:` line.

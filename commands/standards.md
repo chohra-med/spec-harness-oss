@@ -38,7 +38,7 @@ and write no commitment.
 Write one line per commitment under `## Standards and compliance` in `.memory/10-product.md`:
 
 ```text
-- **STD-01** The app meets the European Accessibility Act through EN 301 549. (source: product owner, 2026-10-21, status: required)
+- **STD-01** The app meets the European Accessibility Act through EN 301 549. (source: product owner, 2026-01-15, status: required)
 ```
 
 The full official name goes in the sentence. A business-layer `STD-` commitment outranks decisions,

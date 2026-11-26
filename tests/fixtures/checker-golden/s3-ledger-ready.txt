@@ -1,0 +1,2 @@
+exit 0
+READY: 1 package, 5 skills, 5 selected roles; inventory and cited hashes match

@@ -155,15 +155,17 @@ What lands in the repository:
 | Path | What it is |
 |---|---|
 | `.claude/commands/sdd.md`, `.claude/commands/spec-harness/` | the procedures |
-| `.claude/agents/sdd-*.md` | the thirteen roles, next to any agents you already have |
+| `.claude/agents/sdd-*.md` | the fourteen roles, next to any agents you already have |
 | `.claude/skills/spec-harness*`, `.agents/skills/` | skill entry points for Claude Code and Codex |
 | `.memory/` | the project memory bank (see [docs/MEMORY.md](./MEMORY.md)) |
-| `.claude/spec-harness/` | method files, rule packs and optional memory kinds (`memory-kinds/`) that init copies from, and the edit guard hook (`hooks/sdd-gate.sh`) |
+| `.claude/spec-harness/` | method files, rule packs, optional memory kinds (`memory-kinds/`), the edit guard hook and the dispatch checker with its safe-reader sibling |
 | `.claude/settings.local.json` | merged, not copied: one `PreToolUse` entry that registers the edit guard hook, written only when the staged hook is byte-identical to the shipped one and executable. Untracked (`.git/info/exclude`); `.claude/settings.json` is never written |
 | `ai_rules/`, `RULES.md`, `AGENTS.md`, `CLAUDE.md`, `constitution.md` | rules, only where you had none; `ai_rules/review-lens.md` is an optional PENDING template of standing review checks |
 | `specs/`, `workflows/`, `learning/`, `SPEC-HARNESS.md`, `goal.md` | ticket packets, critical journeys, lessons, status |
 | `learning_human.html` | the interactive explainer for people; delete it once read |
 | `loop.sh` | a legacy placeholder; you can delete it |
+
+For LITE or FULL gate dispatches, the orchestrator runs `python3 -I -B .claude/spec-harness/dispatch-check.py --dispatch <absolute-payload>` before dispatch. The staged `dispatch-check.py` and `sh_safe_io.py` are preserved as conflicts if custom files already exist. A `DISPATCH-VALID` result checks only the payload and identity, not a model gate or feature acceptance.
 
 **The edit guard hook.** In Claude Code, `.claude/spec-harness/hooks/sdd-gate.sh` runs before every
 `Edit`, `Write`, `MultiEdit` and `NotebookEdit`. It is registered only when the staged file is byte-identical to the
@@ -242,6 +244,8 @@ Open the project in Claude Code and run:
 ```text
 /sdd init
 ```
+
+The ordered steps an agent follows (command, expected output, check and failure action for each) are in the "Run sheet" section of `.claude/commands/spec-harness/init.md`.
 
 Use your strongest model for this step. It reads your instruction files (such as `AGENTS.md`, `RULES.md`,
 `CONTRIBUTING.md`, `ai_rules/`, `.memory/`, `.cursor/rules/`, `.agents/`), your `README.md`, the project structure, package
@@ -348,7 +352,7 @@ Roles ask for a tier. The mapping lives in one table in `.claude/commands/sdd.md
 |---|---|---|
 | strong | planner, merger | your provider's strongest |
 | fast | implementer, tester, researcher, documenter, router | a cheap, fast one; the router on its smallest |
-| review | verifier, reviewer, architect, learner | strong when the token budget allows, otherwise fast |
+| review | verifier, reviewer, architect, learner, plan goldfish | strong when the token budget allows, otherwise fast |
 
 To change it for your project or your provider, add a `Model tiers` table with the same columns to
 your own `AGENTS.md`; it overrides the default. If a model is not available, the run uses the

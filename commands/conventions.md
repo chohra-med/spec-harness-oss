@@ -28,6 +28,11 @@ With no stable pattern in evidence, propose a short type/scope/ticket form such 
 only from the supplied ticket; never invent one. Check the proposal against the repository's rules
 without creating or switching a branch.
 
+- Validate the name with `git check-ref-format --branch <name>`.
+- Check for a local collision with `git show-ref --verify --quiet refs/heads/<name>`. Local absence
+  is not remote absence: a branch of that name may still exist on the remote.
+- Naming a branch grants no create, switch or push.
+
 ## Commits and pull requests
 
 Follow the repository's instructions and any installed commit-message or pull-request skill. Ground
@@ -35,6 +40,24 @@ a commit message in the staged diff, keep one purpose per commit, and keep the e
 where history shows one. A pull-request description states the problem, the behaviour change, the
 scope and the checks that actually ran; it never claims a check that did not run. This method drafts
 text only. It grants no commit, push, pull-request or merge authority.
+
+Commits:
+
+- Read `git diff --cached` before writing the message. Never stage everything just to get a diff.
+- Do not call a behaviour change a refactor.
+- Group changes into commits by reviewable purpose, not by file.
+- Naming a commit grants no commit or push.
+
+Pull requests:
+
+- Write two parts: Summary (one outcome sentence and the smallest true visual) and Evidence.
+- Evidence is an observed Before and After, or a plain statement that there is none, plus the checks
+  that actually ran. Never invent a run, a result or a screenshot.
+- Pass multi-line text to a CLI with `--body-file`, not inline.
+
+This Summary and Evidence shape follows Matt Pocock's PR skill (MIT licence), read at a pinned commit:
+https://raw.githubusercontent.com/mattpocock/skills/49dd158d1076134a641b33efb035946536778336/skills/engineering/pr/SKILL.md.
+Its text is not copied here.
 
 ## Split work into tasks
 
